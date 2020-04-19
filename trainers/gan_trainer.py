@@ -18,7 +18,7 @@ import torch.nn as nn
 import torchvision.utils as vutils
 
 class GANTrainer:
-    def __init__(self, gan_version, gan_iteration, gpu_device, writer, lr = 0.05, weight_decay = 0.0, betas = (0.5, 0.999)):
+    def __init__(self, gan_version, gan_iteration, gpu_device, writer, batch_size, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
         self.gpu_device = gpu_device
         self.lr = lr
         self.gan_version = gan_version
@@ -40,7 +40,7 @@ class GANTrainer:
         
         # Create batch of latent vectors that we will use to visualize
         #  the progression of the generator
-        self.fixed_noise = torch.randn(constants.IMAGE_SIZE, self.input_latent_size, 1, 1, device=self.gpu_device)
+        self.fixed_noise = torch.randn(batch_size, self.input_latent_size, 1, 1, device=self.gpu_device)
     
         self.netG = sample_gan.Generator(self.num_channels, self.input_latent_size, self.gen_feature_size).to(self.gpu_device)
         print(self.netG)
@@ -60,9 +60,11 @@ class GANTrainer:
         
     # Input = image
     # Performs a discriminator forward-backward pass, then a generator forward-backward pass
-    def train(self, input):
+    def train(self, input, iteration):
         real_label = 1
         fake_label = 0
+        
+        self.netG.train()
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
         ###########################
@@ -74,8 +76,8 @@ class GANTrainer:
         # Forward pass real batch through D
         output = self.netD(input).view(-1)
         # Calculate loss on all-real batch
-        print("[REAL] Label shape: ", np.shape(label))
-        print("[REAL] Output shape: ", np.shape(output))
+        #print("[REAL] Label shape: ", np.shape(label))
+        #print("[REAL] Output shape: ", np.shape(output))
         errD_real = self.compute_loss(output, label)
         # Calculate gradients for D in backward pass
         errD_real.backward()
@@ -88,10 +90,9 @@ class GANTrainer:
         fake = self.netG(noise)
         label.fill_(fake_label)
         # Classify all fake batch with D
-        print("[FAKE] Label shape: ", np.shape(label))
-        print("[FAKE] Output shape: ", np.shape(output))
-        
         output = self.netD(fake.detach()).view(-1)
+        #print("[FAKE] Label shape: ", np.shape(label))
+        #print("[FAKE] Output shape: ", np.shape(output))
         # Calculate D's loss on the all-fake batch
         errD_fake = self.compute_loss(output, label)
         # Calculate the gradients for this batch
@@ -121,16 +122,16 @@ class GANTrainer:
         self.G_losses.append(errG.item())
         self.D_losses.append(errD.item())
         
-        print("G loss: ", errG.item(), " D loss: ", errD.item())
+        #print("Iteration: ", iteration, " G loss: ", errG.item(), " D loss: ", errD.item())
 
-    def verify(self):
+    def verify(self):        
         # Check how the generator is doing by saving G's output on fixed_noise
         with torch.no_grad():
             fake = self.netG(self.fixed_noise).detach().cpu()
  
         plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
         plt.axis("off")
-        ims = np.transpose(vutils.make_grid(fake, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(fake, nrow = 4, padding=2, normalize=True).cpu(),(1,2,0))
         plt.imshow(ims)
         plt.show()
         
@@ -153,8 +154,10 @@ class GANTrainer:
         ave_D_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
 
         self.writer.add_scalars(self.gan_version +'/loss' + "/" + self.gan_iteration, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
-                           global_step = epoch)
+                           global_step = epoch + 1)
         self.writer.close()
+        
+        print("Epoch: ", epoch, " G loss: ", ave_G_loss, " D loss: ", ave_D_loss)
     
     def load_saved_state(self, checkpoint, generator_key, disriminator_key, optimizer_key):
         self.netG.load_state_dict(checkpoint[generator_key])

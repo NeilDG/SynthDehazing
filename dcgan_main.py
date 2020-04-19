@@ -39,7 +39,7 @@ def main():
     num_epochs = 2000
     
     # Batch size during training
-    batch_size = 4
+    batch_size = 16
     
     #manualSeed = random.randint(1, 10000) # use if you want new results
     print("Random Seed: ", manualSeed)
@@ -56,10 +56,10 @@ def main():
     GENERATOR_KEY = "generator"
     DISCRIMINATOR_KEY = "discriminator"
     
-    gt = gan_trainer.GANTrainer(GAN_VERSION, GAN_ITERATION, device, writer)
+    gt = gan_trainer.GANTrainer(GAN_VERSION, GAN_ITERATION, device, writer, batch_size)
     start_epoch = 0
     
-    if(False): 
+    if(True): 
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, GENERATOR_KEY, DISCRIMINATOR_KEY, OPTIMIZER_KEY)
@@ -68,7 +68,7 @@ def main():
         print("===================================================")
     
     # Create the dataloader
-    dataloader = dataset_loader.load_dataset(batch_size, 500)
+    dataloader = dataset_loader.load_dataset(batch_size, -1)
     
     # Plot some training images
     file_name_batch, real_batch = next(iter(dataloader))
@@ -84,7 +84,7 @@ def main():
         # For each batch in the dataloader
         for i, (file_name, data) in enumerate(dataloader, 0):
             real_gpu = data.to(device)
-            gt.train(real_gpu)
+            gt.train(real_gpu, i)
         
         gt.verify()
         gt.report(epoch)

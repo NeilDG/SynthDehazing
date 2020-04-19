@@ -25,19 +25,19 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.main = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d(input_latent_size, gen_feature_size * 32, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(gen_feature_size * 32),
-            nn.ReLU(True),
-            
-            nn.ConvTranspose2d(gen_feature_size * 32, gen_feature_size * 16, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(gen_feature_size * 16),
-            nn.ReLU(True),
-            
-            nn.ConvTranspose2d(gen_feature_size * 16, gen_feature_size * 8, 4, 1, 0, bias=False),
+            nn.ConvTranspose2d(input_latent_size, gen_feature_size * 8, 4, 2, 1, bias=False),
             nn.BatchNorm2d(gen_feature_size * 8),
             nn.ReLU(True),
             
             nn.ConvTranspose2d(gen_feature_size * 8, gen_feature_size * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(gen_feature_size * 4),
+            nn.ReLU(True),
+            
+            nn.ConvTranspose2d(gen_feature_size * 4, gen_feature_size * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(gen_feature_size * 4),
+            nn.ReLU(True),
+            
+            nn.ConvTranspose2d(gen_feature_size * 4, gen_feature_size * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(gen_feature_size * 4),
             nn.ReLU(True),
             
@@ -49,6 +49,7 @@ class Generator(nn.Module):
             nn.BatchNorm2d(gen_feature_size),
             nn.ReLU(True),
             
+            nn.ConvTranspose2d( gen_feature_size, gen_feature_size, 4, 2, 1, bias=False),
             nn.ConvTranspose2d( gen_feature_size, num_channels, 4, 2, 1, bias=False),
             nn.Tanh()
         )
@@ -75,17 +76,17 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(disc_feature_size * 4),
             nn.LeakyReLU(0.2, inplace=True),
             
-            nn.Conv2d(disc_feature_size * 4, disc_feature_size * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(disc_feature_size * 8),
+            nn.Conv2d(disc_feature_size * 4, disc_feature_size * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(disc_feature_size * 4),
             nn.LeakyReLU(0.2, inplace=True),
                      
-            nn.Conv2d(disc_feature_size * 8, disc_feature_size * 16, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(disc_feature_size * 16),
+            nn.Conv2d(disc_feature_size * 4, disc_feature_size * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(disc_feature_size * 4),
             nn.LeakyReLU(0.2, inplace=True),
             
-            nn.Conv2d(disc_feature_size * 16, disc_feature_size * 16, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(disc_feature_size * 16),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(disc_feature_size * 4, disc_feature_size * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(disc_feature_size * 8),
+            nn.LeakyReLU(0.2, inplace=True)
         )
         
         #from vanila DCGAN if 64 x 64 image size
@@ -96,7 +97,7 @@ class Discriminator(nn.Module):
         # nn.Conv2d(disc_feature_size * 32, 1, 4, 1, 0, bias=False),
         
         self.fc_block = nn.Sequential(
-            nn.Linear(disc_feature_size * 16 * 16, disc_feature_size * 8),
+            nn.Linear(disc_feature_size * 128, disc_feature_size * 8),
             nn.Linear(disc_feature_size * 8, disc_feature_size * 4),
             nn.Linear(disc_feature_size * 4, disc_feature_size * 2),
             nn.Linear(disc_feature_size * 2, disc_feature_size),
