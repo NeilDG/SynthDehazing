@@ -21,63 +21,93 @@ def weights_init(m):
             
 class Generator(nn.Module):
     
-    def __init__(self, ngpu, nc, nz, ngf):
+    def __init__(self, num_channels, input_latent_size, gen_feature_size):
         super(Generator, self).__init__()
-        self.ngpu = ngpu
         self.main = nn.Sequential(
             # input is Z, going into a convolution
-            nn.ConvTranspose2d( nz, ngf * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(ngf * 8),
+            nn.ConvTranspose2d(input_latent_size, gen_feature_size * 32, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(gen_feature_size * 32),
             nn.ReLU(True),
-            # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf * 4),
+            
+            nn.ConvTranspose2d(gen_feature_size * 32, gen_feature_size * 16, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(gen_feature_size * 16),
             nn.ReLU(True),
-            # state size. (ngf*4) x 8 x 8
-            nn.ConvTranspose2d( ngf * 4, ngf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf * 2),
+            
+            nn.ConvTranspose2d(gen_feature_size * 16, gen_feature_size * 8, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(gen_feature_size * 8),
             nn.ReLU(True),
-            # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d( ngf * 2, ngf, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf),
+            
+            nn.ConvTranspose2d(gen_feature_size * 8, gen_feature_size * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(gen_feature_size * 4),
             nn.ReLU(True),
-            # state size. (ngf) x 32 x 32
-            nn.ConvTranspose2d( ngf, nc, 4, 2, 1, bias=False),
+            
+            nn.ConvTranspose2d( gen_feature_size * 4, gen_feature_size * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(gen_feature_size * 2),
+            nn.ReLU(True),
+            
+            nn.ConvTranspose2d( gen_feature_size * 2, gen_feature_size, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(gen_feature_size),
+            nn.ReLU(True),
+            
+            nn.ConvTranspose2d( gen_feature_size, num_channels, 4, 2, 1, bias=False),
             nn.Tanh()
-            # state size. (nc) x 64 x 64
         )
         
         self.apply(weights_init)
+        
        
     def forward(self, input):
         return self.main(input)
 
 class Discriminator(nn.Module):
-    def __init__(self, ngpu, nc, ndf):
+    def __init__(self, num_channels, disc_feature_size):
         super(Discriminator, self).__init__()
-        self.ngpu = ngpu
         self.main = nn.Sequential(
-            # input is (nc) x 64 x 64
-            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            # input is (nc) x H x W.  Opposite of generator
+            nn.Conv2d(num_channels, disc_feature_size, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 32 x 32
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 2),
+            
+            nn.Conv2d(disc_feature_size, disc_feature_size * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(disc_feature_size * 2),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 16 x 16
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 4),
+            
+            nn.Conv2d(disc_feature_size * 2, disc_feature_size * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(disc_feature_size * 4),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 8),
+            
+            nn.Conv2d(disc_feature_size * 4, disc_feature_size * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(disc_feature_size * 8),
             nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
+                     
+            nn.Conv2d(disc_feature_size * 8, disc_feature_size * 16, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(disc_feature_size * 16),
+            nn.LeakyReLU(0.2, inplace=True),
+            
+            nn.Conv2d(disc_feature_size * 16, disc_feature_size * 16, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(disc_feature_size * 16),
+            nn.LeakyReLU(0.2, inplace=True),
         )
+        
+        #from vanila DCGAN if 64 x 64 image size
+        # nn.Conv2d(disc_feature_size * 16, disc_feature_size * 32, 4, 2, 1, bias=False),
+        # nn.BatchNorm2d(disc_feature_size * 32),
+        # nn.LeakyReLU(0.2, inplace=True),
+        
+        # nn.Conv2d(disc_feature_size * 32, 1, 4, 1, 0, bias=False),
+        
+        self.fc_block = nn.Sequential(
+            nn.Linear(disc_feature_size * 16 * 16, disc_feature_size * 8),
+            nn.Linear(disc_feature_size * 8, disc_feature_size * 4),
+            nn.Linear(disc_feature_size * 4, disc_feature_size * 2),
+            nn.Linear(disc_feature_size * 2, disc_feature_size),
+            nn.Linear(disc_feature_size, 1),
+            nn.Sigmoid())
         
         self.apply(weights_init)
 
     def forward(self, input):
-        return self.main(input)
+        x = self.main(input)
+        x = torch.flatten(x, 1)
+        x = self.fc_block(x)
+        
+        return x
