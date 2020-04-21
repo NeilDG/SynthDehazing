@@ -39,7 +39,7 @@ def main():
     num_epochs = 2000
     
     # Batch size during training
-    batch_size = 16
+    batch_size = 1024
     
     #manualSeed = random.randint(1, 10000) # use if you want new results
     print("Random Seed: ", manualSeed)
@@ -49,14 +49,14 @@ def main():
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     writer = SummaryWriter('train_plot')
     
-    GAN_VERSION = "gan_v1.02"
-    GAN_ITERATION = "2"
+    GAN_VERSION = "gan_v1.03"
+    GAN_ITERATION = "1"
     OPTIMIZER_KEY = "optimizer"
     CHECKPATH = 'checkpoint/' + GAN_VERSION +'.pt'
     GENERATOR_KEY = "generator"
     DISCRIMINATOR_KEY = "discriminator"
     
-    gt = gan_trainer.GANTrainer(GAN_VERSION, GAN_ITERATION, device, writer, batch_size)
+    gt = gan_trainer.GANTrainer(GAN_VERSION, GAN_ITERATION, device, writer)
     start_epoch = 0
     
     if(True): 
@@ -68,22 +68,32 @@ def main():
         print("===================================================")
     
     # Create the dataloader
-    dataloader = dataset_loader.load_dataset(batch_size, -1)
+    #dataloader = dataset_loader.load_dataset(batch_size, -1)
+    #TEMP. Load dogs dataset.
+    dataset = dset.ImageFolder(root=constants.DATASET_PATH,
+                       transform=transforms.Compose([
+                           transforms.Resize(constants.IMAGE_SIZE),
+                           transforms.CenterCrop(constants.IMAGE_SIZE),
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                       ]))
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
+                                         shuffle=True, num_workers=8)
     
     # Plot some training images
-    file_name_batch, real_batch = next(iter(dataloader))
+    real_batch = next(iter(dataloader))
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
     plt.title("Training Images")
-    plt.imshow(np.transpose(vutils.make_grid(real_batch.to(device)[:64], padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
     print("Starting Training Loop...")
     # For each epoch
     for epoch in range(start_epoch, num_epochs):
         # For each batch in the dataloader
-        for i, (file_name, data) in enumerate(dataloader, 0):
-            real_gpu = data.to(device)
+        for i, (data) in enumerate(dataloader, 0):
+            real_gpu = data[0].to(device)
             gt.train(real_gpu, i)
         
         gt.verify()

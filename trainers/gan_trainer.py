@@ -18,7 +18,7 @@ import torch.nn as nn
 import torchvision.utils as vutils
 
 class GANTrainer:
-    def __init__(self, gan_version, gan_iteration, gpu_device, writer, batch_size, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
+    def __init__(self, gan_version, gan_iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
         self.gpu_device = gpu_device
         self.lr = lr
         self.gan_version = gan_version
@@ -40,7 +40,7 @@ class GANTrainer:
         
         # Create batch of latent vectors that we will use to visualize
         #  the progression of the generator
-        self.fixed_noise = torch.randn(batch_size, self.input_latent_size, 1, 1, device=self.gpu_device)
+        self.fixed_noise = torch.randn(64, self.input_latent_size, 1, 1, device=self.gpu_device)
     
         self.netG = sample_gan.Generator(self.num_channels, self.input_latent_size, self.gen_feature_size).to(self.gpu_device)
         print(self.netG)
@@ -131,7 +131,7 @@ class GANTrainer:
  
         plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
         plt.axis("off")
-        ims = np.transpose(vutils.make_grid(fake, nrow = 4, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(fake, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
         plt.imshow(ims)
         plt.show()
         
