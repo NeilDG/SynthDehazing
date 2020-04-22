@@ -23,6 +23,7 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from torch.utils.tensorboard import SummaryWriter
 from IPython.display import HTML
 
 from model import sample_gan
@@ -65,7 +66,7 @@ def main():
     ngpu = 1
     
     # Create the dataloader
-    dataloader = dataset_loader.load_dataset(batch_size, -1)
+    dataloader = dataset_loader.load_dataset(batch_size, 500)
     
     # Decide which device we want to run on
     device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
@@ -79,10 +80,10 @@ def main():
     plt.show()
     
     # Create the generator
-    netG = sample_gan.Generator(ngpu, nc, nz, ngf).to(device)
+    netG = sample_gan.Generator(nc, nz, ngf).to(device)
     print(netG)
     
-    netD = sample_gan.Discriminator(ngpu, nc, ndf).to(device)
+    netD = sample_gan.Discriminator(nc, ndf).to(device)
     print(netD)
     
     loss = nn.BCELoss()
@@ -100,13 +101,14 @@ def main():
     optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(beta1, 0.999))
     
     #load checkpt
-    GAN_VERSION = "gan_v1.01"
+    GAN_VERSION = "gan_v1.02"
+    GAN_ITERATION = "1"
     OPTIMIZER_KEY = "optimizer"
     CHECKPATH = 'checkpoint/' + GAN_VERSION +'.pt'
     GENERATOR_KEY = "generator"
     DISCRIMINATOR_KEY = "discriminator"
     start_epoch = 1
-    if(True): 
+    if(False): 
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1  
         netG.load_state_dict(checkpoint[GENERATOR_KEY])
@@ -117,7 +119,10 @@ def main():
  
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
-        
+     
+    #initialize tensorboard writer
+    writer = SummaryWriter('train_plot')
+    
     # Training Loop
 
     # Lists to keep track of progress
@@ -137,11 +142,11 @@ def main():
             ## Train with all-real batch
             netD.zero_grad()
             # Format batch
-            real_cpu = data.to(device)
-            b_size = real_cpu.size(0)
+            real_gpu = data.to(device)
+            b_size = real_gpu.size(0)
             label = torch.full((b_size,), real_label, device=device)
             # Forward pass real batch through D
-            output = netD(real_cpu).view(-1)
+            output = netD(real_gpu).view(-1)
             # Calculate loss on all-real batch
             errD_real = loss(output, label)
             # Calculate gradients for D in backward pass
@@ -218,15 +223,33 @@ def main():
         torch.save(save_dict, CHECKPATH)
         print("Saved model state:", len(save_dict))   
         
+        log_weights("gen", netG, writer, epoch)
+        log_weights("disc", netD, writer, epoch)
         
-        plt.title("Generator and Discriminator Loss During Training")
-        plt.plot(G_losses,label="G")
-        plt.plot(D_losses,label="D")
-        plt.xlabel("iterations")
-        plt.ylabel("Loss")
-        plt.legend()
-        plt.show()
+        # plt.title("Generator and Discriminator Loss During Training")
+        # plt.plot(G_losses,label="G")
+        # plt.plot(D_losses,label="D")
+        # plt.xlabel("iterations")
+        # plt.ylabel("Loss")
+        # plt.legend()
+        # plt.show()
+        
+        #plot to tensorboard per epoch
+        ave_G_loss = sum(G_losses) / (len(G_losses) * 1.0)
+        ave_D_loss = sum(D_losses) / (len(D_losses) * 1.0)
 
+        writer.add_scalars(GAN_VERSION +'/loss' + "/" + GAN_ITERATION, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
+                           global_step = epoch)
+        writer.close()
+
+def log_weights(model_name, model, writer, current_epoch):
+        #log update in weights
+        for module_name,module in model.named_modules():
+            for name, param in module.named_parameters():
+                if(module_name != ""):
+                    #print("Layer added to tensorboard: ", module_name + '/weights/' +name)
+                    writer.add_histogram(model_name + "/" + module_name + '/' +name, param.data, global_step = current_epoch)
+                        
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 
     main()
