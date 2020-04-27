@@ -23,21 +23,14 @@ class Generator(nn.Module):
     
     def __init__(self, num_channels, input_latent_size, gen_feature_size):
         super(Generator, self).__init__()
+        
         self.main = nn.Sequential(
-            # input is Z, going into a convolution
-            nn.ConvTranspose2d(input_latent_size, gen_feature_size * 8, 4, 2, 1, bias=False),
+            # input is Z (image), going into a convolution
+            nn.ConvTranspose2d( input_latent_size, gen_feature_size * 8, 4, 1, 0, bias=False),
             nn.BatchNorm2d(gen_feature_size * 8),
             nn.ReLU(True),
             
             nn.ConvTranspose2d(gen_feature_size * 8, gen_feature_size * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(gen_feature_size * 4),
-            nn.ReLU(True),
-            
-            nn.ConvTranspose2d(gen_feature_size * 4, gen_feature_size * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(gen_feature_size * 4),
-            nn.ReLU(True),
-            
-            nn.ConvTranspose2d(gen_feature_size * 4, gen_feature_size * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(gen_feature_size * 4),
             nn.ReLU(True),
             
@@ -49,7 +42,6 @@ class Generator(nn.Module):
             nn.BatchNorm2d(gen_feature_size),
             nn.ReLU(True),
             
-            nn.ConvTranspose2d( gen_feature_size, gen_feature_size, 4, 2, 1, bias=False),
             nn.ConvTranspose2d( gen_feature_size, num_channels, 4, 2, 1, bias=False),
             nn.Tanh()
         )
@@ -114,7 +106,6 @@ class Discriminator(nn.Module):
 
     def forward(self, input):
         x = self.main(input)
-        #x = torch.flatten(x, 1)
         x = self.fc_block(x)
         
         return x

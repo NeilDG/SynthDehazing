@@ -16,27 +16,43 @@ import constants
 
 class TorchImageDataset(data.Dataset):
     
-    def __init__(self, rgb_image_list):
-        self.rgb_image_list = rgb_image_list
-        self.image_transform_op = transforms.Compose([
+    def __init__(self, normal_list, topdown_list):
+        self.normal_list = normal_list
+        self.topdown_list = topdown_list
+        
+        self.normal_transform_op = transforms.Compose([
                                    transforms.ToPILImage(),
-                                   transforms.Resize(constants.IMAGE_SIZE),
-                                   transforms.CenterCrop(constants.IMAGE_SIZE),
+                                   transforms.Resize(constants.NORMAL_IMAGE_SIZE),
+                                   transforms.CenterCrop(constants.NORMAL_IMAGE_SIZE),
+                                   transforms.ToTensor(),
+                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                                   ])
+        
+        self.topdown_transform_op = transforms.Compose([
+                                   transforms.ToPILImage(),
+                                   transforms.Resize(constants.TOPDOWN_IMAGE_SIZE),
+                                   transforms.CenterCrop(constants.TOPDOWN_IMAGE_SIZE),
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
                                    ])
         
     def __getitem__(self, idx):
-        img_id = self.rgb_image_list[idx]
-        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) #because matplot uses RGB, openCV is BGR
+        img_id = self.normal_list[idx]
+        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB) #because matplot uses RGB, openCV is BGR
         
-        if(self.image_transform_op):
-            img = self.image_transform_op(img)
-                
+        if(self.normal_transform_op):
+            normal_img = self.normal_transform_op(normal_img)
+        
+        img_id = self.topdown_list[idx]
+        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2RGB)
+        
+        if(self.topdown_transform_op):
+            topdown_img = self.topdown_transform_op(topdown_img)
+            
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
-        return file_name, img
+        return file_name, normal_img, topdown_img
     
     def __len__(self):
-        return len(self.rgb_image_list)
+        return len(self.normal_list)
 
