@@ -50,7 +50,7 @@ def main():
     writer = SummaryWriter('train_plot')
     
     GAN_VERSION = "td_v1.00"
-    GAN_ITERATION = "2"
+    GAN_ITERATION = "3"
     OPTIMIZER_KEY = "optimizer"
     CHECKPATH = 'checkpoint/' + GAN_VERSION +'.pt'
     GENERATOR_KEY = "generator"
@@ -59,7 +59,7 @@ def main():
     gt = gan_trainer.GANTrainer(GAN_VERSION, GAN_ITERATION, device, writer)
     start_epoch = 0
     
-    if(False): 
+    if(True): 
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, GENERATOR_KEY, DISCRIMINATOR_KEY, OPTIMIZER_KEY)
@@ -68,7 +68,7 @@ def main():
         print("===================================================")
     
     # Create the dataloader
-    dataloader = dataset_loader.load_dataset(batch_size, 2000)
+    dataloader = dataset_loader.load_dataset(batch_size, -1)
     
     # Plot some training images
     name_batch, normal_batch, topdown_batch = next(iter(dataloader))
