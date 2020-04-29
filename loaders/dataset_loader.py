@@ -40,7 +40,7 @@ def load_dataset(batch_size = 8, num_image_to_load = -1):
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=batch_size,
-        num_workers=8,
+        num_workers=12,
         shuffle=True
     )
     

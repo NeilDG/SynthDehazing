@@ -41,6 +41,11 @@ class GANTrainer:
     def compute_loss(self, pred, target):
         loss = nn.BCELoss() #binary cross-entropy loss
         return loss(pred, target)
+    
+    #computes the L1 reconstruction loss of GAN
+    def compute_gan_loss(self, pred, target):
+        loss = nn.L1Loss()
+        return loss(pred, target)
         
     # Input = image
     # Performs a discriminator forward-backward pass, then a generator forward-backward pass
@@ -58,7 +63,7 @@ class GANTrainer:
         b_size = normal_tensor.size(0)
         label = torch.full((b_size,), real_label, device = self.gpu_device)
         # Forward pass real batch through D
-        output = self.netD(normal_tensor)
+        output = self.netD(normal_tensor, topdown_tensor)
         
         # Calculate loss on all-real batch
         #print("[REAL-D] Label shape: ", np.shape(label))
@@ -76,7 +81,7 @@ class GANTrainer:
         #print("Generated img shape: ", np.shape(fake))
         
         # Classify all fake batch with D
-        output = self.netD(fake.detach())
+        output = self.netD(normal_tensor, fake.detach())
         
         #print("[FAKE-D] Label shape: ", np.shape(label))
         #print("[FAKE-D] Output shape: ", np.shape(output))
@@ -97,9 +102,9 @@ class GANTrainer:
         self.netG.zero_grad()
         label.fill_(real_label)  # fake labels are real for generator cost
         # Since we just updated D, perform another forward pass of all-fake batch through D
-        output = self.netD(fake).view(-1)
+        output = self.netD(normal_tensor, fake).view(-1)
         # Calculate G's loss based on this output
-        errG = self.compute_loss(output, label)
+        errG = self.compute_loss(output, label) + self.compute_gan_loss(fake, topdown_tensor)
         # Calculate gradients for G
         errG.backward()
         #D_G_z2 = output.mean().item()
@@ -120,19 +125,19 @@ class GANTrainer:
         fig, ax = plt.subplots(3, 1)
         fig.set_size_inches(40, 20)
         
-        ims = np.transpose(vutils.make_grid(normal_tensor, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(normal_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[0].set_axis_off()
         ax[0].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(fake, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[1].set_axis_off()
         ax[1].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(topdown_tensor, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(topdown_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[2].set_axis_off()
         ax[2].imshow(ims)
         
-        plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.05) 
+        plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
         plt.show()
         
     #reports metrics to necessary tools such as tensorboard
@@ -152,7 +157,7 @@ class GANTrainer:
     def tensorboard_plot(self, epoch):
         ave_G_loss = sum(self.G_losses) / (len(self.G_losses) * 1.0)
         ave_D_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
-
+        
         self.writer.add_scalars(self.gan_version +'/loss' + "/" + self.gan_iteration, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
                            global_step = epoch + 1)
         self.writer.close()
