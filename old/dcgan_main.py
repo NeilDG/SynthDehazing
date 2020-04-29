@@ -39,7 +39,7 @@ def main():
     num_epochs = 2000
     
     # Batch size during training
-    batch_size = 1024
+    batch_size = 2048
     
     #manualSeed = random.randint(1, 10000) # use if you want new results
     print("Random Seed: ", manualSeed)

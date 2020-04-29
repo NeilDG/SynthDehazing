@@ -5,7 +5,7 @@ Created on Wed Nov  6 19:41:58 2019
 @author: delgallegon
 """
 
-from model import topdown_gan
+from model import sample_gan
 from loaders import dataset_loader
 import constants
 import torch
@@ -25,11 +25,27 @@ class GANTrainer:
         self.gan_iteration = gan_iteration
         self.writer = writer
         self.visualized = False
+        
+        # Number of channels in the training images. For color images this is 3
+        self.num_channels = 3
+        
+        # Size of z latent vector (i.e. size of generator input)
+        self.input_latent_size = 100
+        
+        # Size of feature maps in generator
+        self.gen_feature_size = 64
+        
+        # Size of feature maps in discriminator
+        self.disc_feature_size = 64
+        
+        # Create batch of latent vectors that we will use to visualize
+        #  the progression of the generator
+        self.fixed_noise = torch.randn(64, self.input_latent_size, 1, 1, device=self.gpu_device)
     
-        self.netG = topdown_gan.Generator().to(self.gpu_device)
+        self.netG = sample_gan.Generator(self.num_channels, self.input_latent_size, self.gen_feature_size).to(self.gpu_device)
         print(self.netG)
         
-        self.netD = topdown_gan.Discriminator().to(self.gpu_device)
+        self.netD = sample_gan.Discriminator(self.num_channels, self.disc_feature_size).to(self.gpu_device)
         print(self.netD)
         
         self.optimizerD = optim.Adam(self.netD.parameters(), lr, betas)
@@ -41,15 +57,10 @@ class GANTrainer:
     def compute_loss(self, pred, target):
         loss = nn.BCELoss() #binary cross-entropy loss
         return loss(pred, target)
-    
-    #computes the L1 reconstruction loss of GAN
-    def compute_gan_loss(self, pred, target):
-        loss = nn.L1Loss()
-        return loss(pred, target)
         
     # Input = image
     # Performs a discriminator forward-backward pass, then a generator forward-backward pass
-    def train(self, normal_tensor, topdown_tensor, iteration):
+    def train(self, input, iteration):
         real_label = 1
         fake_label = 0
         
@@ -59,33 +70,29 @@ class GANTrainer:
         ###########################
         ## Train with all-real batch
         self.netD.zero_grad()
-        
-        b_size = normal_tensor.size(0)
+        # Format batch
+        b_size = input.size(0)
         label = torch.full((b_size,), real_label, device = self.gpu_device)
         # Forward pass real batch through D
-        output = self.netD(normal_tensor, topdown_tensor)
-        
+        output = self.netD(input).view(-1)
         # Calculate loss on all-real batch
-        #print("[REAL-D] Label shape: ", np.shape(label))
-        #print("[REAL-D] Output shape: ", np.shape(output))
-        
+        #print("[REAL] Label shape: ", np.shape(label))
+        #print("[REAL] Output shape: ", np.shape(output))
         errD_real = self.compute_loss(output, label)
         # Calculate gradients for D in backward pass
         errD_real.backward()
         #D_x = output.mean().item()
     
-        ## Generate fake topdown image
-        fake = self.netG(normal_tensor)
+        ## Train with all-fake batch
+        # Generate batch of latent vectors
+        noise = torch.randn(b_size, self.input_latent_size, 1, 1, device=self.gpu_device)
+        # Generate fake image batch with G
+        fake = self.netG(noise)
         label.fill_(fake_label)
-        
-        #print("Generated img shape: ", np.shape(fake))
-        
         # Classify all fake batch with D
-        output = self.netD(normal_tensor, fake.detach())
-        
-        #print("[FAKE-D] Label shape: ", np.shape(label))
-        #print("[FAKE-D] Output shape: ", np.shape(output))
-        
+        output = self.netD(fake.detach()).view(-1)
+        #print("[FAKE] Label shape: ", np.shape(label))
+        #print("[FAKE] Output shape: ", np.shape(output))
         # Calculate D's loss on the all-fake batch
         errD_fake = self.compute_loss(output, label)
         # Calculate the gradients for this batch
@@ -102,9 +109,9 @@ class GANTrainer:
         self.netG.zero_grad()
         label.fill_(real_label)  # fake labels are real for generator cost
         # Since we just updated D, perform another forward pass of all-fake batch through D
-        output = self.netD(normal_tensor, fake).view(-1)
+        output = self.netD(fake).view(-1)
         # Calculate G's loss based on this output
-        errG = self.compute_loss(output, label) + self.compute_gan_loss(fake, topdown_tensor)
+        errG = self.compute_loss(output, label)
         # Calculate gradients for G
         errG.backward()
         #D_G_z2 = output.mean().item()
@@ -117,27 +124,16 @@ class GANTrainer:
         
         #print("Iteration: ", iteration, " G loss: ", errG.item(), " D loss: ", errD.item())
 
-    def verify(self, normal_tensor, topdown_tensor):        
+    def verify(self):        
         # Check how the generator is doing by saving G's output on fixed_noise
         with torch.no_grad():
-            fake = self.netG(normal_tensor).detach().cpu()
+            fake = self.netG(self.fixed_noise).detach().cpu()
         
-        fig, ax = plt.subplots(3, 1)
-        fig.set_size_inches(40, 20)
-        
-        ims = np.transpose(vutils.make_grid(normal_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[0].set_axis_off()
-        ax[0].imshow(ims)
-        
-        ims = np.transpose(vutils.make_grid(fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[1].set_axis_off()
-        ax[1].imshow(ims)
-        
-        ims = np.transpose(vutils.make_grid(topdown_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[2].set_axis_off()
-        ax[2].imshow(ims)
-        
-        plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
+        fake = torch.nn.functional.interpolate(fake, scale_factor = 4, mode = 'bilinear')
+        plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
+        plt.axis("off")
+        ims = np.transpose(vutils.make_grid(fake, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
+        plt.imshow(ims)
         plt.show()
         
     #reports metrics to necessary tools such as tensorboard
@@ -157,7 +153,7 @@ class GANTrainer:
     def tensorboard_plot(self, epoch):
         ave_G_loss = sum(self.G_losses) / (len(self.G_losses) * 1.0)
         ave_D_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
-        
+
         self.writer.add_scalars(self.gan_version +'/loss' + "/" + self.gan_iteration, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
                            global_step = epoch + 1)
         self.writer.close()
