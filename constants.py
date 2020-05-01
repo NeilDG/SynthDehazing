@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 #DATASET_PATH = "E:/Dogs_Dataset/"
-DATASET_PATH_NORMAL = "D:/Datasets/ANU Small Dataset/streetview/"
-DATASET_PATH_TOPDOWN = "D:/Datasets/ANU Small Dataset/satview_polish/"
+DATASET_PATH_NORMAL = "E:/ANU Small Dataset/streetview/"
+DATASET_PATH_TOPDOWN = "E:/ANU Small Dataset/satview_polish/"
 
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
