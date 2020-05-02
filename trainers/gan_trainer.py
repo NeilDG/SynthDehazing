@@ -139,6 +139,31 @@ class GANTrainer:
         
         plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
         plt.show()
+    
+    def verify_and_save(self, normal_tensor, topdown_tensor, file_number):
+        LOCATION = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/figures/"
+        with torch.no_grad():
+            fake = self.netG(normal_tensor).detach().cpu()
+        
+        fig, ax = plt.subplots(3, 1)
+        fig.set_size_inches(15, 25)
+        fig.tight_layout()
+        
+        ims = np.transpose(vutils.make_grid(normal_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[0].set_axis_off()
+        ax[0].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[1].set_axis_off()
+        ax[1].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(topdown_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[2].set_axis_off()
+        ax[2].imshow(ims)
+        
+        plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
+        plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
+        plt.show()
         
     #reports metrics to necessary tools such as tensorboard
     def report(self, epoch):
