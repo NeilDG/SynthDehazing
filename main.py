@@ -26,21 +26,31 @@ import matplotlib.animation as animation
 from torch.utils.tensorboard import SummaryWriter
 from IPython.display import HTML
 
+from reporters import figure_creator
 from model import sample_gan
 from loaders import dataset_loader
 from trainers import gan_trainer
 import constants
 
+GAN_VERSION = "td_v1.01"
+GAN_ITERATION = "5"
+OPTIMIZER_KEY = "optimizer"
+CHECKPATH = 'checkpoint/' + GAN_VERSION +'.pt'
+GENERATOR_KEY = "generator"
+DISCRIMINATOR_KEY = "discriminator"
+
+ # Set random seed for reproducibility
+manualSeed = 999
+
+# Number of training epochs
+num_epochs = 2000
+
+# Batch size during training
+batch_size = 128
+    
+    
+    
 def main():
-    # Set random seed for reproducibility
-    manualSeed = 999
-    
-    # Number of training epochs
-    num_epochs = 2000
-    
-    # Batch size during training
-    batch_size = 128
-    
     #manualSeed = random.randint(1, 10000) # use if you want new results
     print("Random Seed: ", manualSeed)
     random.seed(manualSeed)
@@ -48,13 +58,6 @@ def main():
     
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     writer = SummaryWriter('train_plot')
-    
-    GAN_VERSION = "td_v1.01"
-    GAN_ITERATION = "5"
-    OPTIMIZER_KEY = "optimizer"
-    CHECKPATH = 'checkpoint/' + GAN_VERSION +'.pt'
-    GENERATOR_KEY = "generator"
-    DISCRIMINATOR_KEY = "discriminator"
     
     gt = gan_trainer.GANTrainer(GAN_VERSION, GAN_ITERATION, device, writer)
     start_epoch = 0
@@ -101,5 +104,6 @@ def main():
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 
-    main()
+    #main()
+    figure_creator.view_train_results(128, GAN_VERSION, GAN_ITERATION)
 
