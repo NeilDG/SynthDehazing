@@ -39,7 +39,7 @@ def main():
     num_epochs = 2000
     
     # Batch size during training
-    batch_size = 64
+    batch_size = 128
     
     #manualSeed = random.randint(1, 10000) # use if you want new results
     print("Random Seed: ", manualSeed)
@@ -50,7 +50,7 @@ def main():
     writer = SummaryWriter('train_plot')
     
     GAN_VERSION = "td_v1.01"
-    GAN_ITERATION = "2"
+    GAN_ITERATION = "5"
     OPTIMIZER_KEY = "optimizer"
     CHECKPATH = 'checkpoint/' + GAN_VERSION +'.pt'
     GENERATOR_KEY = "generator"
@@ -59,7 +59,7 @@ def main():
     gt = gan_trainer.GANTrainer(GAN_VERSION, GAN_ITERATION, device, writer)
     start_epoch = 0
     
-    if(False): 
+    if(True): 
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, GENERATOR_KEY, DISCRIMINATOR_KEY, OPTIMIZER_KEY)
@@ -75,13 +75,13 @@ def main():
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
     plt.title("Training - Normal Images")
-    plt.imshow(np.transpose(vutils.make_grid(normal_batch.to(device)[:64], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(vutils.make_grid(normal_batch.to(device)[:batch_size], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
     plt.title("Training - Normal Images")
-    plt.imshow(np.transpose(vutils.make_grid(topdown_batch.to(device)[:64], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(vutils.make_grid(topdown_batch.to(device)[:batch_size], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
     print("Starting Training Loop...")
