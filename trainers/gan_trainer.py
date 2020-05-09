@@ -49,7 +49,7 @@ class GANTrainer:
         
     # Input = image
     # Performs a discriminator forward-backward pass, then a generator forward-backward pass
-    def train(self, normal_tensor, topdown_tensor, iteration):
+    def train(self, normal_tensor, homog_tensor, topdown_tensor, iteration):
         real_label = 1
         fake_label = 0
         
@@ -75,7 +75,7 @@ class GANTrainer:
         #D_x = output.mean().item()
     
         ## Generate fake topdown image
-        fake = self.netG(normal_tensor)
+        fake = self.netG(normal_tensor, homog_tensor)
         label.fill_(fake_label)
         
         #print("Generated img shape: ", np.shape(fake))
@@ -117,10 +117,10 @@ class GANTrainer:
         
         #print("Iteration: ", iteration, " G loss: ", errG.item(), " D loss: ", errD.item())
 
-    def verify(self, normal_tensor, topdown_tensor):        
+    def verify(self, normal_tensor, homog_tensor, topdown_tensor):        
         # Check how the generator is doing by saving G's output on fixed_noise
         with torch.no_grad():
-            fake = self.netG(normal_tensor).detach().cpu()
+            fake = self.netG(normal_tensor, homog_tensor).detach()
         
         fig, ax = plt.subplots(3, 1)
         fig.set_size_inches(40, 20)
@@ -138,6 +138,35 @@ class GANTrainer:
         ax[2].imshow(ims)
         
         plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
+        plt.show()
+        
+        #verify reconstruction loss with MSE. for reporting purposes
+        mse_loss = nn.MSELoss()
+        self.current_mse_loss = mse_loss(fake, topdown_tensor)
+    
+    def verify_and_save(self, normal_tensor, homog_tensor, topdown_tensor, file_number):
+        LOCATION = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/figures/"
+        with torch.no_grad():
+            fake = self.netG(normal_tensor, homog_tensor).detach().cpu()
+        
+        fig, ax = plt.subplots(3, 1)
+        fig.set_size_inches(15, 25)
+        fig.tight_layout()
+        
+        ims = np.transpose(vutils.make_grid(normal_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[0].set_axis_off()
+        ax[0].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[1].set_axis_off()
+        ax[1].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(topdown_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[2].set_axis_off()
+        ax[2].imshow(ims)
+        
+        plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
+        plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
         plt.show()
         
     #reports metrics to necessary tools such as tensorboard
@@ -159,6 +188,8 @@ class GANTrainer:
         ave_D_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
         
         self.writer.add_scalars(self.gan_version +'/loss' + "/" + self.gan_iteration, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
+                           global_step = epoch + 1)
+        self.writer.add_scalars(self.gan_version +'/mse_loss' + "/" + self.gan_iteration, {'mse_loss' :self.current_mse_loss},
                            global_step = epoch + 1)
         self.writer.close()
         

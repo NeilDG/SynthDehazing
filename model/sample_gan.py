@@ -7,7 +7,6 @@ Created on Fri Apr 17 12:28:51 2020
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import global_vars as gv
 import numpy as np
 from torchvision import models
 
