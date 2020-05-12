@@ -43,7 +43,7 @@ def main():
     gt = gan_trainer.GANTrainer(constants.GAN_VERSION, constants.GAN_ITERATION, device, writer)
     start_epoch = 0
     
-    if(True): 
+    if(False): 
         checkpoint = torch.load(constants.CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
@@ -52,30 +52,29 @@ def main():
         print("===================================================")
     
     # Create the dataloader
-    dataloader = dataset_loader.load_dataset(constants.batch_size, -1)
+    dataloader = dataset_loader.load_vemon_dataset(constants.batch_size, 500)
     
     # Plot some training images
     name_batch, normal_batch, homog_batch, topdown_batch = next(iter(dataloader))
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
     plt.title("Training - Normal Images")
-    plt.imshow(np.transpose(vutils.make_grid(normal_batch.to(device)[:constants.batch_size], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(vutils.make_grid(normal_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
     plt.title("Training - Homog Images")
-    plt.imshow(np.transpose(vutils.make_grid(homog_batch.to(device)[:constants.batch_size], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(vutils.make_grid(homog_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
     plt.title("Training - Normal Images")
-    plt.imshow(np.transpose(vutils.make_grid(topdown_batch.to(device)[:constants.batch_size], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(vutils.make_grid(topdown_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
     print("Starting Training Loop...")
-    # For each epoch
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
         for i, (name, normal_img, homog_img, topdown_img) in enumerate(dataloader, 0):
