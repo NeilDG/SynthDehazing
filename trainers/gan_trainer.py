@@ -38,7 +38,7 @@ class GANTrainer:
         self.G_losses = []
         self.D_losses = []
     
-    def compute_loss(self, pred, target):
+    def bce_loss(self, pred, target):
         loss = nn.BCELoss() #binary cross-entropy loss
         return loss(pred, target)
     
@@ -49,6 +49,8 @@ class GANTrainer:
         
     # Input = image
     # Performs a discriminator forward-backward pass, then a generator forward-backward pass
+    # a = normal image
+    # b = topdown image
     def train(self, normal_tensor, homog_tensor, topdown_tensor, iteration):
         real_label = 1
         fake_label = 0
@@ -62,37 +64,45 @@ class GANTrainer:
         
         b_size = normal_tensor.size(0)
         label = torch.full((b_size,), real_label, device = self.gpu_device)
-        # Forward pass real batch through D
-        output = self.netD(normal_tensor, topdown_tensor)
+        output_ab = self.netD(normal_tensor, topdown_tensor)
         
         # Calculate loss on all-real batch
         #print("[REAL-D] Label shape: ", np.shape(label))
         #print("[REAL-D] Output shape: ", np.shape(output))
         
-        errD_real = self.compute_loss(output, label)
-        # Calculate gradients for D in backward pass
-        errD_real.backward()
-        #D_x = output.mean().item()
+        errD_real_ab = self.bce_loss(output_ab, label)
+        errD_real_ab.backward()
     
         ## Generate fake topdown image
-        fake = self.netG(normal_tensor, homog_tensor)
+        fake_b = self.netG(normal_tensor, homog_tensor)
         label.fill_(fake_label)
         
         #print("Generated img shape: ", np.shape(fake))
         
-        # Classify all fake batch with D
-        output = self.netD(normal_tensor, fake.detach())
+        output_ab = self.netD(normal_tensor, fake_b.detach())
         
         #print("[FAKE-D] Label shape: ", np.shape(label))
         #print("[FAKE-D] Output shape: ", np.shape(output))
         
         # Calculate D's loss on the all-fake batch
-        errD_fake = self.compute_loss(output, label)
-        # Calculate the gradients for this batch
-        errD_fake.backward()
-        #D_G_z1 = output.mean().item()
-        # Add the gradients from the all-real and all-fake batches
-        errD = errD_real + errD_fake
+        errD_fake_ab = self.bce_loss(output_ab, label)
+        errD_fake_ab.backward()
+        
+        #perform B to A
+        a_size = topdown_tensor.size(0)
+        label = torch.full((a_size,), real_label, device = self.gpu_device)
+        output_ba = self.netD(topdown_tensor, normal_tensor)
+        errD_real_ba = self.bce_loss(output_ba, label)
+        errD_real_ba.backward()
+        
+        fake_a = self.netG(topdown_tensor, homog_tensor)
+        label.fill_(fake_label)
+        output_ba = self.netD(topdown_tensor, fake_a.detach())
+        errD_fake_ba = self.bce_loss(output_ba, label)
+        errD_fake_ba.backward()
+        
+        # Add the gradients
+        errD = errD_real_ab + errD_fake_ab + errD_real_ba + errD_fake_ba
         # Update D
         self.optimizerD.step()
     
@@ -102,12 +112,18 @@ class GANTrainer:
         self.netG.zero_grad()
         label.fill_(real_label)  # fake labels are real for generator cost
         # Since we just updated D, perform another forward pass of all-fake batch through D
-        output = self.netD(normal_tensor, fake).view(-1)
+        output_b = self.netD(normal_tensor, fake_b).view(-1)
+        output_a = self.netD(topdown_tensor, fake_a).view(-1)
+        
+        bce_ab = self.bce_loss(output_b, label)
+        bce_ba = self.bce_loss(output_a, label)
+        l1_ab = self.compute_gan_loss(fake_b, topdown_tensor)
+        l1_ba = self.compute_gan_loss(fake_a, normal_tensor)
+        
         # Calculate G's loss based on this output
-        errG = self.compute_loss(output, label) + self.compute_gan_loss(fake, topdown_tensor)
+        errG = bce_ab + bce_ba + l1_ab + l1_ba
         # Calculate gradients for G
         errG.backward()
-        #D_G_z2 = output.mean().item()
         # Update G
         self.optimizerG.step()
         
@@ -164,6 +180,27 @@ class GANTrainer:
         ims = np.transpose(vutils.make_grid(topdown_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[2].set_axis_off()
         ax[2].imshow(ims)
+        
+        plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
+        plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
+        plt.show()
+    
+    def vemon_verify(self, normal_tensor, homog_tensor, file_number):
+        LOCATION = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/figures/"
+        with torch.no_grad():
+            fake = self.netG(normal_tensor, homog_tensor).detach().cpu()
+        
+        fig, ax = plt.subplots(2, 1)
+        fig.set_size_inches(15, 7)
+        fig.tight_layout()
+        
+        ims = np.transpose(vutils.make_grid(normal_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[0].set_axis_off()
+        ax[0].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[1].set_axis_off()
+        ax[1].imshow(ims)
         
         plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
         plt.savefig(LOCATION + "result_" + str(file_number) + ".png")

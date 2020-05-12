@@ -119,9 +119,9 @@ class Discriminator(nn.Module):
         
         self.apply(weights_init)
 
-    def forward(self, normal_tensor, topdown_tensor):
+    def forward(self, tensor_a, tensor_b):
         #print("Normal shape: ", np.shape(normal_tensor), " Topdown shape: ", np.shape(topdown_tensor))
-        input = torch.cat([normal_tensor, topdown_tensor], 1)
+        input = torch.cat([tensor_a, tensor_b], 1)
         x = self.conv1(input)
         x = self.conv2(x)
         x = self.conv3(x)
