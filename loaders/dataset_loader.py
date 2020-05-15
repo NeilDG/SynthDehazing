@@ -86,7 +86,21 @@ def assemble_train_data(num_image_to_load = -1):
     for i in range(image_len):
         img_path = constants.DATASET_BIRD_GROUND_TRUTH_PATH + images[i]
         topdown_list.append(img_path)
+        
     return normal_list, homog_list, topdown_list
+
+def assemble_topdown_data(num_image_to_load = -1):
+    topdown_list = []
+    
+    for (root, dirs, files) in os.walk(constants.DATASET_BIRD_ALTERNATIVE_PATH):
+        for f in files:
+            if("_b.jpg" in f):
+                file_name = os.path.join(root, f)
+                #print(file_name)
+                topdown_list.append(file_name)
+        
+    return topdown_list
+
 
 def load_dataset(batch_size = 8, num_image_to_load = -1):
     normal_list, homog_list, topdown_list = assemble_train_data(num_image_to_load = num_image_to_load)
@@ -103,7 +117,7 @@ def load_dataset(batch_size = 8, num_image_to_load = -1):
     return train_loader
 
 def load_vemon_dataset(batch_size = 8, num_image_to_load = -1):
-    a,b, topdown_list = assemble_train_data(num_image_to_load) #get only the topdown
+    topdown_list = assemble_topdown_data(num_image_to_load)
     normal_list, homog_list = assemble_test_data(len(topdown_list)) #equalize topdown list length to loaded VEMON data
     
     print("Length of test images: ", len(normal_list), len(homog_list), len(topdown_list))

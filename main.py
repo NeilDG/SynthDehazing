@@ -43,7 +43,7 @@ def main():
     gt = gan_trainer.GANTrainer(constants.GAN_VERSION, constants.GAN_ITERATION, device, writer)
     start_epoch = 0
     
-    if(False): 
+    if(True): 
         checkpoint = torch.load(constants.CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
@@ -52,7 +52,7 @@ def main():
         print("===================================================")
     
     # Create the dataloader
-    dataloader = dataset_loader.load_vemon_dataset(constants.batch_size, 500)
+    dataloader = dataset_loader.load_vemon_dataset(constants.batch_size, -1)
     
     # Plot some training images
     name_batch, normal_batch, homog_batch, topdown_batch = next(iter(dataloader))

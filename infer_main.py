@@ -55,28 +55,28 @@ def vemon_infer(batch_size, gan_version, gan_iteration):
     dataloader = dataset_loader.load_vemon_dataset(batch_size, -1)
     
     # Plot some training images
-    name_batch, normal_batch, homog_batch = next(iter(dataloader))
+    name_batch, normal_batch, homog_batch, topdown_batch = next(iter(dataloader))
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
     plt.title("Training - Normal Images")
-    plt.imshow(np.transpose(vutils.make_grid(normal_batch.to(device)[:constants.batch_size], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(vutils.make_grid(normal_batch.to(device)[:batch_size], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
     plt.title("Training - Homog Images")
-    plt.imshow(np.transpose(vutils.make_grid(homog_batch.to(device)[:constants.batch_size], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(vutils.make_grid(homog_batch.to(device)[:batch_size], nrow = 16, padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
     item_number = 0
-    for i, (name, normal_img, homog_img) in enumerate(dataloader, 0):
+    for i, (name, normal_img, homog_img, topdown_img) in enumerate(dataloader, 0):
         normal_tensor = normal_img.to(device)
         homog_tensor = homog_img.to(device)
         item_number = item_number + 1
         gt.vemon_verify(normal_tensor, homog_tensor, item_number)
 
 def main():
-    vemon_infer(constants.batch_size, constants.GAN_VERSION, constants.GAN_ITERATION)
+    vemon_infer(constants.infer_size, constants.GAN_VERSION, constants.GAN_ITERATION)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 
