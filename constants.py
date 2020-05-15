@@ -7,9 +7,10 @@ DATASET_PATH_TOPDOWN = "E:/ANU Small Dataset/satview_polish/"
 DATASET_BIRD_NORMAL_PATH = "E:/GTA Bird Dataset/crop_img/"
 DATASET_BIRD_HOMOG_PATH = "E:/GTA Bird Dataset/homo_img/"
 DATASET_BIRD_GROUND_TRUTH_PATH = "E:/GTA Bird Dataset/bird_gt/"
+DATASET_BIRD_ALTERNATIVE_PATH = "E:/GTA Bird Dataset/raw/"
 
 DATASET_VEMON_FRONT_PATH = "E:/VEMON Dataset/frames/"
-DATASET_VEMON_HOMOG_PATH = "E:/VEMON Dataset/homog_crop_frames/"
+DATASET_VEMON_HOMOG_PATH = "E:/VEMON Dataset/homog_frames/"
 
 BIRD_IMAGE_SIZE = (128, 128) #320 x 192 original
 # Spatial size of training images. All images will be resized to this
@@ -23,7 +24,7 @@ TENSORBOARD_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-Gen
 
 #========================================================================#
 GAN_VERSION = "td_v3.00"
-GAN_ITERATION = "1"
+GAN_ITERATION = "4"
 OPTIMIZER_KEY = "optimizer"
 CHECKPATH = 'checkpoint/' + GAN_VERSION +'.pt'
 GENERATOR_KEY = "generator"
@@ -37,3 +38,4 @@ num_epochs = 40
 
 # Batch size during training
 batch_size = 32
+infer_size = 64

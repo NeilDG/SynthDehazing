@@ -12,16 +12,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
 
-PATH = "E:/VEMON Dataset/videos/"
-SAVE_PATH = "E:/VEMON Dataset/frames/"
-HOMOG_PATH = "E:/VEMON Dataset/homog_frames/"
-HOMOG_CROP_PATH = "E:/VEMON Dataset/homog_crop_frames/"
+PATH = "E:/VEMON Dataset/video - to_process/"
+SAVE_PATH = "E:/VEMON Dataset/pending/frames/"
+HOMOG_PATH = "E:/VEMON Dataset/pending/homog_frames/"
+HOMOG_CROP_PATH = "E:/VEMON Dataset/pending/homog_crop_frames/"
     
 def perform():
     
     videos = os.listdir(PATH)
     
-    count = 0
+    count = 78636
     for i in range(len(videos)):
         video_path = PATH + videos[i]
         video_name = videos[i].split(".")[0]

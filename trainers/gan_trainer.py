@@ -89,13 +89,13 @@ class GANTrainer:
         errD_fake_ab.backward()
         
         #perform B to A
-        a_size = topdown_tensor.size(0)
+        a_size = fake_b.size(0)
         label = torch.full((a_size,), real_label, device = self.gpu_device)
         output_ba = self.netD(topdown_tensor, normal_tensor)
         errD_real_ba = self.bce_loss(output_ba, label)
         errD_real_ba.backward()
         
-        fake_a = self.netG(topdown_tensor, homog_tensor)
+        fake_a = self.netG(fake_b, homog_tensor)
         label.fill_(fake_label)
         output_ba = self.netD(topdown_tensor, fake_a.detach())
         errD_fake_ba = self.bce_loss(output_ba, label)
@@ -120,8 +120,10 @@ class GANTrainer:
         l1_ab = self.compute_gan_loss(fake_b, topdown_tensor)
         l1_ba = self.compute_gan_loss(fake_a, normal_tensor)
         
+        lambda_ab = 10.0
+        lambda_ba = 10.0
         # Calculate G's loss based on this output
-        errG = bce_ab + bce_ba + l1_ab + l1_ba
+        errG = bce_ab + bce_ba + (lambda_ab * l1_ab) + (lambda_ba * l1_ba)
         # Calculate gradients for G
         errG.backward()
         # Update G
@@ -136,29 +138,34 @@ class GANTrainer:
     def verify(self, normal_tensor, homog_tensor, topdown_tensor):        
         # Check how the generator is doing by saving G's output on fixed_noise
         with torch.no_grad():
-            fake = self.netG(normal_tensor, homog_tensor).detach()
+            fake_ab = self.netG(normal_tensor, homog_tensor).detach()
+            fake_ba = self.netG(topdown_tensor, homog_tensor).detach()
         
-        fig, ax = plt.subplots(3, 1)
-        fig.set_size_inches(40, 20)
+        fig, ax = plt.subplots(4, 1)
+        fig.set_size_inches(40, 30)
         
         ims = np.transpose(vutils.make_grid(normal_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[0].set_axis_off()
         ax[0].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(fake_ba, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[1].set_axis_off()
         ax[1].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(topdown_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(fake_ab, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[2].set_axis_off()
         ax[2].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(topdown_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[3].set_axis_off()
+        ax[3].imshow(ims)
         
         plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
         plt.show()
         
         #verify reconstruction loss with MSE. for reporting purposes
         mse_loss = nn.MSELoss()
-        self.current_mse_loss = mse_loss(fake, topdown_tensor)
+        self.current_mse_loss = mse_loss(fake_ab, topdown_tensor)
     
     def verify_and_save(self, normal_tensor, homog_tensor, topdown_tensor, file_number):
         LOCATION = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/figures/"
