@@ -28,7 +28,7 @@ from IPython.display import HTML
 
 from model import sample_gan
 from loaders import dataset_loader
-from trainers import gan_trainer
+from trainers import cyclic_gan_trainer
 import constants
      
 def main():
@@ -40,7 +40,7 @@ def main():
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     writer = SummaryWriter('train_plot')
     
-    gt = gan_trainer.GANTrainer(constants.GAN_VERSION, constants.GAN_ITERATION, device, writer)
+    gt = cyclic_gan_trainer.GANTrainer(constants.GAN_VERSION, constants.GAN_ITERATION, device, writer)
     start_epoch = 0
     
     if(True): 
@@ -52,7 +52,7 @@ def main():
         print("===================================================")
     
     # Create the dataloader
-    dataloader = dataset_loader.load_vemon_dataset(constants.batch_size, -1)
+    dataloader = dataset_loader.load_synth_dataset(constants.batch_size, 50000)
     
     # Plot some training images
     name_batch, normal_batch, homog_batch, topdown_batch = next(iter(dataloader))
@@ -70,7 +70,7 @@ def main():
     
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
-    plt.title("Training - Normal Images")
+    plt.title("Training - Topdown Images")
     plt.imshow(np.transpose(vutils.make_grid(topdown_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
