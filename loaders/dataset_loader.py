@@ -13,25 +13,6 @@ import constants
 import os
 from torchvision import transforms
 
-
-def assemble_train_data_old(num_image_to_load = -1):
-    normal_list = []; topdown_list = []
-    
-    images = os.listdir(constants.DATASET_PATH_NORMAL)
-    image_len = len(images)
-    
-    if(num_image_to_load > 0):
-        image_len = num_image_to_load
-    
-    for i in range(image_len): #len(images)
-        normal_img_path = constants.DATASET_PATH_NORMAL + images[i]
-        topdown_img_path = constants.DATASET_PATH_TOPDOWN +  images[i].replace("grdView", "satView_polish")
-        #print(normal_img_path + "  "  + topdown_img_path)
-        normal_list.append(normal_img_path)
-        topdown_list.append(topdown_img_path)
-        
-    return normal_list, topdown_list
-
 def assemble_test_data(num_image_to_load = -1):
     normal_list = []; homog_list = []
     
@@ -51,7 +32,7 @@ def assemble_test_data(num_image_to_load = -1):
     
     return normal_list, homog_list
         
-def assemble_train_data(num_image_to_load = -1):
+def assemble_synth_train_data(num_image_to_load = -1):
     normal_list = []; topdown_list = []; homog_list = []
     
     #load normal images
@@ -89,6 +70,19 @@ def assemble_train_data(num_image_to_load = -1):
         
     return normal_list, homog_list, topdown_list
 
+def assemble_normal_data(num_image_to_load = -1):
+    normal_list = []
+    
+    for (root, dirs, files) in os.walk(constants.DATASET_BIRD_ALTERNATIVE_PATH):
+        for f in files:
+            if(".jpg" in f and ("_b.jpg" in f) == False):
+                file_name = os.path.join(root, f)
+                #print(file_name)
+                normal_list.append(file_name)
+                if(num_image_to_load != -1 and len(normal_list) == num_image_to_load):
+                    return normal_list
+        
+    return normal_list
 def assemble_topdown_data(num_image_to_load = -1):
     topdown_list = []
     
@@ -98,12 +92,14 @@ def assemble_topdown_data(num_image_to_load = -1):
                 file_name = os.path.join(root, f)
                 #print(file_name)
                 topdown_list.append(file_name)
+                if(num_image_to_load != -1 and len(topdown_list) == num_image_to_load):
+                    return topdown_list
         
     return topdown_list
 
 
-def load_dataset(batch_size = 8, num_image_to_load = -1):
-    normal_list, homog_list, topdown_list = assemble_train_data(num_image_to_load = num_image_to_load)
+def load_synth_dataset(batch_size = 8, num_image_to_load = -1):
+    normal_list, homog_list, topdown_list = assemble_synth_train_data(num_image_to_load = num_image_to_load)
     print("Length of train images: ", len(normal_list), len(homog_list), len(topdown_list))
 
     train_dataset = image_dataset.TorchImageDataset(normal_list, homog_list, topdown_list)
@@ -120,7 +116,7 @@ def load_vemon_dataset(batch_size = 8, num_image_to_load = -1):
     topdown_list = assemble_topdown_data(num_image_to_load)
     normal_list, homog_list = assemble_test_data(len(topdown_list)) #equalize topdown list length to loaded VEMON data
     
-    print("Length of test images: ", len(normal_list), len(homog_list), len(topdown_list))
+    print("Length of VEMON images: ", len(normal_list), len(homog_list), len(topdown_list))
     
     
     test_dataset = image_dataset.VemonImageDataset(normal_list, homog_list, topdown_list)

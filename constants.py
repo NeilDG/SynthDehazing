@@ -4,9 +4,9 @@
 DATASET_PATH_NORMAL = "E:/ANU Small Dataset/streetview/"
 DATASET_PATH_TOPDOWN = "E:/ANU Small Dataset/satview_polish/"
 
-DATASET_BIRD_NORMAL_PATH = "E:/GTA Bird Dataset/crop_img/"
-DATASET_BIRD_HOMOG_PATH = "E:/GTA Bird Dataset/homo_img/"
-DATASET_BIRD_GROUND_TRUTH_PATH = "E:/GTA Bird Dataset/bird_gt/"
+DATASET_BIRD_NORMAL_PATH = "E:/VEMON Dataset/pending/frames/"
+DATASET_BIRD_HOMOG_PATH = "E:/VEMON Dataset/pending/homog_frames/"
+DATASET_BIRD_GROUND_TRUTH_PATH = "E:/VEMON Dataset/pending/topdown_frames/"
 DATASET_BIRD_ALTERNATIVE_PATH = "E:/GTA Bird Dataset/raw/"
 
 DATASET_VEMON_FRONT_PATH = "E:/VEMON Dataset/frames/"
@@ -23,8 +23,8 @@ SAVE_FIG_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-Genera
 TENSORBOARD_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/train_plot/"
 
 #========================================================================#
-GAN_VERSION = "td_v3.00"
-GAN_ITERATION = "4"
+GAN_VERSION = "td_v3.01"
+GAN_ITERATION = "1"
 OPTIMIZER_KEY = "optimizer"
 CHECKPATH = 'checkpoint/' + GAN_VERSION +'.pt'
 GENERATOR_KEY = "generator"
@@ -34,8 +34,8 @@ DISCRIMINATOR_KEY = "discriminator"
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 40
+num_epochs = 20
 
 # Batch size during training
-batch_size = 32
+batch_size = 16
 infer_size = 64
