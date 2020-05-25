@@ -16,8 +16,8 @@ import torchvision.utils as vutils
 from utils import tensor_utils
 
 def visualize_color_distribution(batch_size):
-    count = 64
-    dataloader = dataset_loader.load_vemon_dataset(batch_size, count)
+    count = 2000
+    dataloader = dataset_loader.load_debug_dataset(batch_size, count)
     
     # Plot some training images
     name_batch, normal_batch, homog_batch, topdown_batch = next(iter(dataloader))
@@ -36,22 +36,26 @@ def visualize_color_distribution(batch_size):
     rgb_count = np.empty((count, 3), dtype=np.int32)
     index = 0
     for i, (name, normal_batch, homog_batch, topdown_batch) in enumerate(dataloader, 0):
-        for normal_tensor, homog_tensor, topdown_tensor in zip(normal_batch, homog_batch, topdown_batch):
+        for n, normal_tensor, homog_tensor, topdown_tensor in zip(name, normal_batch, homog_batch, topdown_batch):
             normal_img = tensor_utils.convert_to_opencv(normal_tensor)
             homog_img = tensor_utils.convert_to_opencv(homog_tensor)
             topdown_img = tensor_utils.convert_to_opencv(topdown_tensor)
             
-            print(np.shape(normal_img))
-            rgb_count[index, 0] += np.mean(normal_img[:,:,0])
-            rgb_count[index, 1] += np.mean(normal_img[:,:,1])
-            rgb_count[index, 2] += np.mean(normal_img[:,:,2])
+            rgb_count[index, 0] += np.mean(normal_img[:,:,0] * 255.0)
+            rgb_count[index, 1] += np.mean(normal_img[:,:,1] * 255.0)
+            rgb_count[index, 2] += np.mean(normal_img[:,:,2] * 255.0)
+            
+            if(np.mean(normal_img[:,:,0] * 255.0) < 120.0 or np.mean(normal_img[:,:,1] * 255.0) < 120.0 or 
+               np.mean(normal_img[:,:,2] * 255.0) < 120.0):
+                plt.imshow(normal_img)
+                plt.show()
+                print(n)
             
             index = index + 1
     
-    
-    plt.scatter(np.random.normal(0.0, 1.0, count), rgb_count[:,0])
-    plt.scatter(np.random.normal(0.0, 1.0, count), rgb_count[:,1])
-    plt.scatter(np.random.normal(0.0, 1.0, count), rgb_count[:,2])
+    plt.scatter(np.random.normal(0, 1.0, count), rgb_count[:,0], color=(1,0,0))
+    plt.scatter(np.random.normal(0, 1.0, count), rgb_count[:,1], color=(0,1,0))
+    plt.scatter(np.random.normal(0, 1.0, count), rgb_count[:,2], color=(0,0,1))
     plt.show()
     
 def main():
