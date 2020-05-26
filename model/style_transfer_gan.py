@@ -77,29 +77,29 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
         
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 3, out_channels = 512, kernel_size=4, stride=2, padding=1),
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 3, out_channels = 256, kernel_size=4, stride=2, padding=1),
                                    nn.LeakyReLU(0.2, inplace = True))
         
-        self.conv2 = nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(512),
+        self.conv2 = nn.Sequential(nn.Conv2d(in_channels = 256, out_channels = 256, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(256),
                                    nn.LeakyReLU(0.2, inplace = True),
                                    nn.Dropout(0.5))
         
-        self.conv3 = nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(512),
+        self.conv3 = nn.Sequential(nn.Conv2d(in_channels = 256, out_channels = 256, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(256),
                                    nn.LeakyReLU(0.2, inplace = True),
                                    nn.Dropout(0.5))
         
-        self.conv4 = nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(512),
+        self.conv4 = nn.Sequential(nn.Conv2d(in_channels = 256, out_channels = 256, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(256),
                                    nn.LeakyReLU(0.2, inplace = True),
                                    nn.Dropout(0.5))
         
-        self.conv5 = nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(512),
+        self.conv5 = nn.Sequential(nn.Conv2d(in_channels = 256, out_channels = 256, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(256),
                                    nn.LeakyReLU(0.2, inplace = True))
         
-        self.disc_layer = nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 1, kernel_size=4, stride=1, padding=0),
+        self.disc_layer = nn.Sequential(nn.Conv2d(in_channels = 256, out_channels = 1, kernel_size=4, stride=1, padding=0),
                                         nn.Sigmoid())
         
         self.apply(weights_init)
