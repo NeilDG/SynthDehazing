@@ -49,7 +49,7 @@ def main(argv):
     
     print("=========BEGIN============")
     print("Is Coare? %d Has GPU available? %d Count: %d", constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count())
-    
+    print("Torch CUDA version: %s" ,torch.version.cuda)
     update_config()
     
     manualSeed = random.randint(1, 10000) # use if you want new results
@@ -58,6 +58,7 @@ def main(argv):
     torch.manual_seed(manualSeed)
     
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    print("Device: %s", device)
     writer = SummaryWriter('train_plot')
     
     gt = style_gan_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
@@ -76,17 +77,11 @@ def main(argv):
     
     # Plot some training images
     if(constants.is_coare == 0):
-        name_batch, vemon_batch, homog_batch, gta_batch = next(iter(dataloader))
+        name_batch, vemon_batch, gta_batch = next(iter(dataloader))
         plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
         plt.axis("off")
         plt.title("Training - Normal Images")
         plt.imshow(np.transpose(vutils.make_grid(vemon_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
-        plt.show()
-        
-        plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
-        plt.axis("off")
-        plt.title("Training - Homog Images")
-        plt.imshow(np.transpose(vutils.make_grid(homog_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
         plt.show()
         
         plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
@@ -98,13 +93,12 @@ def main(argv):
     print("Starting Training Loop...")
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        for i, (name, vemon_batch, homog_batch, gta_batch) in enumerate(dataloader, 0):
+        for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
             vemon_tensor = vemon_batch.to(device)
-            homog_tensor = homog_batch.to(device)
             gta_tensor = gta_batch.to(device)
             gt.train(vemon_tensor, gta_tensor, i)
         
-        name_batch, vemon_batch, homog_batch, gta_batch = next(iter(dataloader))
+        name_batch, vemon_batch, gta_batch = next(iter(dataloader))
         gt.verify(vemon_batch.to(device), gta_batch.to(device)) #produce image from first batch
         gt.report(epoch)
         
