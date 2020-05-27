@@ -1,0 +1,16 @@
+//COARE Commands
+//Clear screen
+clear
+
+//Execute job
+cd scratch2/NeuralNets-GenerativeExperiment
+sbatch neil_job.slurm
+
+//Check status of job
+squeue -u neil.delgallego
+
+//Check GPU
+nvidia-smi
+
+//For cancelling job
+scancel <jobid>

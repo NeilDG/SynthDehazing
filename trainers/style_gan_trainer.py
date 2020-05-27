@@ -5,6 +5,8 @@ Created on Wed Nov  6 19:41:58 2019
 @author: delgallegon
 """
 
+import os
+import logging
 from model import style_transfer_gan
 from loaders import dataset_loader
 import constants
@@ -17,6 +19,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import torch.nn as nn
 import torchvision.utils as vutils
+
+print = logging.info
 
 class GANTrainer:
     def __init__(self, gan_version, gan_iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
@@ -40,7 +44,8 @@ class GANTrainer:
         self.D_losses = []
     
     def adversarial_loss(self, pred, target):
-        loss = nn.BCELoss() #binary cross-entropy loss
+        #loss = nn.BCELoss() #binary cross-entropy loss
+        loss = nn.MSELoss()
         return loss(pred, target)
     
     def identity_loss(self, pred, target):
@@ -59,7 +64,7 @@ class GANTrainer:
         real_label = 1
         fake_label = 0
         
-        self.lambda_identity = 10.0; self.lambda_cycle = 10.0
+        self.lambda_identity = 40.0; self.lambda_cycle = 10.0
         
         self.G_A.train()
         self.G_B.train()
@@ -69,8 +74,8 @@ class GANTrainer:
         fake_A = self.G_A(vemon_tensor)
         fake_B = self.G_B(gta_tensor)
         
-        #A_identity_loss = self.identity_loss(self.G_A(vemon_tensor), vemon_tensor) * self.lambda_identity
-        #B_identity_loss = self.identity_loss(self.G_B(gta_tensor), gta_tensor) * self.lambda_identity
+        A_identity_loss = self.identity_loss(self.G_A(vemon_tensor), vemon_tensor) * self.lambda_identity
+        B_identity_loss = self.identity_loss(self.G_B(gta_tensor), gta_tensor) * self.lambda_identity
         
         A_cycle_loss = self.cycle_loss(self.G_A(fake_B), gta_tensor) * self.lambda_cycle
         B_cycle_loss = self.cycle_loss(self.G_B(fake_A), vemon_tensor) * self.lambda_cycle
@@ -84,8 +89,8 @@ class GANTrainer:
         A_adv_loss = self.adversarial_loss(output_A, real_tensor)
         B_adv_loss = self.adversarial_loss(output_B, real_tensor)
         
-        #errG = A_identity_loss + B_identity_loss + A_cycle_loss + B_cycle_loss + A_adv_loss + B_adv_loss
-        errG = A_cycle_loss + B_cycle_loss + A_adv_loss + B_adv_loss
+        errG = A_identity_loss + B_identity_loss + A_cycle_loss + B_cycle_loss + A_adv_loss + B_adv_loss
+        #errG = A_cycle_loss + B_cycle_loss + A_adv_loss + B_adv_loss
         errG.backward()
         self.optimizerG.step()
         
@@ -106,7 +111,7 @@ class GANTrainer:
         self.D_losses.append(errD.item())
         
         if(iteration % 1000 == 0):
-            print("Iteration: ", iteration, " G loss: ", errG.item(), " D loss: ", errD.item())
+            print("Iteration: %d G loss: %f D loss: %f", iteration, errG.item(), errD.item())
 
     def verify(self, vemon_tensor, gta_tensor):        
         # Check how the generator is doing by saving G's output on fixed_noise
@@ -141,7 +146,7 @@ class GANTrainer:
         self.current_mse_loss = mse_loss(fake_ab, gta_tensor)
     
     def verify_and_save(self, vemon_tensor, gta_tensor, file_number):
-        LOCATION = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/figures/"
+        LOCATION = os.getcwd() + "/figures/"
         with torch.no_grad():
             fake = self.G_A(vemon_tensor).detach().cpu()
         
@@ -166,7 +171,7 @@ class GANTrainer:
         plt.show()
     
     def vemon_verify(self, vemon_tensor, file_number):
-        LOCATION = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/figures/"
+        LOCATION = os.getcwd() + "/figures/"
         with torch.no_grad():
             fake = self.G_A(vemon_tensor).detach().cpu()
         
@@ -213,7 +218,7 @@ class GANTrainer:
                            global_step = epoch + 1)
         self.writer.close()
         
-        print("Epoch: ", epoch, " G loss: ", ave_G_loss, " D loss: ", ave_D_loss)
+        print("Epoch: %d G loss: %f D loss: %f", epoch, ave_G_loss, ave_D_loss)
     
     def load_saved_state(self, checkpoint, generator_key, disriminator_key, optimizer_key):
         self.G_A.load_state_dict(checkpoint[generator_key + "A"])
@@ -242,7 +247,7 @@ class GANTrainer:
         save_dict[disriminator_key + optimizer_key] = optimizerD_state_dict
     
         torch.save(save_dict, path)
-        print("Saved model state:", len(save_dict)) 
+        print("Saved model state: %s", len(save_dict)) 
     
     def get_gen_state_dicts(self):
         return self.netG.state_dict(), self.optimizerG.state_dict()

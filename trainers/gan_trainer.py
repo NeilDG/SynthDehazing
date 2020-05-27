@@ -5,6 +5,7 @@ Created on Wed Nov  6 19:41:58 2019
 @author: delgallegon
 """
 
+import os
 from model import topdown_gan
 from loaders import dataset_loader
 import constants
@@ -16,6 +17,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import torch.nn as nn
 import torchvision.utils as vutils
+
+print = logging.info
 
 class GANTrainer:
     def __init__(self, gan_version, gan_iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
@@ -168,7 +171,7 @@ class GANTrainer:
         self.current_mse_loss = mse_loss(fake_ab, topdown_tensor)
     
     def verify_and_save(self, normal_tensor, homog_tensor, topdown_tensor, file_number):
-        LOCATION = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/figures/"
+        LOCATION = os.getcwd() +"/figures/"
         with torch.no_grad():
             fake = self.netG(normal_tensor, homog_tensor).detach().cpu()
         
@@ -193,7 +196,7 @@ class GANTrainer:
         plt.show()
     
     def vemon_verify(self, normal_tensor, homog_tensor, file_number):
-        LOCATION = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/figures/"
+        LOCATION = os.getcwd() + "/figures/"
         with torch.no_grad():
             fake = self.netG(normal_tensor, homog_tensor).detach().cpu()
         
