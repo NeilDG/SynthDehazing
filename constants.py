@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-
-#DATASET_PATH = "E:/Dogs_Dataset/"
-DATASET_PATH_NORMAL = "E:/ANU Small Dataset/streetview/"
-DATASET_PATH_TOPDOWN = "E:/ANU Small Dataset/satview_polish/"
+import os
 
 DATASET_BIRD_NORMAL_PATH = "E:/VEMON Dataset/pending/frames/"
 DATASET_BIRD_HOMOG_PATH = "E:/VEMON Dataset/pending/homog_frames/"
@@ -19,8 +16,7 @@ NORMAL_IMAGE_SIZE = 128
 TOPDOWN_IMAGE_SIZE = 128
 FIG_SIZE = NORMAL_IMAGE_SIZE / 4
 
-SAVE_FIG_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/"
-TENSORBOARD_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/train_plot/"
+TENSORBOARD_PATH = os.getcwd() + "/train_plot/"
 
 #========================================================================#
 GAN_VERSION = "td_v3.01"
@@ -32,8 +28,9 @@ DISCRIMINATOR_KEY = "discriminator"
 
 
 STYLE_GAN_VERSION = "style_v1.00"
-STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION +'.pt'
-STYLE_ITERATION = "3"
+STYLE_ITERATION = "5"
+#STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + '.pt'
+STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + "_" + STYLE_ITERATION +'.pt'
 
  # Set random seed for reproducibility
 manualSeed = 999
@@ -42,5 +39,9 @@ manualSeed = 999
 num_epochs = 20
 
 # Batch size during training
-batch_size = 16
+batch_size = 4
 infer_size = 64
+
+#Running on COARE?
+is_coare = 0
+    

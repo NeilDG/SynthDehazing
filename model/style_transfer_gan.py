@@ -22,39 +22,39 @@ class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
         
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 3, out_channels = 512, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(512),
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 3, out_channels = 1024, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(1024),
                                    nn.ReLU(True))
         
-        self.conv2 = nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(512),
+        self.conv2 = nn.Sequential(nn.Conv2d(in_channels = 1024, out_channels = 1024, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(1024),
                                    nn.ReLU(True),
                                    nn.Dropout(0.5))
         
-        self.conv3 = nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 512, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(512),
+        self.conv3 = nn.Sequential(nn.Conv2d(in_channels = 1024, out_channels = 1024, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(1024),
                                    nn.ReLU(True),
                                    nn.Dropout(0.5))
         
-        self.conv4 = nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 128, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(128),
+        self.conv4 = nn.Sequential(nn.Conv2d(in_channels = 1024, out_channels = 256, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(256),
                                    nn.ReLU(True),
                                    nn.Dropout(0.5))
         
-        self.upconv1 = nn.Sequential(nn.ConvTranspose2d(in_channels = 128, out_channels = 512, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(512),
+        self.upconv1 = nn.Sequential(nn.ConvTranspose2d(in_channels = 256, out_channels = 1024, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(1024),
             nn.ReLU(True))
     
         
-        self.upconv2 = nn.Sequential(nn.ConvTranspose2d(in_channels = 512, out_channels = 512, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(512),
+        self.upconv2 = nn.Sequential(nn.ConvTranspose2d(in_channels = 1024, out_channels = 1024, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(1024),
             nn.ReLU(True))
         
-        self.upconv3 = nn.Sequential(nn.ConvTranspose2d(in_channels = 512, out_channels = 512, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(512),
+        self.upconv3 = nn.Sequential(nn.ConvTranspose2d(in_channels = 1024, out_channels = 1024, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(1024),
             nn.ReLU(True))
         
-        self.upconv4 = nn.Sequential(nn.ConvTranspose2d(in_channels = 512, out_channels = 3, kernel_size=4, stride=2, padding=1, bias=False),
+        self.upconv4 = nn.Sequential(nn.ConvTranspose2d(in_channels = 1024, out_channels = 3, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh())
         
         self.apply(weights_init)

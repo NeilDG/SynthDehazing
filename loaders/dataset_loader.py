@@ -7,12 +7,14 @@ Created on Fri Jun  7 19:01:36 2019
 """
 
 import torch
+import logging
 from torch.utils import data
 from loaders import image_dataset
 import constants
 import os
 from torchvision import transforms
 
+print = logging.info
 def assemble_test_data(num_image_to_load = -1):
     normal_list = []; homog_list = []
     
@@ -31,6 +33,22 @@ def assemble_test_data(num_image_to_load = -1):
         homog_list.append(img_path)
     
     return normal_list, homog_list
+
+def assemble_vemon_style_data(num_image_to_load = -1):
+    normal_list = [];
+    
+    #load normal images
+    images = os.listdir(constants.DATASET_VEMON_FRONT_PATH)
+    image_len = len(images)
+    
+    if(num_image_to_load > 0):
+        image_len = num_image_to_load
+        
+    for i in range(image_len):
+        img_path = constants.DATASET_VEMON_FRONT_PATH + images[i]
+        normal_list.append(img_path)
+    
+    return normal_list
         
 def assemble_synth_train_data(num_image_to_load = -1):
     normal_list = []; topdown_list = []; homog_list = []
@@ -114,7 +132,7 @@ def assemble_gta_data(num_image_to_load = -1):
 
 def load_synth_dataset(batch_size = 8, num_image_to_load = -1):
     normal_list, homog_list, topdown_list = assemble_synth_train_data(num_image_to_load = num_image_to_load)
-    print("Length of train images: ", len(normal_list), len(homog_list), len(topdown_list))
+    print("Length of train images: %d, %d, %d", len(normal_list), len(homog_list), len(topdown_list))
 
     train_dataset = image_dataset.TorchImageDataset(normal_list, homog_list, topdown_list)
     train_loader = torch.utils.data.DataLoader(
@@ -145,12 +163,12 @@ def load_vemon_dataset(batch_size = 8, num_image_to_load = -1):
 
 def load_style_dataset(batch_size = 8, num_image_to_load = -1):
     gta_list = assemble_gta_data(num_image_to_load)
-    normal_list, homog_list = assemble_test_data(len(gta_list)) #equalize topdown list length to loaded VEMON data
+    normal_list = assemble_vemon_style_data(len(gta_list)) #equalize topdown list length to loaded VEMON data
     
-    print("Length of VEMON images: ", len(normal_list), len(homog_list), len(gta_list))
+    print("Length of VEMON images: %d, %d.", len(normal_list), len(gta_list))
     
     
-    test_dataset = image_dataset.VemonImageDataset(normal_list, homog_list, gta_list)
+    test_dataset = image_dataset.StyleDataset(normal_list, gta_list)
     train_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
@@ -164,7 +182,7 @@ def load_debug_dataset(batch_size = 8, num_image_to_load = -1):
     topdown_list = assemble_topdown_data(num_image_to_load)
     normal_list, homog_list = assemble_test_data(len(topdown_list)) #equalize topdown list length to loaded VEMON data
     
-    print("Length of DEBUG images: ", len(normal_list), len(homog_list), len(topdown_list))
+    print("Length of DEBUG images: %d, %d, %d", len(normal_list), len(homog_list), len(topdown_list))
     
     
     test_dataset = image_dataset.DebugDataset(normal_list, homog_list, topdown_list)

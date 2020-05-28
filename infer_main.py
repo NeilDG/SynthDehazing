@@ -55,7 +55,7 @@ def style_transfer(batch_size, style_version, style_iteration):
     dataloader = dataset_loader.load_style_dataset(batch_size, -1)
     
     # Plot some training images
-    name_batch, vemon_batch, homog_batch, gta_batch = next(iter(dataloader))
+    name_batch, vemon_batch, gta_batch = next(iter(dataloader))
     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
     plt.axis("off")
     plt.title("Training - VEMON Images")
@@ -69,7 +69,7 @@ def style_transfer(batch_size, style_version, style_iteration):
     plt.show()
     
     item_number = 0
-    for i, (name, vemon_batch, homog_batch, gta_batch) in enumerate(dataloader, 0):
+    for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
         vemon_tensor = vemon_batch.to(device)
         item_number = item_number + 1
         gt.vemon_verify(vemon_tensor, item_number)
