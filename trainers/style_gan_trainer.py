@@ -44,8 +44,8 @@ class GANTrainer:
         self.D_losses = []
     
     def adversarial_loss(self, pred, target):
-        #loss = nn.BCELoss() #binary cross-entropy loss
-        loss = nn.MSELoss()
+        loss = nn.BCELoss() #binary cross-entropy loss
+        #loss = nn.MSELoss()
         return loss(pred, target)
     
     def identity_loss(self, pred, target):
@@ -64,7 +64,7 @@ class GANTrainer:
         real_label = 1
         fake_label = 0
         
-        self.lambda_identity = 40.0; self.lambda_cycle = 10.0
+        self.lambda_identity = 20.0; self.lambda_cycle = 10.0; self.lambda_adv = 1.0
         
         self.G_A.train()
         self.G_B.train()
@@ -86,8 +86,8 @@ class GANTrainer:
         real_tensor = torch.ones_like(output_A)
         fake_tensor = torch.zeros_like(output_A)
         
-        A_adv_loss = self.adversarial_loss(output_A, real_tensor)
-        B_adv_loss = self.adversarial_loss(output_B, real_tensor)
+        A_adv_loss = self.adversarial_loss(output_A, real_tensor) * self.lambda_adv
+        B_adv_loss = self.adversarial_loss(output_B, real_tensor) * self.lambda_adv
         
         errG = A_identity_loss + B_identity_loss + A_cycle_loss + B_cycle_loss + A_adv_loss + B_adv_loss
         #errG = A_cycle_loss + B_cycle_loss + A_adv_loss + B_adv_loss

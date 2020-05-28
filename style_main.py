@@ -33,7 +33,7 @@ print = logging.info
 def update_config():
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = constants.batch_size * 16
+        constants.batch_size = constants.batch_size * 4
         
         constants.DATASET_BIRD_NORMAL_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/frames/"
         constants.DATASET_BIRD_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/homog_frames/"
@@ -53,7 +53,6 @@ def main(argv):
     update_config()
     
     manualSeed = random.randint(1, 10000) # use if you want new results
-    print("Random Seed: %d", manualSeed)
     random.seed(manualSeed)
     torch.manual_seed(manualSeed)
     
@@ -64,7 +63,7 @@ def main(argv):
     gt = style_gan_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
     start_epoch = 0
     
-    if(False): 
+    if(True): 
         checkpoint = torch.load(constants.STYLE_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
@@ -103,6 +102,7 @@ def main(argv):
         gt.report(epoch)
         
         #save every X epoch
+        print("About to save model to %s. Epoch: %d", constants.STYLE_CHECKPATH, epoch)
         gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.

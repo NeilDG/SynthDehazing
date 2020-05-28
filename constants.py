@@ -28,8 +28,9 @@ DISCRIMINATOR_KEY = "discriminator"
 
 
 STYLE_GAN_VERSION = "style_v1.00"
-STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION +'.pt'
-STYLE_ITERATION = "6"
+STYLE_ITERATION = "5"
+#STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + '.pt'
+STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + "_" + STYLE_ITERATION +'.pt'
 
  # Set random seed for reproducibility
 manualSeed = 999

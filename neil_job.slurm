@@ -15,7 +15,7 @@ nvidia-smi
 
 # prepare working environment
 module load anaconda
-module load cuda
+module load cuda/10.1_cudnn-7.6.5
 
 # activate your python environment
 source activate NeilGAN
@@ -27,5 +27,5 @@ source activate NeilGAN
 #conda install opencv
 
 # execute your application
-srun python style_main.py --coare=1 --img_to_load=500
+srun python style_main.py --coare=1 --img_to_load=-1
 source deactivate

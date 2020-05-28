@@ -2,15 +2,18 @@
 //Clear screen
 clear
 
-//Execute job
+//For directories
 cd scratch2/NeuralNets-GenerativeExperiment
+cd scratch2/NeuralNets-GenerativeExperiment-2
+
+//Execute job
 sbatch neil_job.slurm
 
 //Check status of job
 squeue -u neil.delgallego
 
-//Check GPU
-nvidia-smi
+//Check all
+squeue -a
 
 //For cancelling job
 scancel <jobid>
