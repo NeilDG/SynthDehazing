@@ -42,6 +42,8 @@ num_epochs = 20
 batch_size = 4
 infer_size = 64
 
+num_workers = 12
+
 #Running on COARE?
 is_coare = 0
     

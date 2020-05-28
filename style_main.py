@@ -42,6 +42,7 @@ def update_config():
         
         constants.DATASET_VEMON_FRONT_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/" 
+        constants.num_workers = 0
 
 def main(argv):
     (opts, args) = parser.parse_args(argv)
@@ -102,7 +103,6 @@ def main(argv):
         gt.report(epoch)
         
         #save every X epoch
-        print("About to save model to %s. Epoch: %d", constants.STYLE_CHECKPATH, epoch)
         gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.

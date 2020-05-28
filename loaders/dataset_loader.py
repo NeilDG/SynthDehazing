@@ -138,7 +138,7 @@ def load_synth_dataset(batch_size = 8, num_image_to_load = -1):
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=batch_size,
-        num_workers=12,
+        num_workers=constants.num_workers,
         shuffle=True
     )
     
@@ -155,7 +155,7 @@ def load_vemon_dataset(batch_size = 8, num_image_to_load = -1):
     train_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=12,
+        num_workers=constants.num_workers,
         shuffle=True
     )
     
@@ -167,12 +167,11 @@ def load_style_dataset(batch_size = 8, num_image_to_load = -1):
     
     print("Length of VEMON images: %d, %d.", len(normal_list), len(gta_list))
     
-    
     test_dataset = image_dataset.StyleDataset(normal_list, gta_list)
     train_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=12,
+        num_workers=constants.num_workers,
         shuffle=True
     )
     
@@ -189,7 +188,7 @@ def load_debug_dataset(batch_size = 8, num_image_to_load = -1):
     train_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=12,
+        num_workers=constants.num_workers,
         shuffle=True
     )
     
