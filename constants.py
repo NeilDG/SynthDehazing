@@ -28,7 +28,7 @@ DISCRIMINATOR_KEY = "discriminator"
 
 
 STYLE_GAN_VERSION = "style_v1.00"
-STYLE_ITERATION = "5"
+STYLE_ITERATION = "6"
 #STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + '.pt'
 STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + "_" + STYLE_ITERATION +'.pt'
 
@@ -41,6 +41,8 @@ num_epochs = 20
 # Batch size during training
 batch_size = 4
 infer_size = 64
+
+num_workers = 12
 
 #Running on COARE?
 is_coare = 0

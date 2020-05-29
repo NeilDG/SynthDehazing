@@ -7,14 +7,14 @@ Created on Fri Jun  7 19:01:36 2019
 """
 
 import torch
-import logging
 from torch.utils import data
 from loaders import image_dataset
 import constants
 import os
 from torchvision import transforms
+from utils import logger
 
-print = logging.info
+print = logger.log
 def assemble_test_data(num_image_to_load = -1):
     normal_list = []; homog_list = []
     
@@ -138,7 +138,7 @@ def load_synth_dataset(batch_size = 8, num_image_to_load = -1):
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=batch_size,
-        num_workers=12,
+        num_workers=constants.num_workers,
         shuffle=True
     )
     
@@ -155,7 +155,7 @@ def load_vemon_dataset(batch_size = 8, num_image_to_load = -1):
     train_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=12,
+        num_workers=constants.num_workers,
         shuffle=True
     )
     
@@ -165,14 +165,13 @@ def load_style_dataset(batch_size = 8, num_image_to_load = -1):
     gta_list = assemble_gta_data(num_image_to_load)
     normal_list = assemble_vemon_style_data(len(gta_list)) #equalize topdown list length to loaded VEMON data
     
-    print("Length of VEMON images: %d, %d.", len(normal_list), len(gta_list))
-    
+    print("Length of VEMON images: %d, %d." % (len(normal_list), len(gta_list)))
     
     test_dataset = image_dataset.StyleDataset(normal_list, gta_list)
     train_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=12,
+        num_workers=constants.num_workers,
         shuffle=True
     )
     
@@ -189,7 +188,7 @@ def load_debug_dataset(batch_size = 8, num_image_to_load = -1):
     train_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=12,
+        num_workers=constants.num_workers,
         shuffle=True
     )
     

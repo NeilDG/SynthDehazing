@@ -22,12 +22,13 @@ from torch.utils.tensorboard import SummaryWriter
 from loaders import dataset_loader
 from trainers import style_gan_trainer
 import constants
+from utils import logger
      
 parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
-logging.basicConfig(level=logging.INFO)
-print = logging.info
+
+print = logger.log
 
 #Update config if on COARE
 def update_config():
@@ -42,14 +43,15 @@ def update_config():
         
         constants.DATASET_VEMON_FRONT_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/" 
+        constants.num_workers = 24
 
 def main(argv):
     (opts, args) = parser.parse_args(argv)
     constants.is_coare = opts.coare
-    
+    logger.clear_log()
     print("=========BEGIN============")
-    print("Is Coare? %d Has GPU available? %d Count: %d", constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count())
-    print("Torch CUDA version: %s" ,torch.version.cuda)
+    print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
+    print("Torch CUDA version: %s" % torch.version.cuda)
     update_config()
     
     manualSeed = random.randint(1, 10000) # use if you want new results
@@ -57,7 +59,7 @@ def main(argv):
     torch.manual_seed(manualSeed)
     
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    print("Device: %s", device)
+    print("Device: %s" % device)
     writer = SummaryWriter('train_plot')
     
     gt = style_gan_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
@@ -68,7 +70,7 @@ def main(argv):
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
  
-        print("Loaded checkpt: %s Current epoch: %d", constants.STYLE_CHECKPATH, start_epoch)
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.STYLE_CHECKPATH, start_epoch))
         print("===================================================")
     
     # Create the dataloader
@@ -97,12 +99,11 @@ def main(argv):
             gta_tensor = gta_batch.to(device)
             gt.train(vemon_tensor, gta_tensor, i)
         
-        name_batch, vemon_batch, gta_batch = next(iter(dataloader))
-        gt.verify(vemon_batch.to(device), gta_batch.to(device)) #produce image from first batch
-        gt.report(epoch)
+        #name_batch, vemon_batch, gta_batch = next(iter(dataloader))
+        #gt.verify(vemon_batch.to(device), gta_batch.to(device)) #produce image from first batch
+        #gt.report(epoch)
         
         #save every X epoch
-        print("About to save model to %s. Epoch: %d", constants.STYLE_CHECKPATH, epoch)
         gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.

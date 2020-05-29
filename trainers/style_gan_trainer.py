@@ -6,7 +6,6 @@ Created on Wed Nov  6 19:41:58 2019
 """
 
 import os
-import logging
 from model import style_transfer_gan
 from loaders import dataset_loader
 import constants
@@ -19,8 +18,9 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import torch.nn as nn
 import torchvision.utils as vutils
+from utils import logger
 
-print = logging.info
+print = logger.log
 
 class GANTrainer:
     def __init__(self, gan_version, gan_iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
@@ -31,11 +31,23 @@ class GANTrainer:
         self.writer = writer
         self.visualized = False
     
-        self.G_A = style_transfer_gan.Generator().to(self.gpu_device)
-        self.G_B = style_transfer_gan.Generator().to(self.gpu_device)
+        self.G_A = style_transfer_gan.Generator()
+        self.G_B = style_transfer_gan.Generator()
         
-        self.D_A = style_transfer_gan.Discriminator().to(self.gpu_device)
-        self.D_B = style_transfer_gan.Discriminator().to(self.gpu_device)
+        self.D_A = style_transfer_gan.Discriminator()
+        self.D_B = style_transfer_gan.Discriminator()
+        
+        if(torch.cuda.device_count() > 1):
+            print("Let's use %d GPUs!", torch.cuda.device_count())
+            self.G_A = nn.DataParallel(self.G_A)
+            self.G_B = nn.DataParallel(self.G_B)
+            self.D_A = nn.DataParallel(self.D_A)
+            self.D_B = nn.DataParallel(self.D_B)
+        
+        self.G_A.to(gpu_device)
+        self.G_B.to(gpu_device)
+        self.D_A.to(gpu_device)
+        self.D_B.to(gpu_device)
         
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters(), self.D_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
@@ -110,8 +122,9 @@ class GANTrainer:
         self.G_losses.append(errG.item())
         self.D_losses.append(errD.item())
         
-        if(iteration % 1000 == 0):
-            print("Iteration: %d G loss: %f D loss: %f", iteration, errG.item(), errD.item())
+        #print("Output size: %s", fake_A.size())
+        if(iteration % 500 == 0):
+            print("Iteration: %d G loss: %f D loss: %f" % (iteration, errG.item(), errD.item()))
 
     def verify(self, vemon_tensor, gta_tensor):        
         # Check how the generator is doing by saving G's output on fixed_noise
@@ -218,7 +231,7 @@ class GANTrainer:
                            global_step = epoch + 1)
         self.writer.close()
         
-        print("Epoch: %d G loss: %f D loss: %f", epoch, ave_G_loss, ave_D_loss)
+        print("Epoch: %d G loss: %f D loss: %f" % (epoch, ave_G_loss, ave_D_loss))
     
     def load_saved_state(self, checkpoint, generator_key, disriminator_key, optimizer_key):
         self.G_A.load_state_dict(checkpoint[generator_key + "A"])
@@ -247,7 +260,7 @@ class GANTrainer:
         save_dict[disriminator_key + optimizer_key] = optimizerD_state_dict
     
         torch.save(save_dict, path)
-        print("Saved model state: %s", len(save_dict)) 
+        print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
     
     def get_gen_state_dicts(self):
         return self.netG.state_dict(), self.optimizerG.state_dict()
