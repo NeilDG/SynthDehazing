@@ -8,7 +8,9 @@ Created on Fri Apr 17 12:28:51 2020
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import logging
 
+print = logging.info
 def weights_init(m):
         classname = m.__class__.__name__
         if classname.find('Conv') != -1:
@@ -70,6 +72,8 @@ class Generator(nn.Module):
        y2 = self.upconv2(y1 + x3)
        y3 = self.upconv3(y2 + x2)
        y4 = self.upconv4(y3 + x1)
+       
+       #print("\tIn Model: input size: %s", input.size())
        
        return y4
 
