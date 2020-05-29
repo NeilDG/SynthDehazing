@@ -100,8 +100,8 @@ def main(argv):
             gt.train(vemon_tensor, gta_tensor, i)
         
         #name_batch, vemon_batch, gta_batch = next(iter(dataloader))
-        #gt.verify(vemon_batch.to(device), gta_batch.to(device)) #produce image from first batch
-        #gt.report(epoch)
+        gt.verify(vemon_batch.to(device), gta_batch.to(device)) #produce image from first batch
+        gt.report(epoch)
         
         #save every X epoch
         gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
