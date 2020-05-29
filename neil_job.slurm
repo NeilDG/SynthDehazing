@@ -2,10 +2,10 @@
 #SBATCH -J NeilGAN/style
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:0,gpu:1
 #SBATCH --output=neil_job.out
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=12
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph 
 #SBATCH --mail-type=END 
 

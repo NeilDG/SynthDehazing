@@ -42,7 +42,7 @@ def update_config():
         
         constants.DATASET_VEMON_FRONT_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/" 
-        constants.num_workers = 0
+        constants.num_workers = 24
 
 def main(argv):
     (opts, args) = parser.parse_args(argv)
