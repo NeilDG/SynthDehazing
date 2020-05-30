@@ -76,7 +76,7 @@ class GANTrainer:
         real_label = 1
         fake_label = 0
         
-        self.lambda_identity = 20.0; self.lambda_cycle = 10.0; self.lambda_adv = 1.0
+        self.lambda_identity = 1.0; self.lambda_cycle = 1.0; self.lambda_adv = 1.0
         
         self.G_A.train()
         self.G_B.train()
@@ -89,8 +89,8 @@ class GANTrainer:
         A_identity_loss = self.identity_loss(self.G_A(vemon_tensor), vemon_tensor) * self.lambda_identity
         B_identity_loss = self.identity_loss(self.G_B(gta_tensor), gta_tensor) * self.lambda_identity
         
-        A_cycle_loss = self.cycle_loss(self.G_A(fake_B), gta_tensor) * self.lambda_cycle
-        B_cycle_loss = self.cycle_loss(self.G_B(fake_A), vemon_tensor) * self.lambda_cycle
+        A_cycle_loss = self.cycle_loss(self.G_A(fake_B), vemon_tensor) * self.lambda_cycle
+        B_cycle_loss = self.cycle_loss(self.G_B(fake_A), gta_tensor) * self.lambda_cycle
         
         output_A = self.D_A(fake_A)
         output_B = self.D_B(fake_B)
@@ -109,9 +109,9 @@ class GANTrainer:
         self.D_A.train()
         self.D_B.train()
         self.optimizerD.zero_grad()
-        D_A_real_loss = self.adversarial_loss(self.D_A(gta_tensor), real_tensor)
+        D_A_real_loss = self.adversarial_loss(self.D_A(vemon_tensor), real_tensor)
         D_A_fake_loss = self.adversarial_loss(self.D_A(fake_A.detach()), fake_tensor)
-        D_B_real_loss = self.adversarial_loss(self.D_B(vemon_tensor), real_tensor)
+        D_B_real_loss = self.adversarial_loss(self.D_B(gta_tensor), real_tensor)
         D_B_fake_loss = self.adversarial_loss(self.D_B(fake_B.detach()), fake_tensor)
         
         errD = D_A_real_loss + D_A_fake_loss + D_B_real_loss + D_B_fake_loss
