@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
 import ipm
+from utils import tensor_utils
 
 PATH = "E:/VEMON Dataset/videos/"
 SAVE_PATH = "E:/VEMON Dataset/pending/frames/"
@@ -44,6 +45,31 @@ def perform():
               #cv2.imwrite(HOMOG_CROP_PATH +"frame_%d.png" % count, crop_img)
               count += 1
 
+def extract_from_gta():
+    path = "D:/Users/delgallegon/Videos/Grand Theft Auto V/"
+    save_path = "E:/VEMON Dataset/synth_gta/"
+    videos = os.listdir(path)
+    
+    count = 0
+    for i in range(len(videos)):
+        video_path = path + videos[i]
+        video_name = videos[i].split(".")[5]
+        vid_cap = cv2.VideoCapture(video_path)
+        success, image = vid_cap.read()
+        while success:
+            success, image = vid_cap.read()
+            if(success):
+              image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+              w,h,c = np.shape(image)
+              image = cv2.resize(image, (int(h/3), int(w/3)), interpolation = cv2.INTER_CUBIC)
+              
+              h,w,c = np.shape(image)
+              image = image[0:h,65:w]
+              image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+              cv2.imwrite(save_path +"frame_%d.png" % count, image)
+              print("Saved: " + video_name + "_frame_%d.png" % count)
+              count = count + 1
+    
 def perform_synth():
     normal_list = dataset_loader.assemble_normal_data(-1)
     topdown_list = dataset_loader.assemble_topdown_data(-1)
@@ -268,7 +294,7 @@ def polish_synth_border(warp_img):
 def main():
     #perform()
     #perform_synth()
-    perform_superres()
+    extract_from_gta()
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

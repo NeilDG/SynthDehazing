@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+Code for SLURM job. ISSUE: Dataloader stops after 1 epoch. 
+Workaround is to run 1 epoch and perform for loop via SLURM.
+
 Main entry for GAN training
 Created on Sun Apr 19 13:22:06 2020
 
@@ -92,21 +95,17 @@ def main(argv):
         plt.show()
     
     print("Starting Training Loop...")
-    for epoch in range(start_epoch, constants.num_epochs):
-        # For each batch in the dataloader
-        print("Dataloader refresh.")
-        dataloader = dataset_loader.load_style_dataset(constants.batch_size, opts.img_to_load)
-        for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
-            vemon_tensor = vemon_batch.to(device)
-            gta_tensor = gta_batch.to(device)
-            gt.train(vemon_tensor, gta_tensor, i)
-        
-        if(constants.is_coare == 0):
-            gt.verify(vemon_batch.to(device), gta_batch.to(device)) #produce image from first batch
-            gt.report(epoch)
-        
-        #save every X epoch
-        gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+    # For each batch in the dataloader
+    print("Dataloader refresh.")
+    dataloader = dataset_loader.load_style_dataset(constants.batch_size, opts.img_to_load)
+    for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
+        vemon_tensor = vemon_batch.to(device)
+        gta_tensor = gta_batch.to(device)
+        gt.train(vemon_tensor, gta_tensor, i)
+
+    
+    #save every X epoch
+    gt.save_states(start_epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

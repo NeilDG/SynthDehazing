@@ -5,7 +5,6 @@
 #SBATCH -G 1 
 #SBATCH --ntasks=1
 #SBATCH --output=neil_job.out
-#SBATCH --cpus-per-task=12
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph 
 #SBATCH --mail-type=END 
 
@@ -27,5 +26,46 @@ source activate NeilGAN
 #conda install opencv
 
 # execute your application
-srun python style_main.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+#simulate 10 epoch entry due to dataloader bug
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1
 source deactivate
