@@ -30,6 +30,7 @@ from utils import logger
 parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
+parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 
 print = logger.log
 
@@ -68,7 +69,7 @@ def main(argv):
     gt = style_gan_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
     start_epoch = 0
     
-    if(True): 
+    if(opts.load_previous == 1): 
         checkpoint = torch.load(constants.STYLE_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
