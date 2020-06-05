@@ -168,7 +168,7 @@ class GANTrainer:
             fake = self.G_A(normal_tensor, homog_tensor).detach().cpu()
         
         fig, ax = plt.subplots(2, 1)
-        fig.set_size_inches(15, 4)
+        fig.set_size_inches(15, 8)
         fig.tight_layout()
         
         ims = np.transpose(vutils.make_grid(normal_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))

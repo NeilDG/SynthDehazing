@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+Code for SLURM job. ISSUE: Dataloader stops after 1 epoch. 
+Workaround is to run 1 epoch and perform for loop via SLURM.
+
 Main entry for GAN training
 Created on Sun Apr 19 13:22:06 2020
 
@@ -27,6 +30,7 @@ from utils import logger
 parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
+parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 
 print = logger.log
 
@@ -65,7 +69,7 @@ def main(argv):
     gt = style_gan_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
     start_epoch = 0
     
-    if(True): 
+    if(opts.load_previous == 1): 
         checkpoint = torch.load(constants.STYLE_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
@@ -92,21 +96,17 @@ def main(argv):
         plt.show()
     
     print("Starting Training Loop...")
-    for epoch in range(start_epoch, constants.num_epochs):
-        # For each batch in the dataloader
-        print("Dataloader refresh.")
-        dataloader = dataset_loader.load_style_dataset(constants.batch_size, opts.img_to_load)
-        for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
-            vemon_tensor = vemon_batch.to(device)
-            gta_tensor = gta_batch.to(device)
-            gt.train(vemon_tensor, gta_tensor, i)
-        
-        if(constants.is_coare == 0):
-            gt.verify(vemon_batch.to(device), gta_batch.to(device)) #produce image from first batch
-            gt.report(epoch)
-        
-        #save every X epoch
-        gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+    # For each batch in the dataloader
+    print("Dataloader refresh.")
+    dataloader = dataset_loader.load_style_dataset(constants.batch_size, opts.img_to_load)
+    for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
+        vemon_tensor = vemon_batch.to(device)
+        gta_tensor = gta_batch.to(device)
+        gt.train(vemon_tensor, gta_tensor, i)
+
+    
+    #save every X epoch
+    gt.save_states(start_epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 
