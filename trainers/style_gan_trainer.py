@@ -76,7 +76,7 @@ class GANTrainer:
         real_label = 1
         fake_label = 0
         
-        self.lambda_identity = 1.0; self.lambda_cycle = 1.0; self.lambda_adv = 1.0
+        self.lambda_identity = 0.0; self.lambda_cycle = 1.0; self.lambda_adv = 1.0
         
         self.G_A.train()
         self.G_B.train()

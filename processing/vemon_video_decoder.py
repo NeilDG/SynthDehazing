@@ -50,7 +50,7 @@ def extract_from_gta():
     save_path = "E:/VEMON Dataset/synth_gta/"
     videos = os.listdir(path)
     
-    count = 33145
+    count = 0
     for i in range(len(videos)):
         video_path = path + videos[i]
         video_name = videos[i].split(".")[5]

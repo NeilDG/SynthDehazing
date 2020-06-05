@@ -162,9 +162,9 @@ def load_vemon_dataset(batch_size = 8, num_image_to_load = -1):
     return train_loader
 
 def load_style_dataset(batch_size = 8, num_image_to_load = -1):
-    gta_list = assemble_gta_data(num_image_to_load)
-    normal_list = assemble_vemon_style_data(len(gta_list)) #equalize topdown list length to loaded VEMON data
-    
+    normal_list = assemble_vemon_style_data(num_image_to_load) #equalize topdown list length to loaded VEMON data
+    gta_list = assemble_gta_data(len(normal_list))
+
     print("Length of VEMON images: %d, %d." % (len(normal_list), len(gta_list)))
     
     test_dataset = image_dataset.StyleDataset(normal_list, gta_list)

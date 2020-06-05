@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
 from loaders import dataset_loader
-from trainers import style_gan_trainer
+from trainers import multistyle_net_trainer
 import constants
 from utils import logger
      
@@ -62,13 +62,13 @@ def main(argv):
     print("Device: %s" % device)
     writer = SummaryWriter('train_plot')
     
-    gt = style_gan_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
+    gt = multistyle_net_trainer.MultiStyleTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
     start_epoch = 0
     
-    if(True): 
+    if(False): 
         checkpoint = torch.load(constants.STYLE_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
-        gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.OPTIMIZER_KEY)
  
         print("Loaded checkpt: %s Current epoch: %d" % (constants.STYLE_CHECKPATH, start_epoch))
         print("===================================================")
@@ -78,35 +78,33 @@ def main(argv):
     
     # Plot some training images
     if(constants.is_coare == 0):
-        name_batch, vemon_batch, gta_batch = next(iter(dataloader))
+        name_batch, vemon_batch_orig, gta_batch_orig = next(iter(dataloader))
         plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
         plt.axis("off")
         plt.title("Training - Normal Images")
-        plt.imshow(np.transpose(vutils.make_grid(vemon_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+        plt.imshow(np.transpose(vutils.make_grid(vemon_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
         plt.show()
         
         plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
         plt.axis("off")
         plt.title("Training - Topdown Images")
-        plt.imshow(np.transpose(vutils.make_grid(gta_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+        plt.imshow(np.transpose(vutils.make_grid(gta_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
         plt.show()
     
     print("Starting Training Loop...")
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        print("Dataloader refresh.")
-        dataloader = dataset_loader.load_style_dataset(constants.batch_size, opts.img_to_load)
         for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
             vemon_tensor = vemon_batch.to(device)
             gta_tensor = gta_batch.to(device)
             gt.train(vemon_tensor, gta_tensor, i)
         
         if(constants.is_coare == 0):
-            gt.verify(vemon_batch.to(device), gta_batch.to(device)) #produce image from first batch
+            gt.verify(vemon_batch_orig.to(device), gta_batch_orig.to(device)) #produce image from first batch
             gt.report(epoch)
         
         #save every X epoch
-        gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 
