@@ -76,7 +76,7 @@ class GANTrainer:
         real_label = 1
         fake_label = 0
         
-        self.lambda_identity = 1.0; self.lambda_cycle = 1.0; self.lambda_adv = 1.0
+        self.lambda_identity = 0.0; self.lambda_cycle = 1.0; self.lambda_adv = 1.0
         
         self.G_A.train()
         self.G_B.train()
@@ -188,15 +188,21 @@ class GANTrainer:
         with torch.no_grad():
             fake = self.G_A(vemon_tensor).detach().cpu()
         
+        #resize tensors for better viewing
+        resized_normal = nn.functional.interpolate(vemon_tensor, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_fake = nn.functional.interpolate(fake, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
+        
+        print("New shapes: %s %s" % (np.shape(vemon_tensor), np.shape(resized_normal)))
+        
         fig, ax = plt.subplots(2, 1)
-        fig.set_size_inches(18, 7)
+        fig.set_size_inches(34, 14)
         fig.tight_layout()
         
-        ims = np.transpose(vutils.make_grid(vemon_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(resized_normal, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[0].set_axis_off()
         ax[0].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(resized_fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[1].set_axis_off()
         ax[1].imshow(ims)
         

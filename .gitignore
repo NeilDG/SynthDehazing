@@ -138,3 +138,5 @@ dmypy.json
 cython_debug/
 train_plot/
 figures/
+checkpoint/
+figures-v1.00.8/

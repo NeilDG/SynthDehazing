@@ -8,6 +8,7 @@ Image and tensor utilities
 
 import numpy as np
 import cv2
+from torch.autograd import Variable
 
 def convert_to_matplotimg(img_tensor, batch_idx):
     img = img_tensor[batch_idx,:,:,:].numpy()
@@ -31,4 +32,36 @@ def load_image(file_path):
     else:
         print("Image ",file_path, " not found.")
     return img
+
+def gram_matrix(y):
+    (b, ch, h, w) = y.size()
+    features = y.view(b, ch, w * h)
+    features_t = features.transpose(1, 2)
+    gram = features.bmm(features_t) / (ch * h * w)
+    return gram
+
+
+def subtract_imagenet_mean_batch(batch):
+    """Subtract ImageNet mean pixel-wise from a BGR image."""
+    tensortype = type(batch.data)
+    mean = tensortype(batch.data.size())
+    mean[:, 0, :, :] = 103.939
+    mean[:, 1, :, :] = 116.779
+    mean[:, 2, :, :] = 123.680
+    return batch - Variable(mean).cuda()
+
+
+def add_imagenet_mean_batch(batch):
+    """Add ImageNet mean pixel-wise from a BGR image."""
+    tensortype = type(batch.data)
+    mean = tensortype(batch.data.size())
+    mean[:, 0, :, :] = 103.939
+    mean[:, 1, :, :] = 116.779
+    mean[:, 2, :, :] = 123.680
+    return batch + Variable(mean)
+
+def imagenet_clamp_batch(batch, low, high):
+    batch[:,0,:,:].data.clamp_(low-103.939, high-103.939)
+    batch[:,1,:,:].data.clamp_(low-116.779, high-116.779)
+    batch[:,2,:,:].data.clamp_(low-123.680, high-123.680)
     

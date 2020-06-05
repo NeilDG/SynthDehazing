@@ -29,43 +29,83 @@ source activate NeilGAN
 srun python style_main_slurm.py --coare=1 --img_to_load=-1
 source deactivate
 
-#simulate 10 epoch entry due to dataloader bug
+#simulate 20 epoch entry due to dataloader bug
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate
 
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate
 
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate
 
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate
 
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate
 
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate
 
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate
 
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate
 
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate
 
 source activate NeilGAN
-srun python style_main_slurm.py --coare=1 --img_to_load=-1
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
+source deactivate
+
+source activate NeilGAN
+srun python style_main_slurm.py --coare=1 --img_to_load=-1 --load_previous=1
 source deactivate

@@ -5,6 +5,7 @@ clear
 //For directories
 cd scratch2/NeuralNets-GenerativeExperiment
 cd scratch2/NeuralNets-GenerativeExperiment-2
+cd scratch2/NeuralNets-GenerativeExperiment-3
 
 //Execute job
 sbatch neil_job.slurm
