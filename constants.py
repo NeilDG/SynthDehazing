@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 
-#DATASET_BIRD_NORMAL_PATH = "E:/VEMON Dataset/pending/frames/"
-DATASET_BIRD_NORMAL_PATH = "E:/VEMON Dataset/synth_gta/"
+DATASET_BIRD_NORMAL_PATH = "E:/VEMON Dataset/pending/frames/"
+DATASET_SYNTH_GTA_PATH = "E:/VEMON Dataset/synth_gta/"
 DATASET_BIRD_HOMOG_PATH = "E:/VEMON Dataset/pending/homog_frames/"
 DATASET_BIRD_GROUND_TRUTH_PATH = "E:/VEMON Dataset/pending/topdown_frames/"
 DATASET_BIRD_ALTERNATIVE_PATH = "E:/GTA Bird Dataset/raw/"
@@ -28,8 +28,8 @@ GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
 
-STYLE_GAN_VERSION = "style_v1.00"
-STYLE_ITERATION = "12"
+STYLE_GAN_VERSION = "style_v1.01"
+STYLE_ITERATION = "2"
 #STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + '.pt'
 STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + "_" + STYLE_ITERATION +'.pt'
 

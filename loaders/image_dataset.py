@@ -114,8 +114,8 @@ class StyleDataset(data.Dataset):
                                    transforms.ToPILImage(),
                                    transforms.Resize(constants.BIRD_IMAGE_SIZE),
                                    transforms.CenterCrop(constants.BIRD_IMAGE_SIZE),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                                   transforms.ToTensor()
+                                   #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                                    ])
         
         

@@ -9,6 +9,7 @@ Image and tensor utilities
 import numpy as np
 import cv2
 from torch.autograd import Variable
+import torch
 
 def convert_to_matplotimg(img_tensor, batch_idx):
     img = img_tensor[batch_idx,:,:,:].numpy()
@@ -40,6 +41,19 @@ def gram_matrix(y):
     gram = features.bmm(features_t) / (ch * h * w)
     return gram
 
+def preprocess_batch(batch):
+    batch = batch.transpose(0, 1)
+    (r, g, b) = torch.chunk(batch, 3)
+    batch = torch.cat((b, g, r))
+    batch = batch.transpose(0, 1)
+    return batch
+
+def make_rgb(batch):
+    batch = batch.transpose(0, 1)
+    (b, g, r) = torch.chunk(batch, 3)
+    batch = torch.cat((r, g, b))
+    batch = batch.transpose(0, 1)
+    return batch
 
 def subtract_imagenet_mean_batch(batch):
     """Subtract ImageNet mean pixel-wise from a BGR image."""
