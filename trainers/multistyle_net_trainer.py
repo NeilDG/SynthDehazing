@@ -37,7 +37,7 @@ class SaveFeatures(nn.Module):
 
 
 class MultiStyleTrainer:
-    def __init__(self, version, iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
+    def __init__(self, version, iteration, gpu_device, writer, lr = 0.0001, weight_decay = 0.0, betas = (0.5, 0.999)):
         self.gpu_device = gpu_device
         self.lr = lr
         self.version = version
@@ -69,7 +69,7 @@ class MultiStyleTrainer:
         self.content_losses = []
         self.D_losses = []
         
-        self.content_weight = 1.0; self.style_weight = 5.0; self.adv_weight = 10.0
+        self.content_weight = 1.0; self.style_weight = 5.0; self.adv_weight = 0.0
     
     def update_weight(self, content_weight, style_weight):
         self.content_weight = content_weight
@@ -119,33 +119,34 @@ class MultiStyleTrainer:
             style_loss += self.style_weight * self.mse_loss(vemon_transfer_gram, gram_s[:n_batch, :, :])
         
         #get adversarial loss
-        prediction = self.discriminator(vemon_transfer)
-        real_tensor = torch.ones_like(prediction)
-        fake_tensor = torch.zeros_like(prediction)
+        # prediction = self.discriminator(vemon_transfer)
+        # real_tensor = torch.ones_like(prediction)
+        # fake_tensor = torch.zeros_like(prediction)
         
-        adv_loss = self.bce_loss(prediction, real_tensor) * self.adv_weight
+        #adv_loss = self.bce_loss(prediction, real_tensor) * self.adv_weight
         
-        total_loss = content_loss + style_loss + adv_loss
+        total_loss = content_loss + style_loss
         total_loss.backward()
         self.optimizer.step()
         
         #optimize discriminator
-        self.discriminator.train()
-        self.optimizerD.zero_grad()
-        D_A_real_loss = self.bce_loss(self.discriminator(gta_tensor), real_tensor)
-        D_A_fake_loss = self.bce_loss(self.discriminator(vemon_transfer.detach()), fake_tensor)
-        errD = D_A_real_loss + D_A_fake_loss
-        errD.backward()
-        self.optimizerD.step()
+        # self.discriminator.train()
+        # self.optimizerD.zero_grad()
+        # D_A_real_loss = self.bce_loss(self.discriminator(gta_tensor), real_tensor)
+        # D_A_fake_loss = self.bce_loss(self.discriminator(vemon_transfer.detach()), fake_tensor)
+        # errD = D_A_real_loss + D_A_fake_loss
+        # errD.backward()
+        # self.optimizerD.step()
         
         # Save Losses for plotting later
         self.style_losses.append(style_loss.item())
         self.content_losses.append(content_loss.item())
-        self.D_losses.append(adv_loss.item())
+        #self.D_losses.append(adv_loss.item())
         
         #print("Output size: %s", fake_A.size())
         if(iteration % 500 == 0):
-            print("Iteration: %d Content loss: %f Style loss: %f Adv loss: %f" % (iteration, content_loss.item(), style_loss.item(), adv_loss.item()))
+            print("Iteration: %d Content loss: %f Style loss: %f" % (iteration, content_loss.item(), style_loss.item()))
+            #print("Iteration: %d Content loss: %f Style loss: %f Adv loss: %f" % (iteration, content_loss.item(), style_loss.item(), adv_loss.item()))
 
     def verify(self, vemon_tensor, gta_tensor):        
         gta_tensor = tensor_utils.preprocess_batch(gta_tensor)
@@ -256,14 +257,14 @@ class MultiStyleTrainer:
     def tensorboard_plot(self, epoch):
         ave_style_loss = sum(self.style_losses) / (len(self.style_losses) * 1.0)
         ave_content_loss = sum(self.content_losses) / (len(self.content_losses) * 1.0)
-        ave_adv_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
+        #ave_adv_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
         
         self.writer.add_scalars(self.version +'/loss' + "/" + self.iteration, {'style_loss' :ave_style_loss, 'content_loss' : ave_content_loss,
-                                                                               "adv_loss" : ave_adv_loss, 'mse_loss' :self.current_mse_loss},
+                                                                               'mse_loss' :self.current_mse_loss},
                            global_step = epoch + 1)
         self.writer.close()
         
-        print("Epoch: %d Content loss: %f Style loss: %f Adv loss: %f" % (epoch, ave_content_loss, ave_style_loss, ave_adv_loss))
+        print("Epoch: %d Content loss: %f Style loss: %f" % (epoch, ave_content_loss, ave_style_loss))
     
     def load_saved_state(self, checkpoint, model_key, optimizer_key):
         self.style_model.load_state_dict(checkpoint[model_key])

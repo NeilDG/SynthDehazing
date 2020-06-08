@@ -132,23 +132,22 @@ def assemble_gta_data(num_image_to_load = -1):
 def assemble_msg_data(num_image_to_load = -1):
     gta_list = [];  normal_list = []
     
-    #load normal images
     for (root, dirs, files) in os.walk(constants.DATASET_VEMON_FRONT_PATH):
         for f in files:
             file_name = os.path.join(root, f)
             #print(file_name)
             normal_list.append(file_name)
             if(num_image_to_load != -1 and len(normal_list) == num_image_to_load):
-                break
+                break  
     
     for (root, dirs, files) in os.walk(constants.DATASET_SYNTH_GTA_PATH):
         for f in files:
             file_name = os.path.join(root, f)
             #print(file_name)
             gta_list.append(file_name)
-            if(num_image_to_load != -1 or len(gta_list) == len(normal_list)):
+            if(len(normal_list) == len(gta_list)):
                 break
-
+    
     return normal_list, gta_list
 
 def load_synth_dataset(batch_size = 8, num_image_to_load = -1):
