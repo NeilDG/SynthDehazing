@@ -27,32 +27,37 @@ from utils import logger
 parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
-
+parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
+parser.add_option('--style_iteration', type=int, help="Style version?", default="1")
+parser.add_option('--content_weight', type=float, help="Content weight", default="1.0")
+parser.add_option('--style_weight', type=float, help="Content weight", default="5.0")
 print = logger.log
 
 #Update config if on COARE
-def update_config():
+def update_config(opts):
+    constants.is_coare = opts.coare
+    
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
         constants.batch_size = constants.batch_size * 4
         
-        constants.DATASET_BIRD_NORMAL_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/frames/"
+        constants.STYLE_ITERATION = opts.style_iteration
+        constants.DATASET_BIRD_NORMAL_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/synth_gta/"
         constants.DATASET_BIRD_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/homog_frames/"
         constants.DATASET_BIRD_GROUND_TRUTH_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/topdown_frames/"
-        #DATASET_BIRD_ALTERNATIVE_PATH = "E:/GTA Bird Dataset/raw/"
         
         constants.DATASET_VEMON_FRONT_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
-        constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/" 
+        constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/"
+        
         constants.num_workers = 2
 
 def main(argv):
     (opts, args) = parser.parse_args(argv)
-    constants.is_coare = opts.coare
     logger.clear_log()
     print("=========BEGIN============")
-    print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
+    print("Is Coare? %d Has GPU available? %d Count: %d" % (opts.coare, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
-    update_config()
+    update_config(opts)
     
     manualSeed = random.randint(1, 10000) # use if you want new results
     random.seed(manualSeed)
@@ -63,9 +68,10 @@ def main(argv):
     writer = SummaryWriter('train_plot')
     
     gt = multistyle_net_trainer.MultiStyleTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
+    gt.update_weight(opts.content_weight, opts.style_weight)
     start_epoch = 0
     
-    if(True): 
+    if(opts.load_previous == 1): 
         checkpoint = torch.load(constants.STYLE_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
         gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.OPTIMIZER_KEY)
@@ -76,35 +82,15 @@ def main(argv):
     # Create the dataloader
     dataloader = dataset_loader.load_msg_dataset(constants.batch_size, opts.img_to_load)
     
-    # Plot some training images
-    if(constants.is_coare == 0):
-        name_batch, vemon_batch_orig, gta_batch_orig = next(iter(dataloader))
-        plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
-        plt.axis("off")
-        plt.title("Training - Normal Images")
-        plt.imshow(np.transpose(vutils.make_grid(vemon_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
-        plt.show()
-        
-        plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
-        plt.axis("off")
-        plt.title("Training - Topdown Images")
-        plt.imshow(np.transpose(vutils.make_grid(gta_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
-        plt.show()
-    
     print("Starting Training Loop...")
-    for epoch in range(start_epoch, constants.num_epochs):
-        # For each batch in the dataloader
-        for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
-            vemon_tensor = vemon_batch.to(device)
-            gta_tensor = gta_batch.to(device)
-            gt.train(vemon_tensor, gta_tensor, i)
+    # For each batch in the dataloader
+    for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
+        vemon_tensor = vemon_batch.to(device)
+        gta_tensor = gta_batch.to(device)
+        gt.train(vemon_tensor, gta_tensor, i)
         
-        if(constants.is_coare == 0):
-            gt.verify(vemon_batch_orig.to(device), gta_batch_orig.to(device)) #produce image from first batch
-            gt.report(epoch)
-        
-        #save every X epoch
-        gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.OPTIMIZER_KEY)
+    #save every X epoch
+    gt.save_states(start_epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

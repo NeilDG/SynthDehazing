@@ -6,9 +6,17 @@ clear
 cd scratch2/NeuralNets-GenerativeExperiment
 cd scratch2/NeuralNets-GenerativeExperiment-2
 cd scratch2/NeuralNets-GenerativeExperiment-3
+cd scratch2/NeuralNets-GenerativeExperiment-4
 
 //Execute job
 sbatch neil_job.slurm
+sbatch multistyle_2.slurm
+sbatch multistyle_3.slurm
+sbatch multistyle_4.slurm
+
+sbatch --export=c=100.0,s=100.0,iteration=2 multistyle.slurm
+sbatch --export=c=10.0,s=100.0,iteration=3 multistyle.slurm
+sbatch --export=c=100.0,s=50.0,iteration=4 multistyle.slurm
 
 //Check status of job
 squeue -u neil.delgallego
