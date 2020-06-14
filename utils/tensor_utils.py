@@ -72,7 +72,7 @@ def add_imagenet_mean_batch(batch):
     mean[:, 0, :, :] = 103.939
     mean[:, 1, :, :] = 116.779
     mean[:, 2, :, :] = 123.680
-    return batch + Variable(mean)
+    return batch + Variable(mean).cuda()
 
 def imagenet_clamp_batch(batch, low, high):
     batch[:,0,:,:].data.clamp_(low-103.939, high-103.939)

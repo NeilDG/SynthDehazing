@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+Experiment on denoising training
 Created on Wed Nov  6 19:41:58 2019
 
 @author: delgallegon
@@ -31,33 +32,28 @@ class GANTrainer:
         self.writer = writer
         self.visualized = False
     
-        self.G_A = style_transfer_gan.Generator()
-        self.G_B = style_transfer_gan.Generator()
+        self.G_A = style_transfer_gan.Generator().to(gpu_device) #use multistyle net as architecture
+        self.G_B = style_transfer_gan.Generator().to(gpu_device)
         
-        self.D_A = style_transfer_gan.Discriminator()
-        self.D_B = style_transfer_gan.Discriminator()
-        
-        if(torch.cuda.device_count() > 1):
-            print("Let's use %d GPUs!", torch.cuda.device_count())
-            self.G_A = nn.DataParallel(self.G_A)
-            self.G_B = nn.DataParallel(self.G_B)
-            self.D_A = nn.DataParallel(self.D_A)
-            self.D_B = nn.DataParallel(self.D_B)
-        
-        self.G_A.to(gpu_device)
-        self.G_B.to(gpu_device)
-        self.D_A.to(gpu_device)
-        self.D_B.to(gpu_device)
+        self.D_A = style_transfer_gan.Discriminator().to(gpu_device)
         
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
-        self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters(), self.D_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
+        self.optimizerD = torch.optim.Adam(self.D_A.parameters(), lr=lr, betas=betas, weight_decay=weight_decay)
         
         self.G_losses = []
         self.D_losses = []
+        
+        self.identity_weight = 1.0; self.cycle_weight = 10.0; self.adv_weight = 1.0; self.tv_weight = 10.0
     
+    def update_penalties(self, identity, cycle, adv, tv):
+        self.identity_weight = identity
+        self.cycle_weight = cycle
+        self.adv_weight = adv
+        self.tv_weight = tv
+        print("Weights updated to the following: %f %f %f %f" % (self.identity_weight, self.cycle_weight, self.adv_weight, self.tv_weight))
+        
     def adversarial_loss(self, pred, target):
-        loss = nn.BCELoss() #binary cross-entropy loss
-        #loss = nn.MSELoss()
+        loss = nn.BCELoss()
         return loss(pred, target)
     
     def identity_loss(self, pred, target):
@@ -67,55 +63,65 @@ class GANTrainer:
     def cycle_loss(self, pred, target):
         loss = nn.L1Loss()
         return loss(pred, target)
+    
+    def tv_loss(self, yhat, y):
+        bsize, chan, height, width = y.size()
+        error = []
+        dy = torch.abs(y[:,:,1:,:] - y[:,:,:-1,:])
+        dyhat = torch.abs(yhat[:,:,1:,:] - yhat[:,:,:-1,:])
+        error = torch.norm(dy - dyhat, 1)
+        return error / height
+    
+    def _tensor_size(self,t):
+        return t.size()[1]*t.size()[2]*t.size()[3]
+    
+    def tv_impose(self, x):
+        batch_size = x.size()[0]
+        count_h = x[:,:,1:,:].size()[1]*x[:,:,1:,:].size()[2]*x[:,:,1:,:].size()[3]
+        count_w = x[:,:,:,1:].size()[1]*x[:,:,:,1:].size()[2]*x[:,:,:,1:].size()[3]
+        h_x = x.size()[2]
+        w_x = x.size()[3]
+        
+        h_tv = torch.pow((x[:,:,1:,:]-x[:,:,:h_x-1,:]),2).sum()
+        w_tv = torch.pow((x[:,:,:,1:]-x[:,:,:,:w_x-1]),2).sum()
+        
+        return 2 * (h_tv/count_h + w_tv/count_w) / batch_size
         
     # Input = image
     # Performs a discriminator forward-backward pass, then a generator forward-backward pass
     # a = vemon image
     # b = gta image
-    def train(self, vemon_tensor, gta_tensor, iteration):
-        real_label = 1
-        fake_label = 0
-        
-        self.lambda_identity = 1.0; self.lambda_cycle = 10.0; self.lambda_adv = 1.0
-        
+    def train(self, dirty_tensor, clean_tensor, iteration):
         self.G_A.train()
         self.G_B.train()
         self.optimizerG.zero_grad()
         
-        #A = generated gta, B = generated vemon
-        fake_A = self.G_A(vemon_tensor)
-        fake_B = self.G_B(gta_tensor)
+        identity_like = self.G_A(dirty_tensor)
+        clean_like = self.G_A(dirty_tensor)
         
-        A_identity_loss = self.identity_loss(self.G_A(vemon_tensor), vemon_tensor) * self.lambda_identity
-        B_identity_loss = self.identity_loss(self.G_B(gta_tensor), gta_tensor) * self.lambda_identity
+        A_identity_loss = self.identity_loss(identity_like, dirty_tensor) * self.identity_weight
+        A_cycle_loss = self.cycle_loss(self.G_B(clean_like), dirty_tensor) * self.cycle_weight
+        A_tv_loss = self.tv_impose(clean_like) * self.tv_weight
         
-        A_cycle_loss = self.cycle_loss(self.G_A(fake_B), vemon_tensor) * self.lambda_cycle
-        B_cycle_loss = self.cycle_loss(self.G_B(fake_A), gta_tensor) * self.lambda_cycle
+        prediction = self.D_A(clean_like)
+        real_tensor = torch.ones_like(prediction)
+        fake_tensor = torch.zeros_like(prediction)
         
-        output_A = self.D_A(fake_A)
-        output_B = self.D_B(fake_B)
+        adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
         
-        real_tensor = torch.ones_like(output_A)
-        fake_tensor = torch.zeros_like(output_A)
-        
-        A_adv_loss = self.adversarial_loss(output_A, real_tensor) * self.lambda_adv
-        B_adv_loss = self.adversarial_loss(output_B, real_tensor) * self.lambda_adv
-        
-        errG = A_identity_loss + B_identity_loss + A_cycle_loss + B_cycle_loss + A_adv_loss + B_adv_loss
-        #errG = A_cycle_loss + B_cycle_loss + A_adv_loss + B_adv_loss
+        errG = A_identity_loss +  A_cycle_loss + A_tv_loss + adv_loss
         errG.backward()
         self.optimizerG.step()
         
         self.D_A.train()
-        self.D_B.train()
         self.optimizerD.zero_grad()
-        D_A_real_loss = self.adversarial_loss(self.D_A(vemon_tensor), real_tensor)
-        D_A_fake_loss = self.adversarial_loss(self.D_A(fake_A.detach()), fake_tensor)
-        D_B_real_loss = self.adversarial_loss(self.D_B(gta_tensor), real_tensor)
-        D_B_fake_loss = self.adversarial_loss(self.D_B(fake_B.detach()), fake_tensor)
         
-        errD = D_A_real_loss + D_A_fake_loss + D_B_real_loss + D_B_fake_loss
+        
+        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor), real_tensor)
+        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach()), fake_tensor)
+        errD = D_A_real_loss + D_A_fake_loss
         errD.backward()
+        
         self.optimizerD.step()
         
         # Save Losses for plotting later
@@ -126,28 +132,28 @@ class GANTrainer:
         if(iteration % 500 == 0):
             print("Iteration: %d G loss: %f D loss: %f" % (iteration, errG.item(), errD.item()))
 
-    def verify(self, vemon_tensor, gta_tensor):        
+    def verify(self, dirty_tensor, clean_tensor):        
         # Check how the generator is doing by saving G's output on fixed_noise
         with torch.no_grad():
-            fake_ab = self.G_A(vemon_tensor).detach()
-            fake_ba = self.G_B(gta_tensor).detach()
+            clean_like = self.G_A(dirty_tensor).detach()
+            dirty_like = self.G_B(clean_tensor).detach()
         
         fig, ax = plt.subplots(4, 1)
         fig.set_size_inches(40, 15)
         
-        ims = np.transpose(vutils.make_grid(vemon_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(dirty_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[0].set_axis_off()
         ax[0].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(fake_ab, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(dirty_like, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[1].set_axis_off()
         ax[1].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(fake_ba, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(clean_like, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[2].set_axis_off()
         ax[2].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(gta_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(clean_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[3].set_axis_off()
         ax[3].imshow(ims)
         
@@ -156,7 +162,7 @@ class GANTrainer:
         
         #verify reconstruction loss with MSE. for reporting purposes
         mse_loss = nn.MSELoss()
-        self.current_mse_loss = mse_loss(fake_ab, gta_tensor)
+        self.current_mse_loss = mse_loss(clean_like, clean_tensor)
     
     def verify_and_save(self, vemon_tensor, gta_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
@@ -215,7 +221,6 @@ class GANTrainer:
         self.log_weights("gen_A", self.G_A, self.writer, epoch)
         self.log_weights("gen_B", self.G_B, self.writer, epoch)
         self.log_weights("disc_A", self.D_A, self.writer, epoch)
-        self.log_weights("disc_B", self.D_B, self.writer, epoch)
         
         self.tensorboard_plot(epoch)
 
@@ -243,7 +248,6 @@ class GANTrainer:
         self.G_A.load_state_dict(checkpoint[generator_key + "A"])
         self.G_B.load_state_dict(checkpoint[generator_key + "B"])
         self.D_A.load_state_dict(checkpoint[disriminator_key + "A"])
-        self.D_B.load_state_dict(checkpoint[disriminator_key + "B"])
         self.optimizerG.load_state_dict(checkpoint[generator_key + optimizer_key])
         self.optimizerD.load_state_dict(checkpoint[disriminator_key + optimizer_key])
     
@@ -252,7 +256,6 @@ class GANTrainer:
         netGA_state_dict = self.G_A.state_dict()
         netGB_state_dict = self.G_B.state_dict()
         netDA_state_dict = self.D_A.state_dict()
-        netDB_state_dict = self.D_B.state_dict()
         
         optimizerG_state_dict = self.optimizerG.state_dict()
         optimizerD_state_dict = self.optimizerD.state_dict()
@@ -260,7 +263,6 @@ class GANTrainer:
         save_dict[generator_key + "A"] = netGA_state_dict
         save_dict[generator_key + "B"] = netGA_state_dict
         save_dict[disriminator_key + "A"] = netDA_state_dict
-        save_dict[disriminator_key + "B"] = netDB_state_dict
         
         save_dict[generator_key + optimizer_key] = optimizerG_state_dict
         save_dict[disriminator_key + optimizer_key] = optimizerD_state_dict

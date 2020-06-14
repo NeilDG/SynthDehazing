@@ -16,9 +16,9 @@ nvidia-smi
 module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
-c=100.0
+c=1.0
 s=50.0
-iteration=4
+iteration=14
 
 echo "content_weight=$c style_weight=$s iteration=$iteration"
 

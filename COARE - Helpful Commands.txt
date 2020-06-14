@@ -10,6 +10,8 @@ cd scratch2/NeuralNets-GenerativeExperiment-4
 
 //Execute job
 sbatch neil_job.slurm
+sbatch denoise_1.slurm
+sbatch denoise_2.slurm
 sbatch multistyle_2.slurm
 sbatch multistyle_3.slurm
 sbatch multistyle_4.slurm

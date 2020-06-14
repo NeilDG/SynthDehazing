@@ -37,7 +37,7 @@ class SaveFeatures(nn.Module):
 
 
 class MultiStyleTrainer:
-    def __init__(self, version, iteration, gpu_device, writer, lr = 0.0001, weight_decay = 0.0, betas = (0.5, 0.999)):
+    def __init__(self, version, iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
         self.gpu_device = gpu_device
         self.lr = lr
         self.version = version
@@ -69,7 +69,7 @@ class MultiStyleTrainer:
         self.content_losses = []
         self.D_losses = []
         
-        self.content_weight = 1.0; self.style_weight = 5.0; self.adv_weight = 0.0
+        self.content_weight = 100.0; self.style_weight = 500.0; self.adv_weight = 0.0
     
     def update_weight(self, content_weight, style_weight):
         self.content_weight = content_weight
@@ -88,7 +88,7 @@ class MultiStyleTrainer:
         self.style_model.train()
         gta_tensor = tensor_utils.preprocess_batch(gta_tensor)
         vemon_tensor = tensor_utils.preprocess_batch(vemon_tensor)
-        gta_tensor = tensor_utils.subtract_imagenet_mean_batch(gta_tensor)
+        #gta_tensor = tensor_utils.subtract_imagenet_mean_batch(gta_tensor)
         self.vgg16(gta_tensor)
         features_gta = [sf.features.clone() for sf in vgg_getter]
         
@@ -97,8 +97,8 @@ class MultiStyleTrainer:
         vemon_transfer = self.style_model(vemon_tensor, gta_tensor)
         vemon_tensor_copy = autograd.Variable(vemon_tensor.data.clone())
         
-        vemon_transfer = tensor_utils.subtract_imagenet_mean_batch(vemon_transfer)
-        vemon_tensor_copy = tensor_utils.subtract_imagenet_mean_batch(vemon_tensor_copy)
+        #vemon_transfer = tensor_utils.subtract_imagenet_mean_batch(vemon_transfer)
+        #vemon_tensor_copy = tensor_utils.subtract_imagenet_mean_batch(vemon_tensor_copy)
         
         self.vgg16(vemon_transfer)
         vemon_transfer_features = [sf.features.clone() for sf in vgg_getter]
@@ -151,10 +151,12 @@ class MultiStyleTrainer:
     def verify(self, vemon_tensor, gta_tensor):        
         gta_tensor = tensor_utils.preprocess_batch(gta_tensor)
         vemon_tensor = tensor_utils.preprocess_batch(vemon_tensor)
+        #gta_tensor = tensor_utils.subtract_imagenet_mean_batch(gta_tensor)
         
         with torch.no_grad():
-            fake_ab = self.style_model(vemon_tensor, gta_tensor).detach()
+            fake_ab = self.style_model(vemon_tensor, gta_tensor).detach() 
         
+        #gta_tensor = tensor_utils.add_imagenet_mean_batch(gta_tensor)
         gta_tensor = tensor_utils.make_rgb(gta_tensor)
         vemon_tensor = tensor_utils.make_rgb(vemon_tensor)
         fake_ab = tensor_utils.make_rgb(fake_ab)
@@ -211,6 +213,7 @@ class MultiStyleTrainer:
         
         gta_tensor = tensor_utils.preprocess_batch(gta_tensor)
         vemon_tensor = tensor_utils.preprocess_batch(vemon_tensor)
+        gta_tensor = tensor_utils.subtract_imagenet_mean_batch(gta_tensor)
         
         with torch.no_grad():
             fake = self.style_model(vemon_tensor, gta_tensor).detach()

@@ -20,17 +20,47 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
 from loaders import dataset_loader
-from trainers import multistyle_net_trainer
+from trainers import denoise_net_trainer
 import constants
 from utils import logger
      
 parser = OptionParser()
+parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
-
+parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
+parser.add_option('--style_iteration', type=int, help="Style version?", default="1")
+parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--tv_weight', type=float, help="Weight", default="1.0")
 print = logger.log
 
+#--img_to_load=-1 --identity_weight=1.0 --cycle_weight=10.0 --adv_weight=1.0 --tv_weight=1.0
+
+#Update config if on COARE
+def update_config(opts):
+    constants.is_coare = opts.coare
+    
+    if(constants.is_coare == 1):
+        print("Using COARE configuration.")
+        constants.batch_size = 64
+        
+        constants.STYLE_ITERATION = str(opts.style_iteration)
+        constants.STYLE_CHECKPATH = 'checkpoint/' + constants.STYLE_GAN_VERSION + "_" + constants.STYLE_ITERATION +'.pt'
+        
+        constants.DATASET_SYNTH_GTA_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/synth_gta/"
+        constants.DATASET_PLACES_PATH = "/scratch1/scratch2/neil.delgallego/Places Dataset/"
+        constants.DATASET_BIRD_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/homog_frames/"
+        constants.DATASET_BIRD_GROUND_TRUTH_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/topdown_frames/"
+        
+        constants.DATASET_VEMON_FRONT_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/"
+        
+        constants.num_workers = 0
+        
 def main(argv):
     (opts, args) = parser.parse_args(argv)
+    update_config(opts)
     logger.clear_log()
     print("=========BEGIN============")
     print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
@@ -44,13 +74,14 @@ def main(argv):
     print("Device: %s" % device)
     writer = SummaryWriter('train_plot')
     
-    gt = multistyle_net_trainer.MultiStyleTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
+    gt = denoise_net_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
+    gt.update_penalties(opts.identity_weight, opts.cycle_weight, opts.adv_weight, opts.tv_weight)
     start_epoch = 0
     
-    if(True): 
+    if(opts.load_previous): 
         checkpoint = torch.load(constants.STYLE_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1          
-        gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
  
         print("Loaded checkpt: %s Current epoch: %d" % (constants.STYLE_CHECKPATH, start_epoch))
         print("===================================================")
@@ -86,7 +117,7 @@ def main(argv):
             gt.report(epoch)
         
         #save every X epoch
-        gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

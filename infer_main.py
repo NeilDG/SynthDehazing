@@ -86,7 +86,7 @@ def msg_net_transfer(batch_size, style_version, style_iteration):
     print("Loaded results checkpt ",constants.STYLE_CHECKPATH)
     print("===================================================")
     
-    dataloader = dataset_loader.load_style_dataset(batch_size, -1)
+    dataloader = dataset_loader.load_msg_dataset(batch_size, -1)
     
     # Plot some training images
     name_batch, vemon_batch, gta_batch = next(iter(dataloader))
@@ -146,8 +146,8 @@ def vemon_infer(batch_size, gan_version, gan_iteration):
 
 def main():
     #view_train_results(constants.infer_size, constants.GAN_VERSION, constants.GAN_ITERATION)
-    style_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
-    #msg_net_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
+    #style_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
+    msg_net_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 
