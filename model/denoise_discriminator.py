@@ -22,7 +22,7 @@ class Discriminator(nn.Module):
         
         filter_size = 256
         
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 3, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 6, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
                                    nn.LeakyReLU(0.2, inplace = True))
         
         self.conv2 = nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
@@ -49,8 +49,8 @@ class Discriminator(nn.Module):
         
         self.apply(weights_init)
 
-    def forward(self, input):
-        #input = torch.cat([clean_like, clean_tensor], 1)
+    def forward(self, clean_like, clean_tensor):
+        input = torch.cat([clean_like, clean_tensor], 1)
         x = self.conv1(input)
         x = self.conv2(x)
         x = self.conv3(x)

@@ -8,6 +8,7 @@ Created on Wed Nov  6 19:41:58 2019
 
 import os
 from model import style_transfer_gan
+from model import denoise_discriminator
 from loaders import dataset_loader
 import constants
 import torch
@@ -35,7 +36,7 @@ class GANTrainer:
         self.G_A = style_transfer_gan.Generator().to(gpu_device) #use multistyle net as architecture
         self.G_B = style_transfer_gan.Generator().to(gpu_device)
         
-        self.D_A = style_transfer_gan.Discriminator().to(gpu_device)
+        self.D_A = denoise_discriminator.Discriminator().to(gpu_device)
         
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
         self.optimizerD = torch.optim.Adam(self.D_A.parameters(), lr=lr, betas=betas, weight_decay=weight_decay)
@@ -53,7 +54,7 @@ class GANTrainer:
         print("Weights updated to the following: %f %f %f %f" % (self.identity_weight, self.cycle_weight, self.adv_weight, self.tv_weight))
         
     def adversarial_loss(self, pred, target):
-        loss = nn.BCELoss()
+        loss = nn.MSELoss()
         return loss(pred, target)
     
     def identity_loss(self, pred, target):
@@ -61,7 +62,7 @@ class GANTrainer:
         return loss(pred, target)
     
     def cycle_loss(self, pred, target):
-        loss = nn.L1Loss()
+        loss = nn.MSELoss()
         return loss(pred, target)
     
     def tv_loss(self, yhat, y):
@@ -103,7 +104,7 @@ class GANTrainer:
         A_cycle_loss = self.cycle_loss(self.G_B(clean_like), dirty_tensor) * self.cycle_weight
         A_tv_loss = self.tv_impose(clean_like) * self.tv_weight
         
-        prediction = self.D_A(clean_like)
+        prediction = self.D_A(clean_like, clean_tensor)
         real_tensor = torch.ones_like(prediction)
         fake_tensor = torch.zeros_like(prediction)
         
@@ -117,8 +118,8 @@ class GANTrainer:
         self.optimizerD.zero_grad()
         
         
-        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor), real_tensor)
-        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach()), fake_tensor)
+        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor, clean_tensor), real_tensor)
+        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach(), clean_tensor), fake_tensor)
         errD = D_A_real_loss + D_A_fake_loss
         errD.backward()
         
@@ -136,7 +137,7 @@ class GANTrainer:
         # Check how the generator is doing by saving G's output on fixed_noise
         with torch.no_grad():
             clean_like = self.G_A(dirty_tensor).detach()
-            dirty_like = self.G_B(clean_tensor).detach()
+            dirty_like = self.G_B(clean_like).detach()
         
         fig, ax = plt.subplots(4, 1)
         fig.set_size_inches(40, 15)
