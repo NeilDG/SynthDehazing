@@ -39,17 +39,20 @@ def update_config(opts):
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = constants.batch_size * 4
+        constants.batch_size = 64
         
-        constants.STYLE_ITERATION = opts.style_iteration
-        constants.DATASET_BIRD_NORMAL_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/synth_gta/"
+        constants.STYLE_ITERATION = str(opts.style_iteration)
+        constants.STYLE_CHECKPATH = 'checkpoint/' + constants.STYLE_GAN_VERSION + "_" + constants.STYLE_ITERATION +'.pt'
+        
+        constants.DATASET_SYNTH_GTA_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/synth_gta/"
+        constants.DATASET_PLACES_PATH = "/scratch1/scratch2/neil.delgallego/Places Dataset/"
         constants.DATASET_BIRD_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/homog_frames/"
         constants.DATASET_BIRD_GROUND_TRUTH_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/topdown_frames/"
         
         constants.DATASET_VEMON_FRONT_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/"
         
-        constants.num_workers = 2
+        constants.num_workers = 0
 
 def main(argv):
     (opts, args) = parser.parse_args(argv)

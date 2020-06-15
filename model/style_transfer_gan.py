@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import logging
 
 print = logging.info
+
 def weights_init(m):
         classname = m.__class__.__name__
         if classname.find('Conv') != -1:

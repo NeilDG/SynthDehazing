@@ -31,23 +31,27 @@ parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
+parser.add_option('--style_iteration', type=int, help="Style version?", default="1")
 
 print = logger.log
 
 #Update config if on COARE
-def update_config():
+def update_config(opts):
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = constants.batch_size * 4
+        constants.batch_size = 32
         
-        constants.DATASET_BIRD_NORMAL_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/frames/"
+        constants.STYLE_ITERATION = str(opts.style_iteration)
+        constants.STYLE_CHECKPATH = 'checkpoint/style_v1.00_' + constants.STYLE_ITERATION +'.pt'
+        
+        constants.DATASET_SYNTH_GTA_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/synth_gta/"
+        constants.DATASET_PLACES_PATH = "/scratch1/scratch2/neil.delgallego/Places Dataset/"
         constants.DATASET_BIRD_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/homog_frames/"
         constants.DATASET_BIRD_GROUND_TRUTH_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/topdown_frames/"
-        #DATASET_BIRD_ALTERNATIVE_PATH = "E:/GTA Bird Dataset/raw/"
         
         constants.DATASET_VEMON_FRONT_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
-        constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/" 
-        constants.num_workers = 2
+        constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/"
+        constants.num_workers = 0
 
 def main(argv):
     (opts, args) = parser.parse_args(argv)
@@ -56,7 +60,7 @@ def main(argv):
     print("=========BEGIN============")
     print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
-    update_config()
+    update_config(opts)
     
     manualSeed = random.randint(1, 10000) # use if you want new results
     random.seed(manualSeed)
@@ -78,7 +82,7 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    dataloader = dataset_loader.load_style_dataset(constants.batch_size, opts.img_to_load)
+    dataloader = dataset_loader.load_msg_dataset(constants.batch_size, opts.img_to_load)
     
     # Plot some training images
     if(constants.is_coare == 0):
@@ -98,7 +102,7 @@ def main(argv):
     print("Starting Training Loop...")
     # For each batch in the dataloader
     print("Dataloader refresh.")
-    dataloader = dataset_loader.load_style_dataset(constants.batch_size, opts.img_to_load)
+    dataloader = dataset_loader.load_msg_dataset(constants.batch_size, opts.img_to_load)
     for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
         vemon_tensor = vemon_batch.to(device)
         gta_tensor = gta_batch.to(device)
