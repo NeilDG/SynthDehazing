@@ -30,7 +30,7 @@ DISCRIMINATOR_KEY = "discriminator"
 
 
 STYLE_GAN_VERSION = "denoise_v1.00"
-STYLE_ITERATION = "4"
+STYLE_ITERATION = "7"
 STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + "_" + STYLE_ITERATION +'.pt'
  
  # Set random seed for reproducibility

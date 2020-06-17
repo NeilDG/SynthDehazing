@@ -35,7 +35,7 @@ parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--tv_weight', type=float, help="Weight", default="1.0")
 print = logger.log
 
-#--img_to_load=-1 --identity_weight=1.0 --cycle_weight=10.0 --adv_weight=1.0 --tv_weight=1.0 --load_previous=1
+#--img_to_load=-1 --identity_weight=1.0 --cycle_weight=10.0 --adv_weight=2.0 --tv_weight=1.0 --load_previous=0
 
 #Update config if on COARE
 def update_config(opts):
