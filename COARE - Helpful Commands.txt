@@ -3,15 +3,17 @@
 clear
 
 //For directories
-cd scratch2/NeuralNets-GenerativeExperiment
-cd scratch2/NeuralNets-GenerativeExperiment-2
-cd scratch2/NeuralNets-GenerativeExperiment-3
-cd scratch2/NeuralNets-GenerativeExperiment-4
+cd scratch2/NeuralNets-GenerativeExperiment/jobs
+cd scratch2/NeuralNets-GenerativeExperiment-2/jobs
+cd scratch2/NeuralNets-GenerativeExperiment-3/jobs
+cd scratch2/NeuralNets-GenerativeExperiment-4/jobs
 
 //Execute job
 sbatch neil_job.slurm
 sbatch denoise_1.slurm
 sbatch denoise_2.slurm
+sbatch denoise_3.slurm
+sbatch denoise_4.slurm
 sbatch multistyle_2.slurm
 sbatch multistyle_3.slurm
 sbatch multistyle_4.slurm

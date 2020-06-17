@@ -54,7 +54,7 @@ class GANTrainer:
         print("Weights updated to the following: %f %f %f %f" % (self.identity_weight, self.cycle_weight, self.adv_weight, self.tv_weight))
         
     def adversarial_loss(self, pred, target):
-        loss = nn.MSELoss()
+        loss = nn.BCELoss()
         return loss(pred, target)
     
     def identity_loss(self, pred, target):
