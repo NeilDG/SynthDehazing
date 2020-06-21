@@ -7,7 +7,7 @@ Created on Wed Nov  6 19:41:58 2019
 """
 
 import os
-from model import style_transfer_gan
+from model import new_style_transfer_gan as st
 from model import denoise_discriminator
 from loaders import dataset_loader
 import constants
@@ -25,7 +25,7 @@ from utils import logger
 print = logger.log
 
 class GANTrainer:
-    def __init__(self, gan_version, gan_iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
+    def __init__(self, gan_version, gan_iteration, gpu_device, writer, gen_blocks, disc_blocks, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
         self.gpu_device = gpu_device
         self.lr = lr
         self.gan_version = gan_version
@@ -33,10 +33,14 @@ class GANTrainer:
         self.writer = writer
         self.visualized = False
     
-        self.G_A = style_transfer_gan.Generator().to(gpu_device) #use multistyle net as architecture
-        self.G_B = style_transfer_gan.Generator().to(gpu_device)
+        self.G_A = st.Generator(gen_blocks).to(gpu_device) #use multistyle net as architecture
+        self.G_B = st.Generator(gen_blocks).to(gpu_device)
         
-        self.D_A = denoise_discriminator.Discriminator().to(gpu_device)
+        self.D_A = st.Discriminator(disc_blocks).to(gpu_device)
+        
+        print("Gen blocks set to %d. Disc blocks set to %d." %(gen_blocks, disc_blocks))
+        print(self.G_B)
+        print(self.D_A)
         
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
         self.optimizerD = torch.optim.Adam(self.D_A.parameters(), lr=lr, betas=betas, weight_decay=weight_decay)
@@ -54,7 +58,7 @@ class GANTrainer:
         print("Weights updated to the following: %f %f %f %f" % (self.identity_weight, self.cycle_weight, self.adv_weight, self.tv_weight))
         
     def adversarial_loss(self, pred, target):
-        loss = nn.BCELoss()
+        loss = nn.MSELoss()
         return loss(pred, target)
     
     def identity_loss(self, pred, target):
@@ -118,8 +122,8 @@ class GANTrainer:
         self.optimizerD.zero_grad()
         
         
-        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor, clean_tensor), real_tensor)
-        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach(), clean_tensor), fake_tensor)
+        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor, clean_tensor), real_tensor) * self.adv_weight
+        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach(), clean_tensor), fake_tensor) * self.adv_weight
         errD = D_A_real_loss + D_A_fake_loss
         errD.backward()
         

@@ -33,9 +33,11 @@ parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--tv_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--gen_blocks', type=int, help="Weight", default="4")
+parser.add_option('--disc_blocks', type=int, help="Weight", default="6")
 print = logger.log
 
-#--img_to_load=-1 --identity_weight=1.0 --cycle_weight=10.0 --adv_weight=2.0 --tv_weight=1.0 --load_previous=0
+#--img_to_load=500 --identity_weight=1.0 --cycle_weight=10.0 --adv_weight=1.0 --tv_weight=1.0 --gen_blocks=4 --disc_blocks=4 --load_previous=0
 
 #Update config if on COARE
 def update_config(opts):
@@ -74,7 +76,7 @@ def main(argv):
     print("Device: %s" % device)
     writer = SummaryWriter('train_plot')
     
-    gt = denoise_net_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer)
+    gt = denoise_net_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer, opts.gen_blocks, opts.disc_blocks)
     gt.update_penalties(opts.identity_weight, opts.cycle_weight, opts.adv_weight, opts.tv_weight)
     start_epoch = 0
     
@@ -113,7 +115,8 @@ def main(argv):
             gt.train(vemon_tensor, gta_tensor, i)
         
         if(constants.is_coare == 0):
-            gt.verify(vemon_batch_orig.to(device), gta_batch_orig.to(device)) #produce image from first batch
+            name_batch, vemon_batch_orig, gta_batch_orig = next(iter(dataloader))
+            gt.verify(vemon_batch_orig.to(device)[:constants.infer_size], gta_batch_orig.to(device)[:constants.infer_size]) #produce image from first batch
             gt.report(epoch)
         
         #save every X epoch
