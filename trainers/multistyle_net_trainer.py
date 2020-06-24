@@ -26,15 +26,6 @@ import torchvision.models as models
 
 print = logger.log
 
-class SaveFeatures(nn.Module):
-	features = None;
-	def __init__(self, m):
-		self.hook = m.register_forward_hook(self.hook_fn);
-	def hook_fn(self, module, input, output):
-		self.features = output;
-	def close(self):
-		self.hook.remove();
-
 
 class MultiStyleTrainer:
     def __init__(self, version, iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
@@ -82,7 +73,7 @@ class MultiStyleTrainer:
     # b = gta image
     def train(self, vemon_tensor, gta_tensor, iteration):
         
-        vgg_getter = [SaveFeatures(self.vgg16[i]) for i in [3, 8, 15, 22]];
+        vgg_getter = [tensor_utils.SaveFeatures(self.vgg16[i]) for i in [3, 8, 15, 22]];
         
         self.optimizer.zero_grad()
         self.style_model.train()

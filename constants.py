@@ -29,7 +29,7 @@ GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
 
-STYLE_GAN_VERSION = "denoise_v1.01"
+STYLE_GAN_VERSION = "style_v1.02"
 STYLE_ITERATION = "1"
 STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + "_" + STYLE_ITERATION +'.pt'
  
@@ -40,10 +40,10 @@ manualSeed = 999
 num_epochs = 30
 
 # Batch size during training
-batch_size = 256
-infer_size = 32
+batch_size = 64
+infer_size = 128
 
-num_workers = 16
+num_workers = 12
 
 #Running on COARE?
 is_coare = 0

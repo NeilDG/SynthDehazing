@@ -6,10 +6,21 @@ Image and tensor utilities
 @author: delgallegon
 """
 
+import torch.nn as nn
 import numpy as np
 import cv2
 from torch.autograd import Variable
 import torch
+
+#for attaching hooks on pretrained models
+class SaveFeatures(nn.Module):
+	features = None;
+	def __init__(self, m):
+		self.hook = m.register_forward_hook(self.hook_fn);
+	def hook_fn(self, module, input, output):
+		self.features = output;
+	def close(self):
+		self.hook.remove();
 
 def convert_to_matplotimg(img_tensor, batch_idx):
     img = img_tensor[batch_idx,:,:,:].numpy()

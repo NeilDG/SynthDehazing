@@ -37,7 +37,7 @@ parser.add_option('--gen_blocks', type=int, help="Weight", default="4")
 parser.add_option('--disc_blocks', type=int, help="Weight", default="6")
 print = logger.log
 
-#--img_to_load=500 --identity_weight=1.0 --cycle_weight=10.0 --adv_weight=1.0 --tv_weight=1.0 --gen_blocks=4 --disc_blocks=4 --load_previous=0
+#--img_to_load=10000 --identity_weight=1.0 --cycle_weight=10.0 --adv_weight=100.0 --tv_weight=0.0 --gen_blocks=6 --disc_blocks=4 --load_previous=0
 
 #Update config if on COARE
 def update_config(opts):

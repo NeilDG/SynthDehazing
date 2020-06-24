@@ -67,11 +67,11 @@ class Generator(nn.Module):
         return self.model(input)
 
 class Discriminator(nn.Module):
-    def __init__(self, n_blocks = 6, filter_size = 64, expansion = 2):
+    def __init__(self, n_blocks = 6, filter_size = 256, expansion = 2):
         super(Discriminator, self).__init__()
         
         self.conv_blocks = []
-        self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = 6, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
+        self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = 128, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
                                    nn.LeakyReLU(0.2, inplace = True))
         
         for i in range(n_blocks - 2):

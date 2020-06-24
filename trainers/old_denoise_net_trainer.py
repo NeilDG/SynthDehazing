@@ -7,7 +7,7 @@ Created on Wed Nov  6 19:41:58 2019
 """
 
 import os
-from model import new_style_transfer_gan as st
+from model import style_transfer_gan as st
 from model import denoise_discriminator
 from loaders import dataset_loader
 import constants
@@ -15,19 +15,17 @@ import torch
 from torch import optim
 import itertools
 import numpy as np
-import torchvision.models as models
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import torch.nn as nn
 import torchvision.utils as vutils
-from utils import tensor_utils
 from utils import logger
 
 print = logger.log
 
 class GANTrainer:
-    def __init__(self, gan_version, gan_iteration, gpu_device, writer, gen_blocks, disc_blocks, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
+    def __init__(self, gan_version, gan_iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
         self.gpu_device = gpu_device
         self.lr = lr
         self.gan_version = gan_version
@@ -35,21 +33,10 @@ class GANTrainer:
         self.writer = writer
         self.visualized = False
     
-        self.G_A = st.Generator(gen_blocks).to(gpu_device) #use multistyle net as architecture
-        self.G_B = st.Generator(gen_blocks).to(gpu_device)
+        self.G_A = st.Generator().to(gpu_device) #use multistyle net as architecture
+        self.G_B = st.Generator().to(gpu_device)
         
-        self.D_A = st.Discriminator(disc_blocks).to(gpu_device)
-        
-        #use VGG for extracting features and get gram matrix.
-        self.vgg16 = models.vgg16(True)
-        for param in self.vgg16.parameters():
-            param.requires_grad = False
-        self.vgg16 = nn.Sequential(*list(self.vgg16.features.children())[:43])
-        self.vgg16.to(self.gpu_device)
-        
-        print("Gen blocks set to %d. Disc blocks set to %d." %(gen_blocks, disc_blocks))
-        print(self.G_B)
-        print(self.D_A)
+        self.D_A = denoise_discriminator.Discriminator().to(gpu_device)
         
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
         self.optimizerD = torch.optim.Adam(self.D_A.parameters(), lr=lr, betas=betas, weight_decay=weight_decay)
@@ -117,21 +104,12 @@ class GANTrainer:
         A_cycle_loss = self.cycle_loss(self.G_B(clean_like), dirty_tensor) * self.cycle_weight
         A_tv_loss = self.tv_impose(clean_like) * self.tv_weight
         
-        #get gram of clean_like and clean_tensor
-        vgg_getter = tensor_utils.SaveFeatures(self.vgg16[3]);
-        self.vgg16(tensor_utils.preprocess_batch(clean_like))
-        clean_like_gram = vgg_getter.features.clone()
-        
-        self.vgg16(tensor_utils.preprocess_batch(clean_tensor))
-        clean_gram = vgg_getter.features.clone()
-        
-        adv_loss = 0.0
-        prediction = self.D_A(clean_like_gram, clean_gram)
+        prediction = self.D_A(clean_like, clean_tensor)
         real_tensor = torch.ones_like(prediction)
         fake_tensor = torch.zeros_like(prediction)
-        adv_loss += self.adversarial_loss(prediction, real_tensor)
         
-        adv_loss = (adv_loss / len(clean_like_gram)) * self.adv_weight
+        adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
+        
         errG = A_identity_loss +  A_cycle_loss + A_tv_loss + adv_loss
         errG.backward()
         self.optimizerG.step()
@@ -139,9 +117,9 @@ class GANTrainer:
         self.D_A.train()
         self.optimizerD.zero_grad()
         
-        #inverse prediction
-        D_A_real_loss = self.adversarial_loss(self.D_A(clean_gram, clean_gram), fake_tensor) * self.adv_weight
-        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like_gram.detach(), clean_gram), real_tensor) * self.adv_weight
+        
+        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor, clean_tensor), real_tensor) * self.adv_weight
+        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach(), clean_tensor), fake_tensor) * self.adv_weight
         errD = D_A_real_loss + D_A_fake_loss
         errD.backward()
         
@@ -212,28 +190,39 @@ class GANTrainer:
         plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
         plt.show()
     
-    def vemon_verify(self, dirty_tensor, file_number):
+    def vemon_verify(self, dirty_tensor, clean_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
         with torch.no_grad():
             clean_like = self.G_A(dirty_tensor).detach()
+            dirty_like = self.G_B(clean_like).detach()
         
         #resize tensors for better viewing
-        resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
-        resized_fake = nn.functional.interpolate(clean_like, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_clean = nn.functional.interpolate(clean_tensor, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_dirty = nn.functional.interpolate(dirty_tensor, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
         
-        print("New shapes: %s %s" % (np.shape(resized_normal), np.shape(resized_fake)))
+        resized_clean_like = nn.functional.interpolate(clean_like, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_dirty_like = nn.functional.interpolate(dirty_like, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
         
-        fig, ax = plt.subplots(2, 1)
-        fig.set_size_inches(34, 34)
-        fig.tight_layout()
+        print("New shapes: %s %s" % (np.shape(resized_clean_like), np.shape(resized_dirty_like)))
         
-        ims = np.transpose(vutils.make_grid(resized_normal, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        fig, ax = plt.subplots(4, 1)
+        fig.set_size_inches(40, 25)
+        
+        ims = np.transpose(vutils.make_grid(resized_dirty, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[0].set_axis_off()
         ax[0].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(resized_fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(resized_dirty_like, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[1].set_axis_off()
         ax[1].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(resized_clean_like, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[2].set_axis_off()
+        ax[2].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(resized_clean, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[3].set_axis_off()
+        ax[3].imshow(ims)
         
         plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
         plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
