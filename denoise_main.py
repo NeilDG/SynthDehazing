@@ -37,7 +37,7 @@ parser.add_option('--gen_blocks', type=int, help="Weight", default="4")
 parser.add_option('--disc_blocks', type=int, help="Weight", default="6")
 print = logger.log
 
-#--img_to_load=72296 --identity_weight=1.0 --cycle_weight=10.0 --adv_weight=1.0 --tv_weight=1.0 --gen_blocks=7 --disc_blocks=4 --load_previous=0
+#--img_to_load=10000 --identity_weight=1.0 --cycle_weight=10.0 --adv_weight=1.0 --tv_weight=1.0 --gen_blocks=7 --disc_blocks=4 --load_previous=1
 
 #Update config if on COARE
 def update_config(opts):
@@ -118,7 +118,7 @@ def main(argv):
         if(constants.is_coare == 0):
             name_batch, vemon_batch_orig, gta_batch_orig = next(iter(dataloader))
             gt.verify(vemon_batch_orig.to(device)[:constants.infer_size], gta_batch_orig.to(device)[:constants.infer_size]) #produce image from first batch
-            gt.report(epoch)
+            #gt.report(epoch)
         
         #save every X epoch
         gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)

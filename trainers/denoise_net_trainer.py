@@ -18,11 +18,11 @@ import numpy as np
 import torchvision.models as models
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import torch.nn as nn
 import torchvision.utils as vutils
 from utils import tensor_utils
 from utils import logger
+from utils import plot_utils
 
 print = logger.log
 
@@ -33,8 +33,8 @@ class GANTrainer:
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
         self.writer = writer
-        self.visualized = False
-    
+        self.visdom_reporter = plot_utils.VisdomReporter()
+
         self.G_A = st.Generator(gen_blocks).to(gpu_device) #use multistyle net as architecture
         self.G_B = st.Generator(gen_blocks).to(gpu_device)
         
@@ -110,11 +110,12 @@ class GANTrainer:
         self.G_B.train()
         self.optimizerG.zero_grad()
         
-        identity_like = self.G_A(dirty_tensor)
+        identity_like = self.G_A(clean_tensor)
         clean_like = self.G_A(dirty_tensor)
+        dirty_like = self.G_B(clean_like)
         
-        A_identity_loss = self.identity_loss(identity_like, dirty_tensor) * self.identity_weight
-        A_cycle_loss = self.cycle_loss(self.G_B(clean_like), dirty_tensor) * self.cycle_weight
+        A_identity_loss = self.identity_loss(identity_like, clean_tensor) * self.identity_weight
+        A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
         A_tv_loss = self.tv_impose(clean_like) * self.tv_weight
         
         prediction = self.D_A(clean_like, clean_tensor)
@@ -139,9 +140,12 @@ class GANTrainer:
         self.G_losses.append(errG.item())
         self.D_losses.append(errD.item())
         
-        if(iteration % 100 == 0):
+        self.visdom_reporter.plot_image(dirty_tensor, dirty_like, clean_tensor, clean_like)
+        if(iteration % 10 == 0):
             print("Iteration: %d G loss: %f  G Adv loss: %f D loss: %f" % (iteration, errG.item(), adv_loss, errD.item()))
-
+            self.last_iteration += iteration
+            self.visdom_reporter.plot_loss(self.last_iteration, self.G_losses, self.D_losses)
+         
     def verify(self, dirty_tensor, clean_tensor):        
         # Check how the generator is doing by saving G's output on fixed_noise
         with torch.no_grad():

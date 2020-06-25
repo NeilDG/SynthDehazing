@@ -1,15 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 
-DATASET_BIRD_NORMAL_PATH = "E:/VEMON Dataset/pending/frames/"
-DATASET_SYNTH_GTA_PATH = "E:/VEMON Dataset/synth_gta/"
+DATASET_VEMON_PATH = "E:/VEMON_Transfer/train/A/"
+DATASET_GTA_PATH = "E:/VEMON_Transfer/train/B/"
 DATASET_PLACES_PATH = "E:/Places Dataset/"
-DATASET_BIRD_HOMOG_PATH = "E:/VEMON Dataset/pending/homog_frames/"
-DATASET_BIRD_GROUND_TRUTH_PATH = "E:/VEMON Dataset/pending/topdown_frames/"
-DATASET_BIRD_ALTERNATIVE_PATH = "E:/GTA Bird Dataset/raw/"
-
-DATASET_VEMON_FRONT_PATH = "E:/VEMON Dataset/frames/"
-DATASET_VEMON_HOMOG_PATH = "E:/VEMON Dataset/homog_frames/"
 
 BIRD_IMAGE_SIZE = (128, 128) #320 x 192 original
 # Spatial size of training images. All images will be resized to this
