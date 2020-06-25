@@ -7,7 +7,7 @@ Created on Wed Nov  6 19:41:58 2019
 """
 
 import os
-from model import style_transfer_gan
+from model import new_style_transfer_gan as st
 from model import denoise_discriminator
 from loaders import dataset_loader
 import constants
@@ -15,17 +15,19 @@ import torch
 from torch import optim
 import itertools
 import numpy as np
+import torchvision.models as models
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import torch.nn as nn
 import torchvision.utils as vutils
+from utils import tensor_utils
 from utils import logger
 
 print = logger.log
 
 class GANTrainer:
-    def __init__(self, gan_version, gan_iteration, gpu_device, writer, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
+    def __init__(self, gan_version, gan_iteration, gpu_device, writer, gen_blocks, disc_blocks, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
         self.gpu_device = gpu_device
         self.lr = lr
         self.gan_version = gan_version
@@ -33,19 +35,30 @@ class GANTrainer:
         self.writer = writer
         self.visualized = False
     
-        self.G_A = style_transfer_gan.Generator().to(gpu_device) #use multistyle net as architecture
-        self.G_B = style_transfer_gan.Generator().to(gpu_device)
+        self.G_A = st.Generator(gen_blocks).to(gpu_device) #use multistyle net as architecture
+        self.G_B = st.Generator(gen_blocks).to(gpu_device)
         
-        self.D_A = denoise_discriminator.Discriminator().to(gpu_device)
+        self.D_A = st.Discriminator(disc_blocks).to(gpu_device)
+        
+        #use VGG for extracting features and get gram matrix.
+        self.vgg16 = models.vgg16(True)
+        for param in self.vgg16.parameters():
+            param.requires_grad = False
+        self.vgg16 = nn.Sequential(*list(self.vgg16.features.children())[:43])
+        self.vgg16.to(self.gpu_device)
+        
+        print("Gen blocks set to %d. Disc blocks set to %d." %(gen_blocks, disc_blocks))
+        print(self.G_B)
+        print(self.D_A)
         
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
         self.optimizerD = torch.optim.Adam(self.D_A.parameters(), lr=lr, betas=betas, weight_decay=weight_decay)
         
         self.G_losses = []
         self.D_losses = []
-        
+        self.last_iteration = 0
         self.identity_weight = 1.0; self.cycle_weight = 10.0; self.adv_weight = 1.0; self.tv_weight = 10.0
-    
+        
     def update_penalties(self, identity, cycle, adv, tv):
         self.identity_weight = identity
         self.cycle_weight = cycle
@@ -54,7 +67,7 @@ class GANTrainer:
         print("Weights updated to the following: %f %f %f %f" % (self.identity_weight, self.cycle_weight, self.adv_weight, self.tv_weight))
         
     def adversarial_loss(self, pred, target):
-        loss = nn.BCELoss()
+        loss = nn.MSELoss()
         return loss(pred, target)
     
     def identity_loss(self, pred, target):
@@ -107,31 +120,27 @@ class GANTrainer:
         prediction = self.D_A(clean_like, clean_tensor)
         real_tensor = torch.ones_like(prediction)
         fake_tensor = torch.zeros_like(prediction)
-        
         adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
-        
-        errG = A_identity_loss +  A_cycle_loss + A_tv_loss + adv_loss
+        errG = A_identity_loss + A_cycle_loss + A_tv_loss + adv_loss
         errG.backward()
         self.optimizerG.step()
         
         self.D_A.train()
         self.optimizerD.zero_grad()
         
-        
-        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor, clean_tensor), real_tensor)
-        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach(), clean_tensor), fake_tensor)
+        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor, clean_tensor), real_tensor) * self.adv_weight
+        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach(), clean_tensor), fake_tensor) * self.adv_weight
         errD = D_A_real_loss + D_A_fake_loss
-        errD.backward()
-        
-        self.optimizerD.step()
+        if(iteration % 400 == 0): #only update discriminator every N iterations
+            errD.backward()
+            self.optimizerD.step()
         
         # Save Losses for plotting later
         self.G_losses.append(errG.item())
         self.D_losses.append(errD.item())
         
-        #print("Output size: %s", fake_A.size())
-        if(iteration % 500 == 0):
-            print("Iteration: %d G loss: %f D loss: %f" % (iteration, errG.item(), errD.item()))
+        if(iteration % 100 == 0):
+            print("Iteration: %d G loss: %f  G Adv loss: %f D loss: %f" % (iteration, errG.item(), adv_loss, errD.item()))
 
     def verify(self, dirty_tensor, clean_tensor):        
         # Check how the generator is doing by saving G's output on fixed_noise
@@ -190,19 +199,19 @@ class GANTrainer:
         plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
         plt.show()
     
-    def vemon_verify(self, vemon_tensor, file_number):
+    def vemon_verify(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
         with torch.no_grad():
-            fake = self.G_A(vemon_tensor).detach().cpu()
+            clean_like = self.G_A(dirty_tensor).detach()
         
         #resize tensors for better viewing
-        resized_normal = nn.functional.interpolate(vemon_tensor, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
-        resized_fake = nn.functional.interpolate(fake, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_fake = nn.functional.interpolate(clean_like, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
         
-        print("New shapes: %s %s" % (np.shape(vemon_tensor), np.shape(resized_normal)))
+        print("New shapes: %s %s" % (np.shape(resized_normal), np.shape(resized_fake)))
         
         fig, ax = plt.subplots(2, 1)
-        fig.set_size_inches(34, 14)
+        fig.set_size_inches(34, 34)
         fig.tight_layout()
         
         ims = np.transpose(vutils.make_grid(resized_normal, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
@@ -237,15 +246,22 @@ class GANTrainer:
         ave_G_loss = sum(self.G_losses) / (len(self.G_losses) * 1.0)
         ave_D_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
         
-        self.writer.add_scalars(self.gan_version +'/loss' + "/" + self.gan_iteration, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
-                           global_step = epoch + 1)
-        self.writer.add_scalars(self.gan_version +'/mse_loss' + "/" + self.gan_iteration, {'mse_loss' :self.current_mse_loss},
-                           global_step = epoch + 1)
-        self.writer.close()
+        # self.writer.add_scalars(self.gan_version +'/loss' + "/" + self.gan_iteration, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
+        #                    global_step = epoch + 1)
+        # self.writer.add_scalars(self.gan_version +'/mse_loss' + "/" + self.gan_iteration, {'mse_loss' :self.current_mse_loss},
+        #                    global_step = epoch + 1)
         
+        for i in range(len(self.G_losses)):
+            self.writer.add_scalars(self.gan_version +'/iter_loss' + "/" + self.gan_iteration, {'g_iter_loss' :self.G_losses[i], 'd_iter_loss' : self.D_losses[i]},
+                           global_step = i + self.last_iteration)
+        self.writer.close()
+        self.last_iteration += len(self.G_losses)
+        self.G_losses = []
+        self.D_losses = []
         print("Epoch: %d G loss: %f D loss: %f" % (epoch, ave_G_loss, ave_D_loss))
     
-    def load_saved_state(self, checkpoint, generator_key, disriminator_key, optimizer_key):
+    def load_saved_state(self, iteration, checkpoint, generator_key, disriminator_key, optimizer_key):
+        self.last_iteration = iteration
         self.G_A.load_state_dict(checkpoint[generator_key + "A"])
         self.G_B.load_state_dict(checkpoint[generator_key + "B"])
         self.D_A.load_state_dict(checkpoint[disriminator_key + "A"])
@@ -253,7 +269,7 @@ class GANTrainer:
         self.optimizerD.load_state_dict(checkpoint[disriminator_key + optimizer_key])
     
     def save_states(self, epoch, path, generator_key, disriminator_key, optimizer_key):
-        save_dict = {'epoch': epoch}
+        save_dict = {'epoch': epoch, 'iteration': self.last_iteration}
         netGA_state_dict = self.G_A.state_dict()
         netGB_state_dict = self.G_B.state_dict()
         netDA_state_dict = self.D_A.state_dict()

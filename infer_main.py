@@ -18,6 +18,8 @@ from loaders import dataset_loader
 from trainers import cyclic_gan_trainer
 from trainers import style_gan_trainer
 from trainers import multistyle_net_trainer
+from trainers import old_denoise_net_trainer
+from trainers import denoise_net_trainer
 import constants
 
 def view_train_results(batch_size, gan_version, gan_iteration):
@@ -108,7 +110,75 @@ def msg_net_transfer(batch_size, style_version, style_iteration):
         gta_tensor = gta_batch.to(device)
         item_number = item_number + 1
         gt.vemon_verify(vemon_tensor, gta_tensor, item_number)
+
+def old_denoise_infer(batch_size, style_version, style_iteration):
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    writer = SummaryWriter('train_plot')
     
+    gt = old_denoise_net_trainer.GANTrainer(style_version, style_iteration, device, writer)
+    checkpoint = torch.load(constants.STYLE_CHECKPATH)
+    gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+ 
+    print("Loaded results checkpt ",constants.STYLE_CHECKPATH)
+    print("===================================================")
+    
+    dataloader = dataset_loader.load_msg_dataset(batch_size, -1)
+    
+    # Plot some training images
+    name_batch, vemon_batch, gta_batch = next(iter(dataloader))
+    plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
+    plt.axis("off")
+    plt.title("Training - VEMON Images")
+    plt.imshow(np.transpose(vutils.make_grid(vemon_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.show()
+    
+    plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
+    plt.axis("off")
+    plt.title("Training - GTA Images")
+    plt.imshow(np.transpose(vutils.make_grid(gta_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.show()
+    
+    item_number = 0
+    for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
+        vemon_tensor = vemon_batch.to(device)
+        gta_tensor = gta_batch.to(device)
+        item_number = item_number + 1
+        gt.vemon_verify(vemon_tensor, gta_tensor, item_number)
+        
+def denoise_infer(batch_size, style_version, style_iteration):
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    writer = SummaryWriter('train_plot')
+    
+    gt = denoise_net_trainer.GANTrainer(style_version, style_iteration, device, writer, 6, 4)
+    checkpoint = torch.load(constants.STYLE_CHECKPATH)
+    gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+ 
+    print("Loaded results checkpt ",constants.STYLE_CHECKPATH)
+    print("===================================================")
+    
+    dataloader = dataset_loader.load_msg_dataset(batch_size, -1)
+    
+    # Plot some training images
+    name_batch, vemon_batch, gta_batch = next(iter(dataloader))
+    plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
+    plt.axis("off")
+    plt.title("Training - VEMON Images")
+    plt.imshow(np.transpose(vutils.make_grid(vemon_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.show()
+    
+    plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
+    plt.axis("off")
+    plt.title("Training - GTA Images")
+    plt.imshow(np.transpose(vutils.make_grid(gta_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.show()
+    
+    item_number = 0
+    for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
+        vemon_tensor = vemon_batch.to(device)
+        gta_tensor = gta_batch.to(device)
+        item_number = item_number + 1
+        gt.vemon_verify(vemon_tensor, item_number)  
+        
 def vemon_infer(batch_size, gan_version, gan_iteration): 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     writer = SummaryWriter('train_plot')
@@ -147,7 +217,8 @@ def vemon_infer(batch_size, gan_version, gan_iteration):
 def main():
     #view_train_results(constants.infer_size, constants.GAN_VERSION, constants.GAN_ITERATION)
     #style_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
-    msg_net_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
+    #msg_net_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
+    denoise_infer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

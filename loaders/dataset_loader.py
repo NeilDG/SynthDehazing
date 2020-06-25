@@ -140,7 +140,7 @@ def assemble_msg_data(num_image_to_load = -1):
             if(num_image_to_load != -1 and len(normal_list) == num_image_to_load):
                 break  
     
-    for (root, dirs, files) in os.walk(constants.DATASET_PLACES_PATH):
+    for (root, dirs, files) in os.walk(constants.DATASET_BIRD_NORMAL_PATH):
         for f in files:
             file_name = os.path.join(root, f)
             #print(file_name)
