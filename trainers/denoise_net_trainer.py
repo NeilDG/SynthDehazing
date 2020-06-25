@@ -56,7 +56,7 @@ class GANTrainer:
         
         self.G_losses = []
         self.D_losses = []
-        self.last_iteration = 0
+        self.iteration = 0
         self.identity_weight = 1.0; self.cycle_weight = 10.0; self.adv_weight = 1.0; self.tv_weight = 10.0
         
     def update_penalties(self, identity, cycle, adv, tv):
@@ -132,19 +132,19 @@ class GANTrainer:
         D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor, clean_tensor), real_tensor) * self.adv_weight
         D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach(), clean_tensor), fake_tensor) * self.adv_weight
         errD = D_A_real_loss + D_A_fake_loss
-        if(iteration % 400 == 0): #only update discriminator every N iterations
+        if(self.iteration % 50 == 0): #only update discriminator every N iterations
             errD.backward()
             self.optimizerD.step()
         
         # Save Losses for plotting later
         self.G_losses.append(errG.item())
         self.D_losses.append(errD.item())
-        self.last_iteration += 1
+        self.iteration += 1
         
         self.visdom_reporter.plot_image(dirty_tensor, dirty_like, clean_tensor, clean_like)
-        if(iteration % 10 == 0):
-            print("Iteration: %d G loss: %f  G Adv loss: %f D loss: %f" % (iteration, errG.item(), adv_loss, errD.item()))
-            self.visdom_reporter.plot_loss(self.last_iteration, self.G_losses, self.D_losses)
+        if(self.iteration % 100 == 0):
+            print("Iteration: %d G loss: %f  G Adv loss: %f D loss: %f" % (self.iteration, errG.item(), adv_loss, errD.item()))
+            self.visdom_reporter.plot_loss(self.iteration, self.G_losses, self.D_losses)
     
     def vemon_verify(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
@@ -208,7 +208,7 @@ class GANTrainer:
     #     print("Epoch: %d G loss: %f D loss: %f" % (epoch, ave_G_loss, ave_D_loss))
     
     def load_saved_state(self, iteration, checkpoint, generator_key, disriminator_key, optimizer_key):
-        self.last_iteration = iteration
+        self.iteration = iteration
         self.G_A.load_state_dict(checkpoint[generator_key + "A"])
         self.G_B.load_state_dict(checkpoint[generator_key + "B"])
         self.D_A.load_state_dict(checkpoint[disriminator_key + "A"])
@@ -216,7 +216,9 @@ class GANTrainer:
         self.optimizerD.load_state_dict(checkpoint[disriminator_key + optimizer_key])
     
     def save_states(self, epoch, path, generator_key, disriminator_key, optimizer_key):
-        save_dict = {'epoch': epoch, 'iteration': self.last_iteration}
+        self.G_losses = []
+        self.D_losses = []
+        save_dict = {'epoch': epoch, 'iteration': self.iteration}
         netGA_state_dict = self.G_A.state_dict()
         netGB_state_dict = self.G_B.state_dict()
         netDA_state_dict = self.D_A.state_dict()

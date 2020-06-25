@@ -3,6 +3,7 @@ import os
 
 DATASET_VEMON_PATH = "E:/VEMON_Transfer/train/A/"
 DATASET_GTA_PATH = "E:/VEMON_Transfer/train/B/"
+DATASET_GTA_PATH_2= "E:/VEMON Dataset/pending/frames/"
 DATASET_PLACES_PATH = "E:/Places Dataset/"
 
 BIRD_IMAGE_SIZE = (128, 128) #320 x 192 original
@@ -31,9 +32,9 @@ STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + "_" + STYLE_ITERATION +'.p
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 30
+num_epochs = 100
 
-# Batch size during training
+display_size = 8 #must not be larger than batch size
 batch_size = 64
 infer_size = 128
 
