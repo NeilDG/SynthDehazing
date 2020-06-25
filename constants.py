@@ -34,7 +34,7 @@ manualSeed = 999
 num_epochs = 30
 
 # Batch size during training
-batch_size = 16
+batch_size = 64
 infer_size = 128
 
 num_workers = 12

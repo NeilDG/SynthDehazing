@@ -105,7 +105,7 @@ class GANTrainer:
     # Performs a discriminator forward-backward pass, then a generator forward-backward pass
     # a = vemon image
     # b = gta image
-    def train(self, dirty_tensor, clean_tensor, iteration):
+    def train(self, dirty_tensor, clean_tensor):
         self.G_A.train()
         self.G_B.train()
         self.optimizerG.zero_grad()
@@ -139,69 +139,12 @@ class GANTrainer:
         # Save Losses for plotting later
         self.G_losses.append(errG.item())
         self.D_losses.append(errD.item())
+        self.last_iteration += 1
         
         self.visdom_reporter.plot_image(dirty_tensor, dirty_like, clean_tensor, clean_like)
         if(iteration % 10 == 0):
             print("Iteration: %d G loss: %f  G Adv loss: %f D loss: %f" % (iteration, errG.item(), adv_loss, errD.item()))
-            self.last_iteration += iteration
             self.visdom_reporter.plot_loss(self.last_iteration, self.G_losses, self.D_losses)
-         
-    def verify(self, dirty_tensor, clean_tensor):        
-        # Check how the generator is doing by saving G's output on fixed_noise
-        with torch.no_grad():
-            clean_like = self.G_A(dirty_tensor).detach()
-            dirty_like = self.G_B(clean_like).detach()
-        
-        fig, ax = plt.subplots(4, 1)
-        fig.set_size_inches(40, 15)
-        
-        ims = np.transpose(vutils.make_grid(dirty_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[0].set_axis_off()
-        ax[0].imshow(ims)
-        
-        ims = np.transpose(vutils.make_grid(dirty_like, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[1].set_axis_off()
-        ax[1].imshow(ims)
-        
-        ims = np.transpose(vutils.make_grid(clean_like, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[2].set_axis_off()
-        ax[2].imshow(ims)
-        
-        ims = np.transpose(vutils.make_grid(clean_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[3].set_axis_off()
-        ax[3].imshow(ims)
-        
-        plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
-        plt.show()
-        
-        #verify reconstruction loss with MSE. for reporting purposes
-        mse_loss = nn.MSELoss()
-        self.current_mse_loss = mse_loss(clean_like, clean_tensor)
-    
-    def verify_and_save(self, vemon_tensor, gta_tensor, file_number):
-        LOCATION = os.getcwd() + "/figures/"
-        with torch.no_grad():
-            fake = self.G_A(vemon_tensor).detach().cpu()
-        
-        fig, ax = plt.subplots(3, 1)
-        fig.set_size_inches(15, 15)
-        fig.tight_layout()
-        
-        ims = np.transpose(vutils.make_grid(vemon_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[0].set_axis_off()
-        ax[0].imshow(ims)
-        
-        ims = np.transpose(vutils.make_grid(fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[1].set_axis_off()
-        ax[1].imshow(ims)
-        
-        ims = np.transpose(vutils.make_grid(gta_tensor, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
-        ax[2].set_axis_off()
-        ax[2].imshow(ims)
-        
-        plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
-        plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
-        plt.show()
     
     def vemon_verify(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
@@ -246,23 +189,23 @@ class GANTrainer:
                     #print("Layer added to tensorboard: ", module_name + '/weights/' +name)
                     writer.add_histogram(model_name + "/" + module_name + '/' +name, param.data, global_step = epoch)
     
-    def tensorboard_plot(self, epoch):
-        ave_G_loss = sum(self.G_losses) / (len(self.G_losses) * 1.0)
-        ave_D_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
+    # def tensorboard_plot(self, epoch):
+    #     ave_G_loss = sum(self.G_losses) / (len(self.G_losses) * 1.0)
+    #     ave_D_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
         
-        # self.writer.add_scalars(self.gan_version +'/loss' + "/" + self.gan_iteration, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
-        #                    global_step = epoch + 1)
-        # self.writer.add_scalars(self.gan_version +'/mse_loss' + "/" + self.gan_iteration, {'mse_loss' :self.current_mse_loss},
-        #                    global_step = epoch + 1)
+    #     # self.writer.add_scalars(self.gan_version +'/loss' + "/" + self.gan_iteration, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
+    #     #                    global_step = epoch + 1)
+    #     # self.writer.add_scalars(self.gan_version +'/mse_loss' + "/" + self.gan_iteration, {'mse_loss' :self.current_mse_loss},
+    #     #                    global_step = epoch + 1)
         
-        for i in range(len(self.G_losses)):
-            self.writer.add_scalars(self.gan_version +'/iter_loss' + "/" + self.gan_iteration, {'g_iter_loss' :self.G_losses[i], 'd_iter_loss' : self.D_losses[i]},
-                           global_step = i + self.last_iteration)
-        self.writer.close()
-        self.last_iteration += len(self.G_losses)
-        self.G_losses = []
-        self.D_losses = []
-        print("Epoch: %d G loss: %f D loss: %f" % (epoch, ave_G_loss, ave_D_loss))
+    #     for i in range(len(self.G_losses)):
+    #         self.writer.add_scalars(self.gan_version +'/iter_loss' + "/" + self.gan_iteration, {'g_iter_loss' :self.G_losses[i], 'd_iter_loss' : self.D_losses[i]},
+    #                        global_step = i + self.last_iteration)
+    #     self.writer.close()
+    #     self.last_iteration += len(self.G_losses)
+    #     self.G_losses = []
+    #     self.D_losses = []
+    #     print("Epoch: %d G loss: %f D loss: %f" % (epoch, ave_G_loss, ave_D_loss))
     
     def load_saved_state(self, iteration, checkpoint, generator_key, disriminator_key, optimizer_key):
         self.last_iteration = iteration

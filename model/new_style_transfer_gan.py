@@ -31,7 +31,7 @@ class Generator(nn.Module):
     #Nblocks = number of layers (conv and upconv separate)
     #Filter_size = num channels of each layer
     #Expansion = Multiplier factor for each layer
-    def __init__(self, nblocks = 4, filter_size = 256, expansion = 2, max_filter_size = 1024):
+    def __init__(self, nblocks = 4, filter_size = 64, expansion = 2, max_filter_size = 2048):
         super(Generator, self).__init__()
         
         self.conv_blocks = []
