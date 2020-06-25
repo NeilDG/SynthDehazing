@@ -19,13 +19,19 @@ def weights_init(m):
         elif classname.find('BatchNorm') != -1:
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
+
+def clamp(value, max):
+    if(value > max):
+        return max
+    else:
+        return value
             
 class Generator(nn.Module):
     
     #Nblocks = number of layers (conv and upconv separate)
     #Filter_size = num channels of each layer
     #Expansion = Multiplier factor for each layer
-    def __init__(self, nblocks = 4, filter_size = 64, expansion = 2):
+    def __init__(self, nblocks = 4, filter_size = 256, expansion = 2, max_filter_size = 1024):
         super(Generator, self).__init__()
         
         self.conv_blocks = []
@@ -38,7 +44,7 @@ class Generator(nn.Module):
         new_size = filter_size
         for i in range(nblocks - 1):
             in_size = new_size
-            out_size = new_size * expansion
+            out_size = clamp(new_size * expansion, max_filter_size)
             self.conv_blocks += nn.Sequential(nn.Conv2d(in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
                                    nn.BatchNorm2d(out_size),
                                    nn.ReLU(True))
@@ -55,7 +61,7 @@ class Generator(nn.Module):
             new_size = out_size
             
         
-        self.upconv_blocks += nn.Sequential(nn.ConvTranspose2d(in_channels = filter_size, out_channels = 3, kernel_size=4, stride=2, padding=1, bias=False),
+        self.upconv_blocks += nn.Sequential(nn.ConvTranspose2d(in_channels = new_size, out_channels = 3, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh())
         
         self.model = nn.Sequential(*self.conv_blocks, *self.upconv_blocks)
@@ -71,7 +77,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         
         self.conv_blocks = []
-        self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = 128, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
+        self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = 6, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
                                    nn.LeakyReLU(0.2, inplace = True))
         
         for i in range(n_blocks - 2):

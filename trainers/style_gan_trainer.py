@@ -115,8 +115,9 @@ class GANTrainer:
         D_B_fake_loss = self.adversarial_loss(self.D_B(fake_B.detach()), fake_tensor)
         
         errD = D_A_real_loss + D_A_fake_loss + D_B_real_loss + D_B_fake_loss
-        errD.backward()
-        self.optimizerD.step()
+        if(iteration % 100 == 0): #only update discriminator every N iterations
+            errD.backward()
+            self.optimizerD.step()
         
         # Save Losses for plotting later
         self.G_losses.append(errG.item())
