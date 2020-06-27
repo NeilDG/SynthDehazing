@@ -16,7 +16,6 @@ from torch import optim
 import itertools
 import numpy as np
 import torchvision.models as models
-from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import torchvision.utils as vutils
@@ -27,12 +26,11 @@ from utils import plot_utils
 print = logger.log
 
 class GANTrainer:
-    def __init__(self, gan_version, gan_iteration, gpu_device, writer, gen_blocks, disc_blocks, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
+    def __init__(self, gan_version, gan_iteration, gpu_device, gen_blocks, disc_blocks, lr = 0.0002, weight_decay = 0.0, betas = (0.5, 0.999)):
         self.gpu_device = gpu_device
         self.lr = lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
-        self.writer = writer
         self.visdom_reporter = plot_utils.VisdomReporter()
 
         self.G_A = st.Generator(gen_blocks).to(gpu_device) #use multistyle net as architecture
@@ -59,12 +57,15 @@ class GANTrainer:
         self.iteration = 0
         self.identity_weight = 1.0; self.cycle_weight = 10.0; self.adv_weight = 1.0; self.tv_weight = 10.0
         
-    def update_penalties(self, identity, cycle, adv, tv):
+    def update_penalties(self, identity, cycle, adv, tv, gen_skips, disc_skips):
         self.identity_weight = identity
         self.cycle_weight = cycle
         self.adv_weight = adv
         self.tv_weight = tv
+        self.gen_skips = gen_skips
+        self.disc_skips = disc_skips
         print("Weights updated to the following: %f %f %f %f" % (self.identity_weight, self.cycle_weight, self.adv_weight, self.tv_weight))
+        print("Skips updated to the following: %d %d" %(self.gen_skips, self.disc_skips))
         
     def adversarial_loss(self, pred, target):
         loss = nn.MSELoss()
@@ -122,9 +123,15 @@ class GANTrainer:
         real_tensor = torch.ones_like(prediction)
         fake_tensor = torch.zeros_like(prediction)
         adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
-        errG = A_identity_loss + A_cycle_loss + A_tv_loss + adv_loss
-        errG.backward()
-        self.optimizerG.step()
+        
+        if(self.iteration % self.gen_skips == 0): #only update generator for cycle loss, every N iterations
+            errG = A_identity_loss + A_cycle_loss + A_tv_loss + adv_loss
+            errG.backward()
+            self.optimizerG.step()
+        else:
+            errG = A_identity_loss + A_tv_loss + adv_loss
+            errG.backward()
+            self.optimizerG.step()
         
         self.D_A.train()
         self.optimizerD.zero_grad()
@@ -132,19 +139,26 @@ class GANTrainer:
         D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor, clean_tensor), real_tensor) * self.adv_weight
         D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach(), clean_tensor), fake_tensor) * self.adv_weight
         errD = D_A_real_loss + D_A_fake_loss
-        if(self.iteration % 50 == 0): #only update discriminator every N iterations
+        if(self.iteration % self.disc_skips == 0): #only update discriminator every N iterations
             errD.backward()
             self.optimizerD.step()
         
         # Save Losses for plotting later
         self.G_losses.append(errG.item())
         self.D_losses.append(errD.item())
-        self.iteration += 1
         
-        self.visdom_reporter.plot_image(dirty_tensor, dirty_like, clean_tensor, clean_like)
         if(self.iteration % 100 == 0):
             print("Iteration: %d G loss: %f  G Adv loss: %f D loss: %f" % (self.iteration, errG.item(), adv_loss, errD.item()))
             self.visdom_reporter.plot_loss(self.iteration, self.G_losses, self.D_losses)
+        
+        self.iteration += 1
+    
+    def visdom_report(self, dirty_tensor, clean_tensor):
+        with torch.no_grad():
+            clean_like = self.G_A(dirty_tensor)
+            dirty_like = self.G_B(clean_like)
+            
+        self.visdom_reporter.plot_image(dirty_tensor, dirty_like, clean_tensor, clean_like)
     
     def vemon_verify(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
@@ -172,40 +186,6 @@ class GANTrainer:
         plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
         plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
         plt.show()
-        
-    #reports metrics to necessary tools such as tensorboard
-    def report(self, epoch):
-        self.log_weights("gen_A", self.G_A, self.writer, epoch)
-        self.log_weights("gen_B", self.G_B, self.writer, epoch)
-        self.log_weights("disc_A", self.D_A, self.writer, epoch)
-        
-        self.tensorboard_plot(epoch)
-
-    def log_weights(self, model_name, model, writer, epoch):
-        #log update in weights
-        for module_name,module in model.named_modules():
-            for name, param in module.named_parameters():
-                if(module_name != ""):
-                    #print("Layer added to tensorboard: ", module_name + '/weights/' +name)
-                    writer.add_histogram(model_name + "/" + module_name + '/' +name, param.data, global_step = epoch)
-    
-    # def tensorboard_plot(self, epoch):
-    #     ave_G_loss = sum(self.G_losses) / (len(self.G_losses) * 1.0)
-    #     ave_D_loss = sum(self.D_losses) / (len(self.D_losses) * 1.0)
-        
-    #     # self.writer.add_scalars(self.gan_version +'/loss' + "/" + self.gan_iteration, {'g_train_loss' :ave_G_loss, 'd_train_loss' : ave_D_loss},
-    #     #                    global_step = epoch + 1)
-    #     # self.writer.add_scalars(self.gan_version +'/mse_loss' + "/" + self.gan_iteration, {'mse_loss' :self.current_mse_loss},
-    #     #                    global_step = epoch + 1)
-        
-    #     for i in range(len(self.G_losses)):
-    #         self.writer.add_scalars(self.gan_version +'/iter_loss' + "/" + self.gan_iteration, {'g_iter_loss' :self.G_losses[i], 'd_iter_loss' : self.D_losses[i]},
-    #                        global_step = i + self.last_iteration)
-    #     self.writer.close()
-    #     self.last_iteration += len(self.G_losses)
-    #     self.G_losses = []
-    #     self.D_losses = []
-    #     print("Epoch: %d G loss: %f D loss: %f" % (epoch, ave_G_loss, ave_D_loss))
     
     def load_saved_state(self, iteration, checkpoint, generator_key, disriminator_key, optimizer_key):
         self.iteration = iteration
@@ -227,7 +207,7 @@ class GANTrainer:
         optimizerD_state_dict = self.optimizerD.state_dict()
         
         save_dict[generator_key + "A"] = netGA_state_dict
-        save_dict[generator_key + "B"] = netGA_state_dict
+        save_dict[generator_key + "B"] = netGB_state_dict
         save_dict[disriminator_key + "A"] = netDA_state_dict
         
         save_dict[generator_key + optimizer_key] = optimizerG_state_dict

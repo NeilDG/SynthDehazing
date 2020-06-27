@@ -206,7 +206,7 @@ class GANTrainer:
         print("New shapes: %s %s" % (np.shape(resized_clean_like), np.shape(resized_dirty_like)))
         
         fig, ax = plt.subplots(4, 1)
-        fig.set_size_inches(40, 25)
+        fig.set_size_inches(40, 80)
         
         ims = np.transpose(vutils.make_grid(resized_dirty, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
         ax[0].set_axis_off()

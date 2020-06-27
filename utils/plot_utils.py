@@ -12,12 +12,18 @@ import visdom
 
 class VisdomReporter:
     def __init__(self):
+        if(constants.is_coare == 1):
+            return #do nothing. can't run visdom on COARE
+        
         self.vis= visdom.Visdom()
         self.image_windows = {}
         self.loss_windows = {}
     
     #post current image to vis
     def plot_image(self, dirty_tensor, dirty_like, clean_tensor, clean_like):
+        if(constants.is_coare == 1):
+            return #do nothing. can't run visdom on COARE
+        
         DIRTY_KEY = "A"
         DIRTY_LIKE_KEY = "B"
         CLEAN_KEY = "C"
@@ -49,6 +55,9 @@ class VisdomReporter:
             self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images"))
     
     def plot_loss(self, iteration, G_losses, D_losses):
+        if(constants.is_coare == 1):
+            return #do nothing. can't run visdom on COARE
+        
         LOSS_KEY = "LOSS"
         x = [i for i in range(iteration, iteration + len(G_losses))]
         fig, ax = plt.subplots()

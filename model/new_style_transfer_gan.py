@@ -73,7 +73,7 @@ class Generator(nn.Module):
         return self.model(input)
 
 class Discriminator(nn.Module):
-    def __init__(self, n_blocks = 6, filter_size = 256, expansion = 2):
+    def __init__(self, n_blocks = 6, filter_size = 64, expansion = 2):
         super(Discriminator, self).__init__()
         
         self.conv_blocks = []

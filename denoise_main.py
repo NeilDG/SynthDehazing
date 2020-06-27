@@ -18,7 +18,6 @@ import torch.utils.data
 import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.tensorboard import SummaryWriter
 from loaders import dataset_loader
 from trainers import denoise_net_trainer
 import constants
@@ -35,35 +34,33 @@ parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--tv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="4")
 parser.add_option('--disc_blocks', type=int, help="Weight", default="6")
+parser.add_option('--gen_skips', type=int, default="1")
+parser.add_option('--disc_skips', type=int, default="1")
 print = logger.log
 
-#--img_to_load=72000 --identity_weight=0.0 --cycle_weight=10.0 --adv_weight=1.0 --tv_weight=1.0 --gen_blocks=6 --disc_blocks=4 --load_previous=0
-
+#--img_to_load=72000
+#--img_to_load=72000 --coare=1 --gen_skips=250 --disc-skips=250 --style_iteration=1
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = 64
+        constants.batch_size = 128
         
         constants.STYLE_ITERATION = str(opts.style_iteration)
         constants.STYLE_CHECKPATH = 'checkpoint/' + constants.STYLE_GAN_VERSION + "_" + constants.STYLE_ITERATION +'.pt'
         
-        constants.DATASET_SYNTH_GTA_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/synth_gta/"
+        constants.DATASET_GTA_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/frames/"
         constants.DATASET_PLACES_PATH = "/scratch1/scratch2/neil.delgallego/Places Dataset/"
-        constants.DATASET_BIRD_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/homog_frames/"
-        constants.DATASET_BIRD_GROUND_TRUTH_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/topdown_frames/"
-        
-        constants.DATASET_VEMON_FRONT_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
-        constants.DATASET_VEMON_HOMOG_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/homog_frames/"
+        constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         
         constants.num_workers = 0
         
 def main(argv):
     (opts, args) = parser.parse_args(argv)
-    update_config(opts)
     logger.clear_log()
+    update_config(opts)
     print("=========BEGIN============")
     print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
@@ -74,10 +71,9 @@ def main(argv):
     
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
-    writer = SummaryWriter('train_plot')
     
-    gt = denoise_net_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, writer, opts.gen_blocks, opts.disc_blocks)
-    gt.update_penalties(opts.identity_weight, opts.cycle_weight, opts.adv_weight, opts.tv_weight)
+    gt = denoise_net_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, opts.gen_blocks, opts.disc_blocks)
+    gt.update_penalties(opts.identity_weight, opts.cycle_weight, opts.adv_weight, opts.tv_weight, opts.gen_skips, opts.disc_skips)
     start_epoch = 0
     
     if(opts.load_previous): 
@@ -107,6 +103,9 @@ def main(argv):
         plt.imshow(np.transpose(vutils.make_grid(gta_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
         plt.show()
     
+        vemon_orig_tensor = vemon_batch_orig.to(device)
+        gta_orig_tensor = gta_batch_orig.to(device)
+    
     print("Starting Training Loop...")
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
@@ -114,11 +113,8 @@ def main(argv):
             vemon_tensor = vemon_batch.to(device)
             gta_tensor = gta_batch.to(device)
             gt.train(vemon_tensor, gta_tensor)
-        
-        # if(constants.is_coare == 0):
-        #     name_batch, vemon_batch_orig, gta_batch_orig = next(iter(dataloader))
-        #     gt.verify(vemon_batch_orig.to(device)[:constants.infer_size], gta_batch_orig.to(device)[:constants.infer_size]) #produce image from first batch
-        #     gt.report(epoch)
+            #gt.visdom_report(vemon_orig_tensor, gta_orig_tensor) #use same batch for visualization and debugging
+            
         
         #save every X epoch
         gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)

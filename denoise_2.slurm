@@ -16,15 +16,13 @@ nvidia-smi
 module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
-i=1.0
-c=40.0
-a=1.0
-t=40.0
+g_skip=200
+d_skip=200
 iteration=2
 
-echo "c=$c a=$a t=$t iteration=$iteration"
+echo "g_skip=$g_skip d_skip=$d_skip iteration=$iteration"
 
 # activate your python environment
 source activate NeilGAN
-srun python denoise_main.py --coare=1 --img_to_load=-1 --style_iteration=$iteration --identity_weight=$i --cycle_weight=$c --adv_weight=$a --tv_weight=$t
+srun python denoise_main.py --img_to_load=72000 --coare=1 --gen_skips=$g_skip --disc_skips=$d_skip --style_iteration=$iteration
 source deactivate
