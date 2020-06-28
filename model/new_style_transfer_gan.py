@@ -53,7 +53,8 @@ class Generator(nn.Module):
 
         for i in range(nblocks - 1):
             in_size = new_size
-            out_size = int(new_size / expansion)
+            #out_size = int(new_size / expansion)
+            out_size = clamp(new_size * expansion, max_filter_size)
             self.upconv_blocks += nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
                                         nn.BatchNorm2d(out_size),
                                         nn.ReLU(True))

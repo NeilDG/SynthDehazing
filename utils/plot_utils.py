@@ -54,6 +54,40 @@ class VisdomReporter:
         else:
             self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images"))
     
+    def plot_finegrain_loss(self, iteration, G_loss_dict, D_loss_dict):
+        if(constants.is_coare == 1):
+            return #do nothing. can't run visdom on COARE
+        
+        LOSS_KEY = "FINEGRAIN_LOSS"
+        x = [i for i in range(iteration, iteration + len(G_loss_dict[constants.IDENTITY_LOSS_KEY]))]
+        fig, ax1 = plt.subplots()
+        fig.tight_layout()
+        
+        ax1.plot(x, G_loss_dict[constants.IDENTITY_LOSS_KEY], color = 'r', label = "Id loss per iteration"); plt.legend()
+        ax2 = ax1.twinx()
+        ax2.plot(x, G_loss_dict[constants.CYCLE_LOSS_KEY], color = 'g', label = "Cycle loss per iteration"); plt.legend()
+        ax3 = ax2.twinx()
+        ax3.plot(x, G_loss_dict[constants.TV_LOSS_KEY], color = 'b', label = "TV loss per iteration"); plt.legend()
+        ax4 = ax3.twinx()
+        ax4.plot(x, G_loss_dict[constants.ADV_LOSS_KEY], color = 'c', label = "G Adv loss per iteration"); plt.legend()
+        ax5 = ax4.twinx()
+        ax5.plot(x, D_loss_dict[constants.D_FAKE_LOSS_KEY], color = 'c', label = "D Fake loss per iteration"); plt.legend()
+        ax6 = ax5.twinx()
+        ax6.plot(x, D_loss_dict[constants.D_REAL_LOSS_KEY], color = 'c', label = "D Real loss per iteration"); plt.legend()
+        
+        ax1.set_ylim(0, 1.0)
+        ax2.set_ylim(0, 1.0)
+        ax3.set_ylim(0, 1.0)
+        ax4.set_ylim(0, 1.0)
+        ax5.set_ylim(0, 1.0)
+        ax6.set_ylim(0, 1.0)
+        if LOSS_KEY not in self.loss_windows:
+            self.loss_windows[LOSS_KEY] = self.vis.matplot(plt)
+        else:
+           self.vis.matplot(plt, win = self.loss_windows[LOSS_KEY]) 
+          
+        plt.show()
+        
     def plot_loss(self, iteration, G_losses, D_losses):
         if(constants.is_coare == 1):
             return #do nothing. can't run visdom on COARE
@@ -66,9 +100,8 @@ class VisdomReporter:
         ax.plot(x, G_losses, color = 'r', label = "G Losses per iteration"); plt.legend()
         ax2 = ax.twinx()  # instantiate a second axes that shares the same x-axis
         ax2.plot(x, D_losses, color = 'g', label = "D Losses per iteration"); plt.legend()
-        ax.set_ylim(0, 2.0)
-        ax2.set_ylim(0, 2.0)
-        plt.subplots_adjust(wspace=0, hspace=0.35)
+        ax.set_ylim(0, 4.0)
+        ax2.set_ylim(0, 4.0)
         if LOSS_KEY not in self.loss_windows:
             self.loss_windows[LOSS_KEY] = self.vis.matplot(plt)
         else:

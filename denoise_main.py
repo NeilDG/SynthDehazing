@@ -38,8 +38,7 @@ parser.add_option('--gen_skips', type=int, default="1")
 parser.add_option('--disc_skips', type=int, default="1")
 print = logger.log
 
-#--img_to_load=72000
-#--img_to_load=72000 --coare=1 --gen_skips=250 --disc-skips=250 --style_iteration=1
+#--img_to_load=72000 --gen_skips=1 --disc_skips=1 --cycle_weight=10.0 --identity_weight=1.0 --tv_weight=3.0 --adv_weight=50.0 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
@@ -113,7 +112,7 @@ def main(argv):
             vemon_tensor = vemon_batch.to(device)
             gta_tensor = gta_batch.to(device)
             gt.train(vemon_tensor, gta_tensor)
-            #gt.visdom_report(vemon_orig_tensor, gta_orig_tensor) #use same batch for visualization and debugging
+            gt.visdom_report(vemon_orig_tensor, gta_orig_tensor) #use same batch for visualization and debugging
             
         
         #save every X epoch

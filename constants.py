@@ -23,19 +23,27 @@ CHECKPATH = 'checkpoint/' + GAN_VERSION +'.pt'
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-
 STYLE_GAN_VERSION = "style_v1.02"
-STYLE_ITERATION = "3"
+STYLE_ITERATION = "9"
 STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + "_" + STYLE_ITERATION +'.pt'
- 
- # Set random seed for reproducibility
+
+# dictionary keys
+IDENTITY_LOSS_KEY = "id"
+CYCLE_LOSS_KEY = "cyc"
+TV_LOSS_KEY = "tv"
+ADV_LOSS_KEY = "adv"
+
+D_REAL_LOSS_KEY = "d_real"
+D_FAKE_LOSS_KEY = "d_fake"
+
+# Set random seed for reproducibility
 manualSeed = 999
 
 # Number of training epochs
 num_epochs = 100
 
-display_size = 8 #must not be larger than batch size
-batch_size = 64
+display_size = 16 #must not be larger than batch size
+batch_size = 32
 infer_size = 128
 
 num_workers = 12
