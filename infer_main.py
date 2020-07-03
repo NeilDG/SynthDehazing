@@ -55,7 +55,7 @@ def style_transfer(batch_size, style_version, style_iteration):
     print("Loaded results checkpt ",constants.STYLE_CHECKPATH)
     print("===================================================")
     
-    dataloader = dataset_loader.load_style_dataset(batch_size, -1)
+    dataloader = dataset_loader.load_msg_dataset(batch_size, 72296)
     
     # Plot some training images
     name_batch, vemon_batch, gta_batch = next(iter(dataloader))
@@ -149,14 +149,14 @@ def denoise_infer(batch_size, style_version, style_iteration):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     writer = SummaryWriter('train_plot')
     
-    gt = denoise_net_trainer.GANTrainer(style_version, style_iteration, device, writer, 6, 4)
+    gt = denoise_net_trainer.GANTrainer(style_version, style_iteration, device, 4, 6)
     checkpoint = torch.load(constants.STYLE_CHECKPATH)
-    gt.load_saved_state(checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+    gt.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
  
     print("Loaded results checkpt ",constants.STYLE_CHECKPATH)
     print("===================================================")
     
-    dataloader = dataset_loader.load_msg_dataset(batch_size, -1)
+    dataloader = dataset_loader.load_msg_dataset(batch_size, 72296)
     
     # Plot some training images
     name_batch, vemon_batch, gta_batch = next(iter(dataloader))
@@ -218,6 +218,7 @@ def main():
     #view_train_results(constants.infer_size, constants.GAN_VERSION, constants.GAN_ITERATION)
     #style_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
     #msg_net_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
+    #old_denoise_infer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
     denoise_infer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
 
 #FIX for broken pipe num_workers issue.

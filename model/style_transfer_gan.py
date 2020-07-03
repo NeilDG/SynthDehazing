@@ -22,11 +22,8 @@ def weights_init(m):
             
 class Generator(nn.Module):
     
-    def __init__(self):
+    def __init__(self, filter_size = 512, bottleneck_size = 128):
         super(Generator, self).__init__()
-        
-        filter_size = 512
-        bottleneck_size = 128
         
         self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 3, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
                                    nn.BatchNorm2d(filter_size),

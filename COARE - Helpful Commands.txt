@@ -18,6 +18,9 @@ sbatch denoise_5.slurm
 sbatch denoise_6.slurm
 sbatch denoise_7.slurm
 sbatch denoise_8.slurm
+sbatch denoise_9.slurm
+sbatch denoise_9_resume.slurm
+
 sbatch multistyle_2.slurm
 sbatch multistyle_3.slurm
 sbatch multistyle_4.slurm

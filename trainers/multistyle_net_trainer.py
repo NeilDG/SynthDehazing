@@ -38,7 +38,7 @@ class MultiStyleTrainer:
         
         self.vgg16 = models.vgg16(True)
         for param in self.vgg16.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
         
         #return output of last layer just before softmax
         self.vgg16 = nn.Sequential(*list(self.vgg16.features.children())[:43])

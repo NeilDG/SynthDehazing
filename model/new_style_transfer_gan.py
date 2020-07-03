@@ -31,7 +31,7 @@ class Generator(nn.Module):
     #Nblocks = number of layers (conv and upconv separate)
     #Filter_size = num channels of each layer
     #Expansion = Multiplier factor for each layer
-    def __init__(self, nblocks = 4, filter_size = 256, expansion = 2, max_filter_size = 1024):
+    def __init__(self, nblocks = 4, filter_size = 64, expansion = 2, max_filter_size = 2048):
         super(Generator, self).__init__()
         
         self.conv_blocks = []
@@ -54,6 +54,7 @@ class Generator(nn.Module):
         for i in range(nblocks - 1):
             in_size = new_size
             out_size = int(new_size / expansion)
+            #out_size = clamp(new_size * expansion, max_filter_size)
             self.upconv_blocks += nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
                                         nn.BatchNorm2d(out_size),
                                         nn.ReLU(True))
@@ -73,7 +74,7 @@ class Generator(nn.Module):
         return self.model(input)
 
 class Discriminator(nn.Module):
-    def __init__(self, n_blocks = 6, filter_size = 256, expansion = 2):
+    def __init__(self, n_blocks = 6, filter_size = 64, expansion = 2):
         super(Discriminator, self).__init__()
         
         self.conv_blocks = []
@@ -98,7 +99,4 @@ class Discriminator(nn.Module):
 
     def forward(self, clean_like, clean_tensor):
         x = torch.cat([clean_like, clean_tensor], 1)
-        for i in range(len(self.conv_blocks)):
-            x = self.conv_blocks[i](x)
-        
-        return x
+        return self.model(x)
