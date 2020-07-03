@@ -54,33 +54,27 @@ class VisdomReporter:
         else:
             self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images"))
     
-    def plot_finegrain_loss(self, iteration, G_loss_dict, D_loss_dict):
+    def plot_finegrain_loss(self, iteration, losses_dict):
         if(constants.is_coare == 1):
             return #do nothing. can't run visdom on COARE
         
         LOSS_KEY = "FINEGRAIN_LOSS"
-        x = [i for i in range(iteration, iteration + len(G_loss_dict[constants.IDENTITY_LOSS_KEY]))]
-        fig, ax1 = plt.subplots()
+        x = [i for i in range(iteration, iteration + len(losses_dict[constants.IDENTITY_LOSS_KEY]))]
+        fig, ax = plt.subplots(3, 3, sharex=True)
+        fig.set_size_inches(9, 9)
         fig.tight_layout()
         
-        ax1.plot(x, G_loss_dict[constants.IDENTITY_LOSS_KEY], color = 'r', label = "Id loss per iteration"); plt.legend()
-        ax2 = ax1.twinx()
-        ax2.plot(x, G_loss_dict[constants.CYCLE_LOSS_KEY], color = 'g', label = "Cycle loss per iteration"); plt.legend()
-        ax3 = ax2.twinx()
-        ax3.plot(x, G_loss_dict[constants.TV_LOSS_KEY], color = 'b', label = "TV loss per iteration"); plt.legend()
-        ax4 = ax3.twinx()
-        ax4.plot(x, G_loss_dict[constants.ADV_LOSS_KEY], color = 'c', label = "G Adv loss per iteration"); plt.legend()
-        ax5 = ax4.twinx()
-        ax5.plot(x, D_loss_dict[constants.D_FAKE_LOSS_KEY], color = 'c', label = "D Fake loss per iteration"); plt.legend()
-        ax6 = ax5.twinx()
-        ax6.plot(x, D_loss_dict[constants.D_REAL_LOSS_KEY], color = 'c', label = "D Real loss per iteration"); plt.legend()
-        
-        ax1.set_ylim(0, 1.0)
-        ax2.set_ylim(0, 1.0)
-        ax3.set_ylim(0, 1.0)
-        ax4.set_ylim(0, 1.0)
-        ax5.set_ylim(0, 1.0)
-        ax6.set_ylim(0, 1.0)
+        ax[0,0].plot(x, losses_dict[constants.IDENTITY_LOSS_KEY], color = 'r', label = "Id loss per iteration")
+        ax[0,1].plot(x, losses_dict[constants.CYCLE_LOSS_KEY], color = 'g', label = "Cycle loss per iteration")
+        ax[0,2].plot(x, losses_dict[constants.TV_LOSS_KEY], color = 'b', label = "TV loss per iteration")
+        ax[1,0].plot(x, losses_dict[constants.ADV_LOSS_KEY], color = 'c', label = "G Adv loss per iteration")
+        ax[1,1].plot(x, losses_dict[constants.PERCEP_LOSS_KEY], color = 'firebrick', label = "Percep loss per iteration")
+        ax[1,2].plot(x, losses_dict[constants.G_LOSS_KEY], color = 'black', label = "Overall G loss per iteration")
+        ax[2,0].plot(x, losses_dict[constants.D_FAKE_LOSS_KEY], color = 'y', label = "D Fake loss per iteration")
+        ax[2,1].plot(x, losses_dict[constants.D_REAL_LOSS_KEY], color = 'm', label = "D Real loss per iteration")
+        ax[2,2].plot(x, losses_dict[constants.D_OVERALL_LOSS_KEY], color = 'crimson', label = "Overall D loss per iteration")
+    
+        fig.legend(loc = 'lower right')
         if LOSS_KEY not in self.loss_windows:
             self.loss_windows[LOSS_KEY] = self.vis.matplot(plt)
         else:
@@ -97,11 +91,12 @@ class VisdomReporter:
         fig, ax = plt.subplots()
         fig.tight_layout()
         
-        ax.plot(x, G_losses, color = 'r', label = "G Losses per iteration"); plt.legend()
+        ax.plot(x, G_losses, color = 'r', label = "G Losses per iteration")
         ax2 = ax.twinx()  # instantiate a second axes that shares the same x-axis
-        ax2.plot(x, D_losses, color = 'g', label = "D Losses per iteration"); plt.legend()
+        ax2.plot(x, D_losses, color = 'g', label = "D Losses per iteration")
         ax.set_ylim(0, 4.0)
         ax2.set_ylim(0, 4.0)
+        fig.legend()
         if LOSS_KEY not in self.loss_windows:
             self.loss_windows[LOSS_KEY] = self.vis.matplot(plt)
         else:
