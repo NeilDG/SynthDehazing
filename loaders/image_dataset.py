@@ -111,23 +111,23 @@ class StyleDataset(data.Dataset):
         self.vemon_list = vemon_list
         self.gta_list = gta_list
         
-        #resized = (int(128 * 1.15), int(128 * 1.15))
-        # self.transform_op = transforms.Compose([
-        #                            transforms.ToPILImage(),
-        #                            transforms.Resize(resized),
-        #                            transforms.RandomCrop(constants.BIRD_IMAGE_SIZE),
-        #                            transforms.RandomHorizontalFlip(),
-        #                            transforms.ToTensor(),
-        #                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        #                            ])
-        
+        resized = (int(128 * 1.5), int(128 * 1.5))
         self.transform_op = transforms.Compose([
-                                   transforms.ToPILImage(),
-                                   transforms.Resize(constants.BIRD_IMAGE_SIZE),
-                                   transforms.CenterCrop(constants.BIRD_IMAGE_SIZE),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                                   ])
+                                    transforms.ToPILImage(),
+                                    transforms.Resize(resized),
+                                    transforms.RandomCrop(constants.BIRD_IMAGE_SIZE),
+                                    transforms.RandomHorizontalFlip(),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                                    ])
+        
+        # self.transform_op = transforms.Compose([
+        #                             transforms.ToPILImage(),
+        #                             transforms.Resize(constants.BIRD_IMAGE_SIZE),
+        #                             transforms.CenterCrop(constants.BIRD_IMAGE_SIZE),
+        #                             transforms.ToTensor(),
+        #                             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        #                             ])
         
         
     

@@ -38,7 +38,7 @@ parser.add_option('--gen_skips', type=int, default="1")
 parser.add_option('--disc_skips', type=int, default="1")
 print = logger.log
 
-#--img_to_load=72000 --gen_skips=1 --disc_skips=1 --cycle_weight=10.0 --identity_weight=1.0 --tv_weight=3.0 --adv_weight=50.0 --load_previous=0
+#--img_to_load=15000 --gen_skips=1 --disc_skips=1 --cycle_weight=100.0 --identity_weight=1.0 --tv_weight=3.0 --adv_weight=1.0 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
@@ -50,7 +50,8 @@ def update_config(opts):
         constants.STYLE_ITERATION = str(opts.style_iteration)
         constants.STYLE_CHECKPATH = 'checkpoint/' + constants.STYLE_GAN_VERSION + "_" + constants.STYLE_ITERATION +'.pt'
         
-        constants.DATASET_GTA_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/frames/"
+        constants.DATASET_GTA_PATH_2 = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/frames/"
+        constants.DATASET_GTA_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/synth_gta/"
         constants.DATASET_PLACES_PATH = "/scratch1/scratch2/neil.delgallego/Places Dataset/"
         constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         
@@ -90,13 +91,13 @@ def main(argv):
     # Plot some training images
     if(constants.is_coare == 0):
         name_batch, vemon_batch_orig, gta_batch_orig = next(iter(dataloader))
-        plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
+        plt.figure(figsize=constants.FIG_SIZE)
         plt.axis("off")
         plt.title("Training - Normal Images")
         plt.imshow(np.transpose(vutils.make_grid(vemon_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
         plt.show()
         
-        plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
+        plt.figure(figsize=constants.FIG_SIZE)
         plt.axis("off")
         plt.title("Training - Topdown Images")
         plt.imshow(np.transpose(vutils.make_grid(gta_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
@@ -112,8 +113,8 @@ def main(argv):
             vemon_tensor = vemon_batch.to(device)
             gta_tensor = gta_batch.to(device)
             gt.train(vemon_tensor, gta_tensor)
-            gt.visdom_report(vemon_orig_tensor, gta_orig_tensor) #use same batch for visualization and debugging
-            
+            #gt.visdom_report(vemon_orig_tensor, gta_orig_tensor) #use same batch for visualization and debugging
+            gt.visdom_report(vemon_tensor, gta_tensor)
         
         #save every X epoch
         gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
