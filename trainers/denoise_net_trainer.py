@@ -187,7 +187,7 @@ class GANTrainer:
         
         clean_like = tensor_utils.preprocess_batch(clean_like)
         clean_tensor = tensor_utils.preprocess_batch(clean_tensor)
-        percep_loss = self.vgg_loss(clean_like, clean_tensor)
+        percep_loss = self.vgg_loss(clean_like, clean_tensor) * 0.0
         
         if(self.iteration % self.gen_skips == 0): #only update generator for cycle loss, every N iterations
             errG = A_identity_loss + A_cycle_loss + A_tv_loss + adv_loss + percep_loss
@@ -217,12 +217,16 @@ class GANTrainer:
         
         self.iteration += 1
     
-    def visdom_report(self, dirty_tensor, clean_tensor):
+    def visdom_report(self, dirty_tensor, clean_tensor, test_dirty_tensor, test_clean_tensor):
         with torch.no_grad():
             clean_like = self.G_A(dirty_tensor)
             dirty_like = self.G_B(clean_like)
             
+            test_clean_like = self.G_A(test_dirty_tensor)
+            test_dirty_like = self.G_B(test_clean_like)
+            
         self.visdom_reporter.plot_image(dirty_tensor, dirty_like, clean_tensor, clean_like)
+        self.visdom_reporter.plot_test_image(test_dirty_tensor, test_dirty_like, test_clean_tensor, test_clean_like)
     
     def vemon_verify(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
