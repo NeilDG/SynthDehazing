@@ -51,18 +51,16 @@ def load_msg_dataset(batch_size = 8, num_image_to_load = -1):
     
     return train_loader
 
-def load_debug_dataset(batch_size = 8, num_image_to_load = -1):
-    topdown_list = assemble_topdown_data(num_image_to_load)
-    normal_list, homog_list = assemble_test_data(len(topdown_list)) #equalize topdown list length to loaded VEMON data
+def load_test_dataset(batch_size = 8, num_image_to_load = -1):
+    normal_list, gta_list = assemble_msg_data(num_image_to_load)
+
+    print("Length of test images: %d, %d." % (len(normal_list), len(gta_list)))
     
-    print("Length of DEBUG images: %d, %d, %d", len(normal_list), len(homog_list), len(topdown_list))
-    
-    
-    test_dataset = image_dataset.DebugDataset(normal_list, homog_list, topdown_list)
+    test_dataset = image_dataset.TestDataset(normal_list, gta_list)
     train_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=constants.num_workers,
+        num_workers=2,
         shuffle=True
     )
     
