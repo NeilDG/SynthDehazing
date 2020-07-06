@@ -19,7 +19,7 @@ class StyleDataset(data.Dataset):
         self.vemon_list = vemon_list
         self.gta_list = gta_list
         
-        resized = (int(128 * 1.5), int(128 * 1.5))
+        resized = (int(constants.TEST_IMAGE_SIZE[0] * 1.3), int(constants.TEST_IMAGE_SIZE[1] * 1.3))
         self.transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
                                     transforms.Resize(resized),
