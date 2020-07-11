@@ -46,8 +46,8 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         # Initial convolution block       
-        model = [   nn.ReflectionPad2d(3),
-                    nn.Conv2d(input_nc, 64, 7),
+        model = [   nn.ReflectionPad2d(2),
+                    nn.Conv2d(input_nc, 64, 8),
                     nn.InstanceNorm2d(64),
                     nn.ReLU(inplace=True) ]
 
@@ -55,7 +55,7 @@ class Generator(nn.Module):
         in_features = 64
         out_features = in_features*2
         for _ in range(2):
-            model += [  nn.Conv2d(in_features, out_features, 3, stride=2, padding=1),
+            model += [  nn.Conv2d(in_features, out_features, 4, stride=2, padding=1),
                         nn.InstanceNorm2d(out_features),
                         nn.ReLU(inplace=True) ]
             in_features = out_features
@@ -68,15 +68,15 @@ class Generator(nn.Module):
         # Upsampling
         out_features = in_features//2
         for _ in range(2):
-            model += [  nn.ConvTranspose2d(in_features, out_features, 3, stride=2, padding=1, output_padding=1),
+            model += [  nn.ConvTranspose2d(in_features, out_features, 4, stride=2, padding=1, output_padding=1),
                         nn.InstanceNorm2d(out_features),
                         nn.ReLU(inplace=True) ]
             in_features = out_features
             out_features = in_features//2
 
         # Output layer
-        model += [  nn.ReflectionPad2d(3),
-                    nn.Conv2d(64, output_nc, 7),
+        model += [  nn.ReflectionPad2d(4),
+                    nn.Conv2d(64, output_nc, 8),
                     nn.Tanh() ]
 
         self.model = nn.Sequential(*model)
@@ -121,20 +121,20 @@ class FeatureDiscriminator(nn.Module):
         filter_size = in_channels * expansion
         
         self.conv_blocks = []
-        self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = in_channels, out_channels = filter_size, kernel_size=3, stride=2, padding=1),
+        self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = in_channels, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
                                    nn.LeakyReLU(0.2, inplace = True))
         
         for i in range(n_blocks - 2):
             in_size = filter_size
             out_size = clamp(filter_size * expansion, max_filter_size)
-            self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=3, stride=2, padding=1),
+            self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
                                    nn.BatchNorm2d(out_size),
                                    nn.LeakyReLU(0.2, inplace = True),
                                    nn.Dropout(0.5))
             filter_size = out_size
         
         
-        self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = 1, kernel_size=3, stride=1, padding=0),
+        self.conv_blocks += nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = 1, kernel_size=4, stride=2, padding=1),
                                         nn.Sigmoid())
         
         self.model = nn.Sequential(*self.conv_blocks)
