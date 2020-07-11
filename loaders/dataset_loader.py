@@ -54,7 +54,7 @@ def load_msg_dataset(batch_size = 8, num_image_to_load = -1):
 def load_test_dataset(batch_size = 8, num_image_to_load = -1):
     normal_list, gta_list = assemble_msg_data(num_image_to_load)
 
-    print("Length of test images: %d, %d." % (len(normal_list), len(gta_list)))
+    #print("Length of test images: %d, %d." % (len(normal_list), len(gta_list)))
     
     test_dataset = image_dataset.TestDataset(normal_list, gta_list)
     train_loader = torch.utils.data.DataLoader(

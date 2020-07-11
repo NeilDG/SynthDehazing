@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH -J NeilDN
 #SBATCH --partition=gpu
-#SBATCH --qos=12c-1h_2gpu
+#SBATCH --qos=12c-1h_2gpu 
 #SBATCH -G 1 
 #SBATCH --ntasks=1
-#SBATCH --output=neil_job.out
+#SBATCH --output=dn_job_1.out
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph 
 #SBATCH --mail-type=END 
 
@@ -16,13 +16,7 @@ nvidia-smi
 module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
-g_skip=250
-d_skip=250
-iteration=1
-
-echo "g_skip=$g_skip d_skip=$d_skip iteration=$iteration"
-
 # activate your python environment
 source activate NeilGAN
-srun python denoise_main.py --img_to_load=72000 --coare=1 --gen_skips=$g_skip --disc_skips=$d_skip --style_iteration=$iteration
+srun python denoise_main.py --style_iteration=10 --coare=1 --img_to_load=72296 --cycle_weight=10.0 --identity_weight=1.0 --tv_weight=3.0 --adv_weight=1.0 --load_previous=1
 source deactivate

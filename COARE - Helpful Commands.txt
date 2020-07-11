@@ -9,6 +9,7 @@ cd scratch2/NeuralNets-GenerativeExperiment-3
 cd scratch2/NeuralNets-GenerativeExperiment-4
 
 //Execute job
+sbatch visdom_run.slurm
 sbatch neil_job.slurm
 sbatch denoise_1.slurm
 sbatch denoise_2.slurm
@@ -37,3 +38,10 @@ squeue -a
 
 //For cancelling job
 scancel <jobid>
+
+//VISDOM
+visdom -env_path "D:/Users/delgallegon/Documents/GithubProjects/Visdom/"
+visdom -env_path "/scratch1/scratch2/neil.delgallego/Visdom/"
+
+export XDG_RUNTIME_DIR=/scratch1/scratch2/neil.delgallego/Visdom/
+saliksik.asti.dost.gov.ph:8097

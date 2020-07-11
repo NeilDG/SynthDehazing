@@ -32,13 +32,13 @@ parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--tv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--gen_blocks', type=int, help="Weight", default="4")
-parser.add_option('--disc_blocks', type=int, help="Weight", default="6")
+parser.add_option('--gen_blocks', type=int, help="Weight", default="3")
+parser.add_option('--disc_blocks', type=int, help="Weight", default="3")
 parser.add_option('--gen_skips', type=int, default="1")
 parser.add_option('--disc_skips', type=int, default="1")
 print = logger.log
 
-#--img_to_load=72296 --gen_skips=1 --disc_skips=1 --cycle_weight=100.0 --identity_weight=1.0 --tv_weight=3.0 --adv_weight=1.0 --load_previous=0
+#--img_to_load=72296 --cycle_weight=1000.0 --identity_weight=100.0 --tv_weight=3.0 --adv_weight=1.0 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
@@ -87,10 +87,8 @@ def main(argv):
     
     # Create the dataloader
     dataloader = dataset_loader.load_msg_dataset(constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_test_dataset(constants.batch_size, 500)
-    view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
-    view_dirty_batch = view_dirty_batch.to(device)
-    view_clean_batch = view_clean_batch.to(device)
+    test_loader = dataset_loader.load_test_dataset(constants.display_size, 500)
+    index = 0
     
     # Plot some training images
     if(constants.is_coare == 0):
@@ -117,9 +115,15 @@ def main(argv):
             vemon_tensor = vemon_batch.to(device)
             gta_tensor = gta_batch.to(device)
             gt.train(vemon_tensor, gta_tensor)
-            #gt.visdom_report(vemon_orig_tensor, gta_orig_tensor) #use same batch for visualization and debugging
-            if(i % 10 == 0):
+            if(i % 10 == 0 and constants.is_coare == 0):
+                view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
+                view_dirty_batch = view_dirty_batch.to(device)
+                view_clean_batch = view_clean_batch.to(device)
                 gt.visdom_report(vemon_tensor, gta_tensor, view_dirty_batch, view_clean_batch)
+                index = (index + 1) % len(test_loader)
+                if(index == 0):
+                  test_loader = dataset_loader.load_test_dataset(constants.batch_size, 500)  
+                
         
         #save every X epoch
         gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)

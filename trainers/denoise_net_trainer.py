@@ -39,25 +39,18 @@ class GANTrainer:
         self.gan_iteration = gan_iteration
         self.visdom_reporter = plot_utils.VisdomReporter()
 
-        # self.G_A = st.Generator(gen_blocks).to(gpu_device) #use multistyle net as architecture
-        # self.G_B = st.Generator(gen_blocks).to(gpu_device)
-        # self.D_A = st.Discriminator(disc_blocks).to(gpu_device)
-        self.G_A = cg.Generator().to(gpu_device) #use multistyle net as architecture
-        self.G_B = cg.Generator().to(gpu_device)
-        self.D_A = cg.Discriminator().to(gpu_device)
-        #self.D_Features = [cg.FeatureDiscriminator(64).to(gpu_device), cg.FeatureDiscriminator(256).to(gpu_device)]
+        self.G_A = cg.Generator(n_residual_blocks = gen_blocks).to(gpu_device) #use multistyle net as architecture
+        self.G_B = cg.Generator(n_residual_blocks = gen_blocks).to(gpu_device)
+        self.D_A = cg.FeatureDiscriminator(3, n_blocks = disc_blocks).to(gpu_device)
+        self.D_B = cg.FeatureDiscriminator(3, n_blocks = disc_blocks).to(gpu_device)
         
         #use VGG for extracting features
-        self.vgg_loss = vgg_loss_model.VGGPerceptualLoss().to(gpu_device)
+        #self.vgg_loss = vgg_loss_model.VGGPerceptualLoss().to(gpu_device)
         
         print("Gen blocks set to %d. Disc blocks set to %d." %(gen_blocks, disc_blocks))
-        print(self.G_B)
-        print(self.D_A)
-        #print(self.D_Features[0])
-        #print(self.D_Features[1])
         
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
-        self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
+        self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters(), self.D_B.parameters()), lr=lr, betas=betas, weight_decay=weight_decay)
         
         self.G_losses = []
         self.D_losses = []
@@ -72,10 +65,11 @@ class GANTrainer:
         self.losses_dict[constants.IDENTITY_LOSS_KEY] = []
         self.losses_dict[constants.CYCLE_LOSS_KEY] = []
         self.losses_dict[constants.TV_LOSS_KEY] = []
-        self.losses_dict[constants.ADV_LOSS_KEY] = []
-        self.losses_dict[constants.PERCEP_LOSS_KEY] = []
-        self.losses_dict[constants.D_FAKE_LOSS_KEY] = []
-        self.losses_dict[constants.D_REAL_LOSS_KEY]  = []
+        self.losses_dict[constants.G_ADV_LOSS_KEY] = []
+        self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
+        self.losses_dict[constants.D_A_FAKE_LOSS_KEY]  = []
+        self.losses_dict[constants.D_B_REAL_LOSS_KEY] = []
+        self.losses_dict[constants.D_B_FAKE_LOSS_KEY]  = []
         self.losses_dict[constants.D_OVERALL_LOSS_KEY]  = []
         
     def update_penalties(self, identity, cycle, adv, tv, gen_skips, disc_skips):
@@ -135,36 +129,23 @@ class GANTrainer:
        
         #update D first
         clean_like = self.G_A(dirty_tensor)
+        dirty_like = self.G_B(clean_tensor)
         
         self.D_A.train()
-        #self.D_Features[0].train(); self.D_Features[1].train()
-        
+        self.D_B.train()
         self.optimizerD.zero_grad()
         
-        prediction = self.D_A(clean_like)
+        prediction = self.D_A(clean_tensor)
         noise_value = random.uniform(0.8, 1.0)
         real_tensor = torch.ones_like(prediction) * noise_value #add noise value to avoid perfect predictions for real
         fake_tensor = torch.zeros_like(prediction)
         
-        D_A_real_loss = (self.adversarial_loss(self.D_A(clean_tensor), real_tensor)) * self.adv_weight
-        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach()), fake_tensor) * self.adv_weight
+        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor), real_tensor) * self.adv_weight
+        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach()), fake_tensor) * self.adv_weight  
+        D_B_real_loss = self.adversarial_loss(self.D_B(dirty_tensor), real_tensor) * self.adv_weight
+        D_B_fake_loss = self.adversarial_loss(self.D_B(dirty_like.detach()), fake_tensor) * self.adv_weight
         
-        #check discriminator features
-        # prediction = self.D_Features[0](real_image_features[0])
-        # real_tensor = torch.ones_like(prediction) * noise_value #add noise value to avoid perfect predictions for real
-        # fake_tensor = torch.zeros_like(prediction)
-        
-        # D_Features_loss_real_1 = self.adversarial_loss(prediction, real_tensor) * 5.0
-        # D_Features_loss_fake_1 = self.adversarial_loss(self.D_Features[0](fake_image_features[0]), fake_tensor)
-        
-        # prediction = self.D_Features[1](real_image_features[2])
-        # real_tensor = torch.ones_like(prediction) * noise_value #add noise value to avoid perfect predictions for real
-        # fake_tensor = torch.zeros_like(prediction)
-        
-        # D_Features_loss_real_2 = self.adversarial_loss(prediction, real_tensor) * 10.0
-        # D_Features_loss_fake_2 = self.adversarial_loss(self.D_Features[1](fake_image_features[2]), fake_tensor)
-           
-        errD = D_A_real_loss + D_A_fake_loss
+        errD = D_A_real_loss + D_A_fake_loss + D_B_real_loss + D_B_fake_loss
         if(self.iteration % self.disc_skips == 0 and errD.item() > 0.1): #only update discriminator every N iterations and if discriminator becomes worse
             errD.backward()
             self.optimizerD.step()
@@ -174,27 +155,31 @@ class GANTrainer:
         self.G_B.train()
         self.optimizerG.zero_grad()
         
-        identity_like = self.G_A(clean_tensor)
-        dirty_like = self.G_B(clean_like)
+        A_identity_like = self.G_A(clean_tensor)
+        B_identity_like = self.G_B(dirty_tensor)
         
-        A_identity_loss = self.identity_loss(identity_like, clean_tensor) * self.identity_weight
-        A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
+        A_identity_loss = self.identity_loss(A_identity_like, clean_tensor) * self.identity_weight
+        B_identity_loss = self.identity_loss(B_identity_like, dirty_tensor) * self.identity_weight
+        
+        A_cycle_loss = self.cycle_loss(self.G_B(self.G_A(dirty_tensor)), dirty_tensor) * self.cycle_weight
         A_tv_loss = self.tv_impose(clean_like) * self.tv_weight
         
-        prediction = self.D_A(clean_like)
-        real_tensor = torch.ones_like(prediction)
-        adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
+        B_cycle_loss = self.cycle_loss(self.G_A(self.G_B(clean_tensor)), clean_tensor) * self.cycle_weight
         
-        clean_like = tensor_utils.preprocess_batch(clean_like)
-        clean_tensor = tensor_utils.preprocess_batch(clean_tensor)
-        percep_loss = self.vgg_loss(clean_like, clean_tensor)
+        prediction = self.D_A(self.G_A(dirty_tensor))
+        real_tensor = torch.ones_like(prediction)
+        A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
+        
+        prediction = self.D_B(self.G_B(clean_tensor))
+        real_tensor = torch.ones_like(prediction)
+        B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
         
         if(self.iteration % self.gen_skips == 0): #only update generator for cycle loss, every N iterations
-            errG = A_identity_loss + A_cycle_loss + A_tv_loss + adv_loss + percep_loss
+            errG = A_identity_loss + B_identity_loss + A_cycle_loss + B_cycle_loss + A_tv_loss + A_adv_loss + B_adv_loss
             errG.backward()
             self.optimizerG.step()
         else:
-            errG = A_identity_loss + A_tv_loss + adv_loss
+            errG = A_identity_loss + A_tv_loss + A_adv_loss + B_adv_loss
             errG.backward()
             self.optimizerG.step()
         
@@ -202,16 +187,17 @@ class GANTrainer:
         # Save Losses for plotting later
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
-        self.losses_dict[constants.IDENTITY_LOSS_KEY].append(A_identity_loss.item())
-        self.losses_dict[constants.CYCLE_LOSS_KEY].append(A_cycle_loss.item())
+        self.losses_dict[constants.IDENTITY_LOSS_KEY].append(A_identity_loss.item() + B_identity_loss.item())
+        self.losses_dict[constants.CYCLE_LOSS_KEY].append(A_cycle_loss.item() + B_cycle_loss.item())
         self.losses_dict[constants.TV_LOSS_KEY].append(A_tv_loss.item())
-        self.losses_dict[constants.ADV_LOSS_KEY].append(adv_loss.item())
-        self.losses_dict[constants.PERCEP_LOSS_KEY].append(percep_loss.item())
-        self.losses_dict[constants.D_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
-        self.losses_dict[constants.D_REAL_LOSS_KEY].append(D_A_real_loss.item())
+        self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item() + B_adv_loss.item())
+        self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
+        self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
+        self.losses_dict[constants.D_B_FAKE_LOSS_KEY].append(D_B_fake_loss.item())
+        self.losses_dict[constants.D_B_REAL_LOSS_KEY].append(D_B_real_loss.item())
         
         if(self.iteration % 10 == 0):
-            #print("Iteration: %d G loss: %f  G Adv loss: %f D loss: %f" % (self.iteration, errG.item(), adv_loss, errD.item()))
+            #print("Iteration: %d G loss: %f D loss: %f" % (self.iteration, errG.item(), errD.item()))
             #print("G High level feature loss: %f" %(percep_loss.item()))
             self.visdom_reporter.plot_finegrain_loss(self.iteration, self.losses_dict)
         
