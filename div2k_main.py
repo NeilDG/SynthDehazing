@@ -38,7 +38,7 @@ parser.add_option('--gen_skips', type=int, default="1")
 parser.add_option('--disc_skips', type=int, default="1")
 print = logger.log
 
-#--img_to_load=72296 --cycle_weight=1000.0 --identity_weight=100.0 --tv_weight=3.0 --adv_weight=1.0 --load_previous=0
+#--img_to_load=71200 --cycle_weight=1000.0 --identity_weight=100.0 --tv_weight=3.0 --adv_weight=1.0 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
@@ -86,14 +86,13 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    train_vemon_loader, train_div2k_loader = dataset_loader.load_train_dataset(constants.batch_size, opts.img_to_load)
-    test_vemon_loader, test_div2k_loader = dataset_loader.load_test_dataset(constants.display_size, 500)
+    train_div2k_loader = dataset_loader.load_train_dataset(constants.batch_size, opts.img_to_load)
+    test_div2k_loader = dataset_loader.load_test_dataset(constants.display_size, 500)
     index = 0
     
     # Plot some training images
     if(constants.is_coare == 0):
-        _, vemon_batch_orig = next(iter(test_vemon_loader))
-        _, gta_batch_orig = next(iter(test_div2k_loader))
+        _, vemon_batch_orig, div2k_batch_orig = next(iter(train_div2k_loader))
         
         plt.figure(figsize=constants.FIG_SIZE)
         plt.axis("off")
@@ -104,27 +103,27 @@ def main(argv):
         plt.figure(figsize=constants.FIG_SIZE)
         plt.axis("off")
         plt.title("Training - Clean Images")
-        plt.imshow(np.transpose(vutils.make_grid(gta_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+        plt.imshow(np.transpose(vutils.make_grid(div2k_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
         plt.show()
     
-        vemon_orig_tensor = vemon_batch_orig.to(device)
-        gta_orig_tensor = gta_batch_orig.to(device)
-    
+    index = 0
     print("Starting Training Loop...")
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
+        for i, (train_data) in enumerate(train_div2k_loader):
+            _, vemon_batch, div2k_batch = train_data
             vemon_tensor = vemon_batch.to(device)
-            gta_tensor = gta_batch.to(device)
-            gt.train(vemon_tensor, gta_tensor)
-            if(i % 10 == 0 and constants.is_coare == 0):
-                view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
-                view_dirty_batch = view_dirty_batch.to(device)
-                view_clean_batch = view_clean_batch.to(device)
-                gt.visdom_report(vemon_tensor, gta_tensor, view_dirty_batch, view_clean_batch)
-                index = (index + 1) % len(test_loader)
+            div2k_tensor= div2k_batch.to(device)
+            gt.train(vemon_tensor, div2k_tensor)
+            
+            if(i % 500 == 0 and constants.is_coare == 0):
+                _, vemon_batch_test, div2k_batch_test = next(iter(test_div2k_loader))
+                view_dirty_batch = vemon_batch_test.to(device)
+                view_clean_batch = div2k_batch_test.to(device)
+                gt.visdom_report(vemon_tensor, div2k_tensor, view_dirty_batch, view_clean_batch)
+                index = (index + 1) % len(test_div2k_loader)
                 if(index == 0):
-                  test_loader = dataset_loader.load_test_dataset(constants.batch_size, 500)  
+                  test_div2k_loader = dataset_loader.load_test_dataset(constants.batch_size, 500)  
                 
         
         #save every X epoch

@@ -196,7 +196,7 @@ class GANTrainer:
         self.losses_dict[constants.D_B_FAKE_LOSS_KEY].append(D_B_fake_loss.item())
         self.losses_dict[constants.D_B_REAL_LOSS_KEY].append(D_B_real_loss.item())
         
-        if(self.iteration % 10 == 0):
+        if(self.iteration % 5 == 0):
             #print("Iteration: %d G loss: %f D loss: %f" % (self.iteration, errG.item(), errD.item()))
             #print("G High level feature loss: %f" %(percep_loss.item()))
             self.visdom_reporter.plot_finegrain_loss(self.iteration, self.losses_dict)
@@ -220,20 +220,20 @@ class GANTrainer:
             clean_like = self.G_A(dirty_tensor).detach()
         
         #resize tensors for better viewing
-        resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
-        resized_fake = nn.functional.interpolate(clean_like, scale_factor = 2.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_fake = nn.functional.interpolate(clean_like, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
         
         print("New shapes: %s %s" % (np.shape(resized_normal), np.shape(resized_fake)))
         
         fig, ax = plt.subplots(2, 1)
-        fig.set_size_inches(34, 34)
+        fig.set_size_inches(constants.FIG_SIZE)
         fig.tight_layout()
         
-        ims = np.transpose(vutils.make_grid(resized_normal, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(resized_normal, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
         ax[0].set_axis_off()
         ax[0].imshow(ims)
         
-        ims = np.transpose(vutils.make_grid(resized_fake, nrow = 16, padding=2, normalize=True).cpu(),(1,2,0))
+        ims = np.transpose(vutils.make_grid(resized_fake, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
         ax[1].set_axis_off()
         ax[1].imshow(ims)
         

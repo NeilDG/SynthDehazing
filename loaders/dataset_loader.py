@@ -15,53 +15,48 @@ from torchvision import transforms
 from utils import logger
 
 print = logger.log
-def assemble_msg_data(num_image_to_load = -1):
-    gta_list = [];  normal_list = []
+def assemble_train_data(num_image_to_load = -1):
+    a_list = []; b_list = []
     
     for (root, dirs, files) in os.walk(constants.DATASET_VEMON_PATH):
         for f in files:
             file_name = os.path.join(root, f)
             #print(file_name)
-            normal_list.append(file_name)
-            if(num_image_to_load != -1 and len(normal_list) == num_image_to_load):
+            a_list.append(file_name)
+            if(num_image_to_load != -1 and len(a_list) == num_image_to_load):
                 break  
     
-    for (root, dirs, files) in os.walk(constants.DATASET_GTA_PATH_2):
+    for (root, dirs, files) in os.walk(constants.DATASET_DIV2K_PATH):
         for f in files:
             file_name = os.path.join(root, f)
-            #print(file_name)
-            gta_list.append(file_name)
-            if(len(normal_list) == len(gta_list)):
+            b_list.append(file_name)
+            if(num_image_to_load != -1 and len(b_list) == num_image_to_load):
                 break
     
-    return normal_list, gta_list
+    return a_list, b_list
 
-def load_msg_dataset(batch_size = 8, num_image_to_load = -1):
-    normal_list, gta_list = assemble_msg_data(num_image_to_load)
+def load_test_dataset(batch_size = 8, num_image_to_load = -1):
+    a_list, b_list = assemble_train_data(num_image_to_load)
+    print("Length of images: %d, %d." % (len(a_list), len(b_list)))
 
-    print("Length of MSG images: %d, %d." % (len(normal_list), len(gta_list)))
-    
-    test_dataset = image_dataset.StyleDataset(normal_list, gta_list)
-    train_loader = torch.utils.data.DataLoader(
-        test_dataset,
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.TestDataset(a_list, b_list),
         batch_size=batch_size,
         num_workers=constants.num_workers,
         shuffle=True
     )
     
-    return train_loader
+    return data_loader
 
-def load_test_dataset(batch_size = 8, num_image_to_load = -1):
-    normal_list, gta_list = assemble_msg_data(num_image_to_load)
+def load_train_dataset(batch_size = 8, num_image_to_load = -1):
+    a_list, b_list = assemble_train_data(num_image_to_load)
+    print("Length of images: %d, %d." % (len(a_list), len(b_list)))
 
-    #print("Length of test images: %d, %d." % (len(normal_list), len(gta_list)))
-    
-    test_dataset = image_dataset.TestDataset(normal_list, gta_list)
-    train_loader = torch.utils.data.DataLoader(
-        test_dataset,
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.StyleDataset(a_list, b_list),
         batch_size=batch_size,
-        num_workers=2,
+        num_workers=3,
         shuffle=True
     )
     
-    return train_loader
+    return data_loader

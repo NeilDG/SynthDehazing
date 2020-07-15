@@ -145,28 +145,28 @@ def old_denoise_infer(batch_size, style_version, style_iteration):
         item_number = item_number + 1
         gt.vemon_verify(vemon_tensor, gta_tensor, item_number)
         
-def denoise_infer(batch_size, style_version, style_iteration):
+def infer(batch_size, style_version, style_iteration):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     writer = SummaryWriter('train_plot')
     
-    gt = denoise_net_trainer.GANTrainer(style_version, style_iteration, device, 4, 6)
+    gt = denoise_net_trainer.GANTrainer(style_version, style_iteration, device, gen_blocks=3, disc_blocks=3)
     checkpoint = torch.load(constants.STYLE_CHECKPATH)
     gt.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
  
     print("Loaded results checkpt ",constants.STYLE_CHECKPATH)
     print("===================================================")
     
-    dataloader = dataset_loader.load_msg_dataset(batch_size, 72296)
+    dataloader = dataset_loader.load_test_dataset(batch_size, 72296)
     
     # Plot some training images
     name_batch, vemon_batch, gta_batch = next(iter(dataloader))
-    plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
+    plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Training - VEMON Images")
     plt.imshow(np.transpose(vutils.make_grid(vemon_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
     
-    plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
+    plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Training - GTA Images")
     plt.imshow(np.transpose(vutils.make_grid(gta_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
@@ -177,7 +177,7 @@ def denoise_infer(batch_size, style_version, style_iteration):
         vemon_tensor = vemon_batch.to(device)
         gta_tensor = gta_batch.to(device)
         item_number = item_number + 1
-        gt.vemon_verify(vemon_tensor, item_number)  
+        gt.vemon_verify(vemon_tensor, item_number)
         
 def vemon_infer(batch_size, gan_version, gan_iteration): 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -219,7 +219,7 @@ def main():
     #style_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
     #msg_net_transfer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
     #old_denoise_infer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
-    denoise_infer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
+    infer(constants.infer_size, constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

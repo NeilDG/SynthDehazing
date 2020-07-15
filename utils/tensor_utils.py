@@ -30,9 +30,9 @@ def convert_to_matplotimg(img_tensor, batch_idx):
     return img
 
 def convert_to_opencv(img_tensor):
-    img = img_tensor.numpy()
+    img = img_tensor
     img = np.moveaxis(img, -1, 0)
-    img = np.moveaxis(img, -1, 0) #for properly displaying image in matplotlib
+    img = np.moveaxis(img, -1, 0)
     
     return img
 
