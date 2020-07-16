@@ -77,12 +77,12 @@ def main(argv):
     iteration = 0
     
     if(opts.load_previous): 
-        checkpoint = torch.load(constants.STYLE_CHECKPATH)
+        checkpoint = torch.load(constants.CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1   
         iteration = checkpoint['iteration'] + 1
         gt.load_saved_state(iteration, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
  
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.STYLE_CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.CHECKPATH, start_epoch))
         print("===================================================")
     
     # Create the dataloader

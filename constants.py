@@ -51,7 +51,7 @@ display_size = 16 #must not be larger than batch size
 batch_size = 512
 infer_size = 32
 
-num_workers = 16
+num_workers = 12
 
 #Running on COARE?
 is_coare = 0

@@ -114,9 +114,11 @@ class DenoiseTrainer:
         self.visdom_reporter.plot_image(dirty_tensor, clean_tensor, clean_like)
         self.visdom_reporter.plot_test_image(test_dirty_tensor, test_clean_tensor, test_clean_like)
     
-    def load_saved_state(self, iteration, checkpoint, model_key, optimizer_key):
-        self.iteration = iteration
-        #load model
+    def load_saved_state(self, iteration, checkpoint, generator_key, disriminator_key, optimizer_key):
+        self.G.load_state_dict(checkpoint[generator_key + "A"])
+        self.D.load_state_dict(checkpoint[disriminator_key + "A"])
+        self.optimizerG.load_state_dict(checkpoint[generator_key + optimizer_key])
+        self.optimizerD.load_state_dict(checkpoint[disriminator_key + optimizer_key])
     
     def save_states(self, epoch, iteration, path, generator_key, disriminator_key, optimizer_key):
         save_dict = {'epoch': epoch, 'iteration': iteration}
