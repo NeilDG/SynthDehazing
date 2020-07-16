@@ -4,6 +4,10 @@ import os
 DATASET_VEMON_PATH = "E:/VEMON_Transfer/train/A/"
 DATASET_GTA_PATH = "E:/VEMON_Transfer/train/B/"
 DATASET_GTA_PATH_2= "E:/VEMON Dataset/pending/frames/"
+
+DATASET_NOISY_GTA_PATH = "E:/Noisy GTA/noisy/"
+DATASET_CLEAN_GTA_PATH = "E:/Noisy GTA/clean/"
+
 DATASET_PLACES_PATH = "E:/Places Dataset/"
 DATASET_DIV2K_PATH = "E:/VEMON_Transfer/train/C/"
 
@@ -18,9 +22,9 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-STYLE_GAN_VERSION = "style_v1.03"
-STYLE_ITERATION = "1"
-STYLE_CHECKPATH = 'checkpoint/' + STYLE_GAN_VERSION + "_" + STYLE_ITERATION +'.pt'
+VERSION = "gta_denoise_v1.00"
+ITERATION = "1"
+CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
 
 # dictionary keys
 G_LOSS_KEY = "g_loss"
@@ -28,6 +32,7 @@ IDENTITY_LOSS_KEY = "id"
 CYCLE_LOSS_KEY = "cyc"
 TV_LOSS_KEY = "tv"
 G_ADV_LOSS_KEY = "g_adv"
+LIKENESS_LOSS_KEY = "likeness"
 
 D_OVERALL_LOSS_KEY = "d_loss"
 D_A_REAL_LOSS_KEY = "d_real_a"
@@ -43,10 +48,10 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 128
+batch_size = 512
 infer_size = 32
 
-num_workers = 12
+num_workers = 16
 
 #Running on COARE?
 is_coare = 0
