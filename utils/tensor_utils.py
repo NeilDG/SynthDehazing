@@ -21,6 +21,19 @@ class SaveFeatures(nn.Module):
 		self.features = output;
 	def close(self):
 		self.hook.remove();
+        
+
+class CombineFeatures(nn.Module):
+    features = None;
+    def __init(self, m, features):
+        self.hook = m.register_forward_hook(self.hook_fn)
+        self.features = features
+    
+    def hook_fn(self, module, input, output):
+        self.features = self.features + output
+    
+    def close(self):
+        self.hook.remove()
 
 def convert_to_matplotimg(img_tensor, batch_idx):
     img = img_tensor[batch_idx,:,:,:].numpy()
@@ -30,9 +43,9 @@ def convert_to_matplotimg(img_tensor, batch_idx):
     return img
 
 def convert_to_opencv(img_tensor):
-    img = img_tensor.numpy()
+    img = img_tensor
     img = np.moveaxis(img, -1, 0)
-    img = np.moveaxis(img, -1, 0) #for properly displaying image in matplotlib
+    img = np.moveaxis(img, -1, 0)
     
     return img
 
