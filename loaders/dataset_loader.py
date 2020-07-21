@@ -49,12 +49,25 @@ def load_test_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
     
     return data_loader
 
-def load_train_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
+def load_noise_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
     a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
     print("Length of images: %d, %d." % (len(a_list), len(b_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.StyleDataset(a_list, b_list),
+        image_dataset.NoiseDataset(a_list, b_list),
+        batch_size=batch_size,
+        num_workers=3,
+        shuffle=True
+    )
+    
+    return data_loader
+
+def load_div2k_train_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
+    a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
+    print("Length of images: %d, %d." % (len(a_list), len(b_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.Div2kDataset(a_list, b_list),
         batch_size=batch_size,
         num_workers=3,
         shuffle=True

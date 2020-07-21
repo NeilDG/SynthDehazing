@@ -27,34 +27,31 @@ parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
-parser.add_option('--style_iteration', type=int, help="Style version?", default="1")
+parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="3")
-parser.add_option('--disc_blocks', type=int, help="Weight", default="3")
-parser.add_option('--gen_skips', type=int, default="1")
-parser.add_option('--disc_skips', type=int, default="1")
+#parser.add_option('--disc_blocks', type=int, help="Weight", default="3")
 print = logger.log
 
-#--img_to_load=72296 --identity_weight=10.0 --likeness_weight=100.0 --adv_weight=1.0 --load_previous=0
+#--img_to_load=72296 --identity_weight=10.0 --likeness_weight=5.0 --adv_weight=1.0 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = 128
+        constants.batch_size = 512
         
-        constants.STYLE_ITERATION = str(opts.style_iteration)
-        constants.STYLE_CHECKPATH = 'checkpoint/' + constants.STYLE_GAN_VERSION + "_" + constants.STYLE_ITERATION +'.pt'
+        constants.ITERATION = str(opts.iteration)
+        constants.CHECKPATH = 'checkpoint/' + constants.VERSION + "_" + constants.ITERATION +'.pt'
         
-        constants.DATASET_GTA_PATH_2 = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/frames/"
-        constants.DATASET_GTA_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/synth_gta/"
-        constants.DATASET_PLACES_PATH = "/scratch1/scratch2/neil.delgallego/Places Dataset/"
+        constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
+        constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
         constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         
-        constants.num_workers = 0
+        constants.num_workers = 2
         
 def main(argv):
     (opts, args) = parser.parse_args(argv)
@@ -107,25 +104,33 @@ def main(argv):
         plt.show()
     
     print("Starting Training Loop...")
-    for epoch in range(start_epoch, constants.num_epochs):
-        # For each batch in the dataloader
+    if(constants.is_coare == 0):
+        for epoch in range(start_epoch, constants.num_epochs):
+            # For each batch in the dataloader
+            for i, (name, dirty_batch, clean_batch) in enumerate(train_loader, 0):
+                dirty_tensor = dirty_batch.to(device)
+                clean_tensor = clean_batch.to(device)
+                gt.train(dirty_tensor, clean_tensor)
+                if(i % 70 == 0):
+                    view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
+                    view_dirty_batch = view_dirty_batch.to(device)
+                    view_clean_batch = view_clean_batch.to(device)
+                    gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
+                    iteration = iteration + 1
+                    index = (index + 1) % len(test_loader)
+                    if(index == 0):
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_NOISY_GTA_PATH, constants.DATASET_CLEAN_GTA_PATH, constants.batch_size, 500)
+              
+            gt.save_states(epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+    else:
         for i, (name, dirty_batch, clean_batch) in enumerate(train_loader, 0):
-            dirty_tensor = dirty_batch.to(device)
-            clean_tensor = clean_batch.to(device)
-            gt.train(dirty_tensor, clean_tensor)
-            if(i % 10 == 0 and constants.is_coare == 0):
-                view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
-                view_dirty_batch = view_dirty_batch.to(device)
-                view_clean_batch = view_clean_batch.to(device)
-                gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
-                iteration = iteration + 1
-                index = (index + 1) % len(test_loader)
-                if(index == 0):
-                  test_loader = dataset_loader.load_test_dataset(constants.batch_size, 500)  
+                dirty_tensor = dirty_batch.to(device)
+                clean_tensor = clean_batch.to(device)
+                gt.train(dirty_tensor, clean_tensor)
                 
         
         #save every X epoch
-        gt.save_states(epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(start_epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

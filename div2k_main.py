@@ -19,7 +19,7 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
-from trainers import denoise_net_trainer
+from trainers import div2k_trainer
 import constants
 from utils import logger
      
@@ -27,32 +27,27 @@ parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
-parser.add_option('--style_iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--iteration', type=int, help="Style version?", default="1")
+parser.add_option('--identity_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--tv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--gen_blocks', type=int, help="Weight", default="3")
-parser.add_option('--disc_blocks', type=int, help="Weight", default="3")
-parser.add_option('--gen_skips', type=int, default="1")
-parser.add_option('--disc_skips', type=int, default="1")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="0.001")
+parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
 print = logger.log
 
-#--img_to_load=71200 --cycle_weight=1000.0 --identity_weight=100.0 --tv_weight=3.0 --adv_weight=1.0 --load_previous=0
+#--img_to_load=71200 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = 128
+        constants.batch_size = 512
         
-        constants.STYLE_ITERATION = str(opts.style_iteration)
-        constants.STYLE_CHECKPATH = 'checkpoint/' + constants.STYLE_GAN_VERSION + "_" + constants.STYLE_ITERATION +'.pt'
+        constants.ITERATION = str(opts.iteration)
+        constants.CHECKPATH = 'checkpoint/' + constants.VERSION + "_" + constants.ITERATION +'.pt'
         
-        constants.DATASET_GTA_PATH_2 = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/pending/frames/"
-        constants.DATASET_GTA_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/synth_gta/"
-        constants.DATASET_PLACES_PATH = "/scratch1/scratch2/neil.delgallego/Places Dataset/"
+        constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
+        constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
         constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         
         constants.num_workers = 0
@@ -72,62 +67,77 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
     
-    gt = denoise_net_trainer.GANTrainer(constants.STYLE_GAN_VERSION, constants.STYLE_ITERATION, device, opts.gen_blocks, opts.disc_blocks)
-    gt.update_penalties(opts.identity_weight, opts.cycle_weight, opts.adv_weight, opts.tv_weight, opts.gen_skips, opts.disc_skips)
+    gt = div2k_trainer.Div2kTrainer(constants.VERSION, constants.ITERATION, device)
+    gt.update_penalties(opts.adv_weight, opts.identity_weight, opts.likeness_weight, opts.cycle_weight)
     start_epoch = 0
+    iteration = 0
     
     if(opts.load_previous): 
-        checkpoint = torch.load(constants.STYLE_CHECKPATH)
+        checkpoint = torch.load(constants.CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1   
         iteration = checkpoint['iteration'] + 1
         gt.load_saved_state(iteration, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
  
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.STYLE_CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.CHECKPATH, start_epoch))
         print("===================================================")
     
     # Create the dataloader
-    train_div2k_loader = dataset_loader.load_train_dataset(constants.batch_size, opts.img_to_load)
-    test_div2k_loader = dataset_loader.load_test_dataset(constants.display_size, 500)
+    train_loader = dataset_loader.load_div2k_train_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.batch_size, opts.img_to_load)
+    #noise_loader = dataset_loader.load_noise_dataset(constants.DATASET_NOISY_GTA_PATH, constants.DATASET_CLEAN_GTA_PATH, constants.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
     index = 0
     
     # Plot some training images
     if(constants.is_coare == 0):
-        _, vemon_batch_orig, div2k_batch_orig = next(iter(train_div2k_loader))
-        
+        _, noisy_batch, clean_batch = next(iter(train_loader))
+
         plt.figure(figsize=constants.FIG_SIZE)
         plt.axis("off")
         plt.title("Training - Dirty Images")
-        plt.imshow(np.transpose(vutils.make_grid(vemon_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+        plt.imshow(np.transpose(vutils.make_grid(noisy_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
         plt.show()
         
         plt.figure(figsize=constants.FIG_SIZE)
         plt.axis("off")
         plt.title("Training - Clean Images")
-        plt.imshow(np.transpose(vutils.make_grid(div2k_batch_orig.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+        plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
         plt.show()
+        
+        # _, noisy_batch, clean_batch = next(iter(noise_loader))
+        # plt.figure(figsize=constants.FIG_SIZE)
+        # plt.axis("off")
+        # plt.title("Training - Synth Dirty Images")
+        # plt.imshow(np.transpose(vutils.make_grid(noisy_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+        # plt.show()
+        
+        # plt.figure(figsize=constants.FIG_SIZE)
+        # plt.axis("off")
+        # plt.title("Training - Synth Clean Images")
+        # plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+        # plt.show()
     
-    index = 0
     print("Starting Training Loop...")
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        for i, (train_data) in enumerate(train_div2k_loader):
-            _, vemon_batch, div2k_batch = train_data
-            vemon_tensor = vemon_batch.to(device)
-            div2k_tensor= div2k_batch.to(device)
-            gt.train(vemon_tensor, div2k_tensor)
+        for i, train_data in enumerate(train_loader, 0):
+            _, dirty_batch, clean_batch = train_data
+            dirty_tensor = dirty_batch.to(device)
+            clean_tensor = clean_batch.to(device)
             
+            gt.train(dirty_tensor, clean_tensor)
             if(i % 500 == 0 and constants.is_coare == 0):
-                _, vemon_batch_test, div2k_batch_test = next(iter(test_div2k_loader))
-                view_dirty_batch = vemon_batch_test.to(device)
-                view_clean_batch = div2k_batch_test.to(device)
-                gt.visdom_report(vemon_tensor, div2k_tensor, view_dirty_batch, view_clean_batch)
-                index = (index + 1) % len(test_div2k_loader)
+                view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
+                view_dirty_batch = view_dirty_batch.to(device)
+                view_clean_batch = view_clean_batch.to(device)
+                gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
+                iteration = iteration + 1
+                index = (index + 1) % len(test_loader)
                 if(index == 0):
-                  test_div2k_loader = dataset_loader.load_test_dataset(constants.batch_size, 500)  
+                  test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)  
                 
         
         #save every X epoch
-        gt.save_states(epoch, constants.STYLE_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

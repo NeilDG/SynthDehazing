@@ -14,7 +14,7 @@ DATASET_DIV2K_PATH = "E:/VEMON_Transfer/train/C/"
 BIRD_IMAGE_SIZE = (32, 32) #320 x 192 original
 TEST_IMAGE_SIZE = (128, 128)
 DIV2K_IMAGE_SIZE = (2040, 1404)
-FIG_SIZE = (TEST_IMAGE_SIZE[0] / 2, TEST_IMAGE_SIZE[1] / 2)
+FIG_SIZE = (TEST_IMAGE_SIZE[0], TEST_IMAGE_SIZE[1])
 TENSORBOARD_PATH = os.getcwd() + "/train_plot/"
 
 #========================================================================#
@@ -22,9 +22,10 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-VERSION = "gta_denoise_v1.00"
+VERSION = "div2k_denoise_v1.00"
 ITERATION = "1"
 CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
+DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys
 G_LOSS_KEY = "g_loss"
@@ -48,7 +49,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 512
+batch_size = 128
 infer_size = 32
 
 num_workers = 12

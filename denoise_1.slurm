@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J NeilDN
+#SBATCH -J GTA_DN
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu 
 #SBATCH -G 1 
@@ -16,7 +16,9 @@ nvidia-smi
 module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
-# activate your python environment
-source activate NeilGAN
-srun python denoise_main.py --style_iteration=10 --coare=1 --img_to_load=72296 --cycle_weight=10.0 --identity_weight=1.0 --tv_weight=3.0 --adv_weight=1.0 --load_previous=1
-source deactivate
+for i in {1..500}
+    do
+        source activate NeilGAN
+        srun python denoise_main.py --iteration=1 --coare=1 --img_to_load=72296 --identity_weight=10.0 --likeness_weight=1.0 --adv_weight=1.0 --load_previous=1
+        source deactivate
+    done

@@ -59,7 +59,7 @@ class VisdomReporter:
         else:
             self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images" + " " + str(constants.STYLE_ITERATION)))
     
-    def plot_test_image(self, dirty_tensor, dirty_like, clean_tensor, clean_like):    
+    def plot_test_image(self, dirty_tensor, dirty_like, clean_tensor, clean_like, synth_clean_tensor):    
         if(constants.is_coare == 1):
             #TODO: Fix COARE deadlock issue
             return
@@ -68,31 +68,38 @@ class VisdomReporter:
         DIRTY_LIKE_KEY = "test_B"
         CLEAN_KEY = "test_C"
         CLEAN_LIKE_KEY = "test_D"
+        SYNTH_CLEAN_KEY = "synth_test_A"
         
         dirty_group = vutils.make_grid(dirty_tensor[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
         dirty_like_group = vutils.make_grid(dirty_like[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
         clean_group = vutils.make_grid(clean_tensor[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
         clean_like_group = vutils.make_grid(clean_like[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
+        synth_clean_group = vutils.make_grid(synth_clean_tensor[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
         
         if DIRTY_KEY not in self.image_windows:
-            self.image_windows[DIRTY_KEY] = self.vis.images(dirty_group, opts = dict(caption = "Dirty images" + " " + str(constants.STYLE_ITERATION)))
+            self.image_windows[DIRTY_KEY] = self.vis.images(dirty_group, opts = dict(caption = "Dirty images" + " " + str(constants.ITERATION)))
         else:
-            self.vis.images(dirty_group, win = self.image_windows[DIRTY_KEY], opts = dict(caption = "Dirty images" + " " + str(constants.STYLE_ITERATION)))
+            self.vis.images(dirty_group, win = self.image_windows[DIRTY_KEY], opts = dict(caption = "Dirty images" + " " + str(constants.ITERATION)))
         
         if DIRTY_LIKE_KEY not in self.image_windows:
-            self.image_windows[DIRTY_LIKE_KEY] = self.vis.images(dirty_like_group, opts = dict(caption = "Fake dirty images" + " " + str(constants.STYLE_ITERATION)))
+            self.image_windows[DIRTY_LIKE_KEY] = self.vis.images(dirty_like_group, opts = dict(caption = "Fake dirty images" + " " + str(constants.ITERATION)))
         else:
-            self.vis.images(dirty_like_group, win = self.image_windows[DIRTY_LIKE_KEY], opts = dict(caption = "Fake dirty images" + " " + str(constants.STYLE_ITERATION)))
+            self.vis.images(dirty_like_group, win = self.image_windows[DIRTY_LIKE_KEY], opts = dict(caption = "Fake dirty images" + " " + str(constants.ITERATION)))
         
         if CLEAN_KEY not in self.image_windows:
-            self.image_windows[CLEAN_KEY] = self.vis.images(clean_group, opts = dict(caption = "Clean images" + " " + str(constants.STYLE_ITERATION)))
+            self.image_windows[CLEAN_KEY] = self.vis.images(clean_group, opts = dict(caption = "Clean images" + " " + str(constants.ITERATION)))
         else:
-            self.vis.images(clean_group, win = self.image_windows[CLEAN_KEY], opts = dict(caption = "Clean images" + " " + str(constants.STYLE_ITERATION)))
+            self.vis.images(clean_group, win = self.image_windows[CLEAN_KEY], opts = dict(caption = "Clean images" + " " + str(constants.ITERATION)))
         
         if CLEAN_LIKE_KEY not in self.image_windows:
-            self.image_windows[CLEAN_LIKE_KEY] = self.vis.images(clean_like_group, opts = dict(caption = "Fake clean images" + " " + str(constants.STYLE_ITERATION)))
+            self.image_windows[CLEAN_LIKE_KEY] = self.vis.images(clean_like_group, opts = dict(caption = "Fake clean images" + " " + str(constants.ITERATION)))
         else:
-            self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images" + " " + str(constants.STYLE_ITERATION)))
+            self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images" + " " + str(constants.ITERATION)))
+        
+        if SYNTH_CLEAN_KEY not in self.image_windows:
+            self.image_windows[SYNTH_CLEAN_KEY] = self.vis.images(synth_clean_group, opts = dict(caption = "Clean images from synth " + " " + str(constants.ITERATION)))
+        else:
+            self.vis.images(synth_clean_group, win = self.image_windows[SYNTH_CLEAN_KEY], opts = dict(caption = "Clean images from synth " + " " + str(constants.ITERATION)))
     
     def plot_image(self, dirty_tensor, clean_tensor, clean_like):
         if(constants.is_coare == 1):
@@ -123,36 +130,6 @@ class VisdomReporter:
         else:
             self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images" + " " + str(constants.ITERATION)))
     
-    def plot_test_image(self, dirty_tensor, clean_tensor, clean_like):    
-        if(constants.is_coare == 1):
-            #TODO: Fix COARE deadlock issue
-            return
-        
-        DIRTY_KEY = "test_A"
-        DIRTY_LIKE_KEY = "test_B"
-        CLEAN_KEY = "test_C"
-        CLEAN_LIKE_KEY = "test_D"
-        
-        dirty_group = vutils.make_grid(dirty_tensor[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
-        clean_group = vutils.make_grid(clean_tensor[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
-        clean_like_group = vutils.make_grid(clean_like[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
-        
-        if DIRTY_KEY not in self.image_windows:
-            self.image_windows[DIRTY_KEY] = self.vis.images(dirty_group, opts = dict(caption = "Dirty images" + " " + str(constants.ITERATION)))
-        else:
-            self.vis.images(dirty_group, win = self.image_windows[DIRTY_KEY], opts = dict(caption = "Dirty images" + " " + str(constants.ITERATION)))
-        
-        if CLEAN_KEY not in self.image_windows:
-            self.image_windows[CLEAN_KEY] = self.vis.images(clean_group, opts = dict(caption = "Clean images" + " " + str(constants.ITERATION)))
-        else:
-            self.vis.images(clean_group, win = self.image_windows[CLEAN_KEY], opts = dict(caption = "Clean images" + " " + str(constants.ITERATION)))
-        
-        if CLEAN_LIKE_KEY not in self.image_windows:
-            self.image_windows[CLEAN_LIKE_KEY] = self.vis.images(clean_like_group, opts = dict(caption = "Fake clean images" + " " + str(constants.ITERATION)))
-        else:
-            self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images" + " " + str(constants.ITERATION)))
-    
-    
     def plot_finegrain_loss(self, iteration, losses_dict):        
         if(constants.is_coare == 1):
             #TODO: fix issue on matplot user permission for COARE
@@ -171,6 +148,7 @@ class VisdomReporter:
         ax[1,1].plot(x, losses_dict[constants.G_ADV_LOSS_KEY], color = 'olive', label = "G Adv loss per iteration")
         ax[1,2].plot(x, losses_dict[constants.D_A_FAKE_LOSS_KEY], color = 'palevioletred', label = "D(A) fake loss")
         ax[2,0].plot(x, losses_dict[constants.D_A_REAL_LOSS_KEY], color = 'rosybrown', label = "D(A) real loss")
+        ax[2,1].plot(x, losses_dict[constants.CYCLE_LOSS_KEY], color = 'b', label = "Cycle loss")
     
         fig.legend(loc = 'lower right')
         if LOSS_KEY not in self.loss_windows:
