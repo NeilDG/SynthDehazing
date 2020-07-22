@@ -19,7 +19,7 @@ from utils import tensor_utils
 
 class Div2kTrainer:
     
-    def __init__(self, gan_version, gan_iteration, gpu_device, lr = 0.0001):
+    def __init__(self, gan_version, gan_iteration, gpu_device, lr = 0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
         self.gan_version = gan_version
@@ -32,7 +32,6 @@ class Div2kTrainer:
         
         denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
         self.denoise_model.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
-        self.feature_getter = [tensor_utils.SaveFeatures(self.denoise_model.model[i]) for i in [10, 11, 12]];
         print(self.denoise_model.model[10])
         print("Loaded ", constants.DENOISE_CHECKPATH)
         
@@ -72,16 +71,12 @@ class Div2kTrainer:
         return loss(pred, target)
     
     def likeness_loss(self, pred, target):
-        # loss = ssim_loss.SSIM()
-        # return 1 - loss(pred, target)
-        loss = nn.L1Loss()
-        return loss(pred, target)
+        loss = ssim_loss.SSIM()
+        return 1 - loss(pred, target)
     
     def train(self, dirty_tensor, clean_tensor):
         self.denoise_model.eval()
-        self.denoise_model(dirty_tensor)
-        denoise_features = [sf.features.clone() for sf in self.feature_getter] #get features from GTA synth denoise GAN
-        clean_like = self.G_A(dirty_tensor, denoise_features)
+        clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
         
         self.D.train()
         self.optimizerD.zero_grad()
@@ -102,28 +97,18 @@ class Div2kTrainer:
         self.G_B.train()
         self.optimizerG.zero_grad()
         
-        self.denoise_model(clean_tensor)
-        denoise_features = [sf.features.clone() for sf in self.feature_getter] #get features from GTA synth denoise GAN
-        identity_like = self.G_A(clean_tensor, denoise_features)
-        
-        self.denoise_model(dirty_tensor)
-        denoise_features = [sf.features.clone() for sf in self.feature_getter] #get features from GTA synth denoise GAN
-        clean_like = self.G_A(dirty_tensor, denoise_features)
-        
-        #print("Norm of denoise features: ", np.linalg.norm(denoise_features[0].detach().cpu().numpy()))
+        identity_like = self.G_A(clean_tensor, self.denoise_model(clean_tensor))
+        clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
         
         identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
         likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
-        A_cycle_loss = self.likeness_loss(self.G_B(clean_like), dirty_tensor) * self.cycle_weight
+        A_cycle_loss = self.likeness_loss(self.G_B(clean_like), self.denoise_model(dirty_tensor)) * self.cycle_weight
         
         dirty_like = self.G_B(clean_tensor)
-        self.denoise_model(dirty_like)
-        denoise_features = [sf.features.clone() for sf in self.feature_getter] #get features from GTA synth denoise GAN
-        B_cycle_loss = self.likeness_loss(self.G_A(dirty_like, denoise_features), clean_tensor) * self.cycle_weight
+        B_cycle_loss = self.likeness_loss(self.G_A(dirty_like, self.denoise_model(dirty_like)), clean_tensor) * self.cycle_weight
         
-        self.denoise_model(dirty_tensor)
-        denoise_features = [sf.features.clone() for sf in self.feature_getter] #get features from GTA synth denoise GAN
-        prediction = self.D(self.G_A(dirty_tensor, denoise_features))
+        
+        prediction = self.D(self.G_A(dirty_tensor, self.denoise_model(dirty_tensor)))
         real_tensor = torch.ones_like(prediction)
         adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
         
@@ -143,14 +128,10 @@ class Div2kTrainer:
     
     def visdom_report(self, iteration, dirty_tensor, clean_tensor, test_dirty_tensor, test_clean_tensor):
         with torch.no_grad():
-            self.denoise_model(dirty_tensor)
-            denoise_features = [sf.features.clone() for sf in self.feature_getter] #get features from GTA synth denoise GAN
-            clean_like = self.G_A(dirty_tensor, denoise_features).detach()
-            
+            clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
+            test_clean_like = self.G_A(test_dirty_tensor, self.denoise_model(test_dirty_tensor))
+            test_dirty_like = self.G_B(test_clean_like)
             synth_clean_tensor = self.denoise_model(test_dirty_tensor)
-            denoise_features = [sf.features.clone() for sf in self.feature_getter] #get features from GTA synth denoise GAN
-            test_clean_like = self.G_A(test_dirty_tensor, denoise_features).detach()
-            test_dirty_like = self.G_B(test_clean_like).detach()
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss(iteration, self.losses_dict)
@@ -160,9 +141,7 @@ class Div2kTrainer:
     def infer(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
         with torch.no_grad():
-            self.denoise_model(dirty_tensor)
-            denoise_features = [sf.features.clone() for sf in self.feature_getter] #get features from GTA synth denoise GAN
-            clean_like = self.G_A(dirty_tensor, denoise_features).detach()
+            clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor)).detach()
         
         #resize tensors for better viewing
         resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 8.0, mode = "bilinear", recompute_scale_factor = True)

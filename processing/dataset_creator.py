@@ -56,6 +56,7 @@ def create_div2k_data():
         
         final_op = transforms.Compose([transforms.ToPILImage(), 
                                        transforms.RandomHorizontalFlip(),
+                                       transforms.Resize((512, 512)),
                                        transforms.RandomCrop(constants.TEST_IMAGE_SIZE),
                                        transforms.ToTensor()])
         
@@ -93,6 +94,7 @@ def create_gta_noisy_data():
 
 def main():
     create_gta_noisy_data()
+    #create_div2k_data()
         
 if __name__=="__main__": 
     main()   

@@ -1,7 +1,8 @@
 #!/bin/bash
-#SBATCH -J GTA_DN_2
+#SBATCH -J Div2k_DN
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu 
+#SBATCH --cpus-per-task=4
 #SBATCH -G 1 
 #SBATCH --ntasks=1
 #SBATCH --output=dn_job_2.out
@@ -16,9 +17,13 @@ nvidia-smi
 module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
+source activate NeilGAN
+srun python div2k_main.py --iteration=2 --coare=1 --likeness_weight=5.0 --img_to_load=71200 --load_previous=0
+source deactivate
+        
 for i in {1..500}
     do
         source activate NeilGAN
-        srun python denoise_main.py --iteration=2 --coare=1 --img_to_load=72296 --identity_weight=10.0 --likeness_weight=5.0 --adv_weight=1.0 --load_previous=1
+        srun python div2k_main.py --iteration=2 --coare=1 --likeness_weight=5.0 --img_to_load=71200 --load_previous=1
         source deactivate
     done

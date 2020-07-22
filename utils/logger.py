@@ -3,13 +3,14 @@
 import constants
 #custom print fuction
 
+file_name = "logs_" + constants.VERSION + "_" + constants.ITERATION + ".txt"
 
 def clear_log():
-   open('logs.txt', 'w').close()
+   open(file_name, 'w+').close()
+   
 def log(message):
-    
     if(constants.is_coare == 1):
-        with open('logs.txt', 'a') as f:
+        with open(file_name, 'a+') as f:
             print(message, file=f)
     else:
         print(message)

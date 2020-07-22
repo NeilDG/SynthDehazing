@@ -14,14 +14,14 @@ from loaders import dataset_loader
 from trainers import denoise_net_trainer
 import constants
       
-def infer(batch_size, version, iteration):
+def infer(batch_size, checkpath, version, iteration):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     
     gt = denoise_net_trainer.DenoiseTrainer(version, iteration, device, gen_blocks=3)
-    checkpoint = torch.load(constants.CHECKPATH)
+    checkpoint = torch.load(checkpath)
     gt.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
  
-    print("Loaded results checkpt ",constants.CHECKPATH)
+    print("Loaded results checkpt ",checkpath)
     print("===================================================")
     
     dataloader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_CLEAN_GTA_PATH, batch_size, 72296)
@@ -47,7 +47,11 @@ def infer(batch_size, version, iteration):
         gt.infer(vemon_tensor, item_number)
 
 def main():
-    infer(constants.infer_size, constants.VERSION, constants.ITERATION)
+    VERSION = "gta_denoise_v1.00"
+    ITERATION = "2"
+    CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
+    
+    infer(constants.infer_size, CHECKPATH, VERSION, ITERATION)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

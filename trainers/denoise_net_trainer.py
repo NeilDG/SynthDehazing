@@ -122,8 +122,8 @@ class DenoiseTrainer:
             clean_like = self.G(dirty_tensor).detach()
         
         #resize tensors for better viewing
-        resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 8.0, mode = "bilinear", recompute_scale_factor = True)
-        resized_fake = nn.functional.interpolate(clean_like, scale_factor = 8.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_fake = nn.functional.interpolate(clean_like, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
         
         print("New shapes: %s %s" % (np.shape(resized_normal), np.shape(resized_fake)))
         
