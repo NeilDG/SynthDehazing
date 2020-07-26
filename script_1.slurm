@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH -J Div2k_DN
+#SBATCH -J DN_4
 #SBATCH --partition=gpu
-#SBATCH --qos=12c-1h_2gpu 
+#SBATCH --qos=12c-1h_2gpu
 #SBATCH --cpus-per-task=4
 #SBATCH -G 1 
 #SBATCH --ntasks=1
-#SBATCH --output=dn_job_2.out
+#SBATCH --output=dn_job_1.out
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph 
 #SBATCH --mail-type=END 
 
@@ -18,12 +18,12 @@ module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN
-srun python div2k_main.py --iteration=2 --coare=1 --likeness_weight=5.0 --img_to_load=71200 --load_previous=0
+srun python div2k_main.py --iteration=4 --coare=1 --cycle_weight=100.0 --img_to_load=71200 --load_previous=0
 source deactivate
-        
+
 for i in {1..500}
     do
         source activate NeilGAN
-        srun python div2k_main.py --iteration=2 --coare=1 --likeness_weight=5.0 --img_to_load=71200 --load_previous=1
+        srun python div2k_main.py --iteration=4 --coare=1 --cycle_weight=100.0 --img_to_load=71200 --load_previous=1
         source deactivate
     done

@@ -51,7 +51,7 @@ def update_config(opts):
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
         constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         
-        constants.num_workers = 2
+        constants.num_workers = 4
         
 def main(argv):
     (opts, args) = parser.parse_args(argv)

@@ -137,7 +137,7 @@ class VisdomReporter:
         
         LOSS_KEY = "FINEGRAIN_LOSS"
         x = [i for i in range(iteration, iteration + len(losses_dict[constants.IDENTITY_LOSS_KEY]))]
-        fig, ax = plt.subplots(3, 3, sharex=True)
+        fig, ax = plt.subplots(4, 3, sharex=True)
         fig.set_size_inches(9, 9)
         fig.tight_layout()
         
@@ -148,7 +148,9 @@ class VisdomReporter:
         ax[1,1].plot(x, losses_dict[constants.G_ADV_LOSS_KEY], color = 'olive', label = "G Adv loss per iteration")
         ax[1,2].plot(x, losses_dict[constants.D_A_FAKE_LOSS_KEY], color = 'palevioletred', label = "D(A) fake loss")
         ax[2,0].plot(x, losses_dict[constants.D_A_REAL_LOSS_KEY], color = 'rosybrown', label = "D(A) real loss")
-        ax[2,1].plot(x, losses_dict[constants.CYCLE_LOSS_KEY], color = 'b', label = "Cycle loss")
+        ax[2,1].plot(x, losses_dict[constants.D_B_FAKE_LOSS_KEY], color = 'cyan', label = "D(B) fake loss")
+        ax[2,2].plot(x, losses_dict[constants.D_B_REAL_LOSS_KEY], color = 'slategray', label = "D(B) real loss")
+        ax[3,0].plot(x, losses_dict[constants.CYCLE_LOSS_KEY], color = 'b', label = "Cycle loss")
     
         fig.legend(loc = 'lower right')
         if LOSS_KEY not in self.loss_windows:

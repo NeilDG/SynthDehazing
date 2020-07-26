@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J Div2k_DN
+#SBATCH -J DN_5
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu
 #SBATCH --cpus-per-task=4
@@ -17,9 +17,13 @@ nvidia-smi
 module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
+source activate NeilGAN
+srun python div2k_main.py --iteration=5 --coare=1 --cycle_weight=500.0 --img_to_load=71200 --load_previous=0
+source deactivate
+
 for i in {1..500}
     do
         source activate NeilGAN
-        srun python div2k_main.py --iteration=1 --coare=1 --img_to_load=71200 --load_previous=1
+        srun python div2k_main.py --iteration=5 --coare=1 --cycle_weight=500.0 --img_to_load=71200 --load_previous=1
         source deactivate
     done
