@@ -16,6 +16,7 @@ sbatch denoise_2.slurm
 
 sbatch script_1.slurm
 sbatch script_2.slurm
+sbatch script_3.slurm
 
 sbatch --export=c=100.0,s=100.0,iteration=2 multistyle.slurm
 sbatch --export=c=10.0,s=100.0,iteration=3 multistyle.slurm

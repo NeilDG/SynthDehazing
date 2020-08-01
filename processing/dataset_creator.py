@@ -92,9 +92,46 @@ def create_gta_noisy_data():
         
         count = count + 1
 
+def create_hazy_data():
+    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_1_clean.mp4"
+    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_1_haze.mp4"
+    
+    CLEAN_SAVE_PATH = "E:/Synth Hazy/clean/"
+    HAZY_SAVE_PATH = "E:/Synth Hazy/hazy/"
+    
+    vidcap = cv2.VideoCapture(clean_video_path)
+    count = 0
+    success,image = vidcap.read()
+    
+    success = True
+    while success:
+        success,image = vidcap.read()
+        if(success):
+            w,h,c = np.shape(image)
+            image = cv2.resize(image, (int(h/4), int(w/4)), interpolation = cv2.INTER_CUBIC)
+            cv2.imwrite(CLEAN_SAVE_PATH + "synth_%d.png" % count, image)
+            print("Saved clean: synth_%d.png" % count)
+            count += 1
+    
+    #for noisy
+    vidcap = cv2.VideoCapture(hazy_video_path)
+    count = 0
+    success,image = vidcap.read()
+    
+    success = True
+    while success:
+        success,image = vidcap.read()
+        if(success):
+            w,h,c = np.shape(image)
+            image = cv2.resize(image, (int(h/4), int(w/4)), interpolation = cv2.INTER_CUBIC)
+            cv2.imwrite(HAZY_SAVE_PATH + "synth_%d.png" % count, image)
+            print("Saved hazy: synth_%d.png" % count)
+            count += 1
+    
 def main():
-    create_gta_noisy_data()
+    #create_gta_noisy_data()
     #create_div2k_data()
+    create_hazy_data()
         
 if __name__=="__main__": 
     main()   

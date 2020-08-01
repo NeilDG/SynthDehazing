@@ -8,6 +8,9 @@ DATASET_GTA_PATH_2= "E:/VEMON Dataset/pending/frames/"
 DATASET_NOISY_GTA_PATH = "E:/Noisy GTA/noisy/"
 DATASET_CLEAN_GTA_PATH = "E:/Noisy GTA/clean/"
 
+DATASET_HAZY_PATH = "E:/Synth Hazy/hazy/"
+DATASET_CLEAN_PATH = "E:/Synth Hazy/clean/"
+
 DATASET_PLACES_PATH = "E:/Places Dataset/"
 DATASET_DIV2K_PATH = "E:/VEMON_Transfer/train/C/"
 
@@ -22,8 +25,8 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-VERSION = "div2k_denoise_v1.01"
-ITERATION = "7"
+VERSION = "dehazing_v1.00"
+ITERATION = "2"
 CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 

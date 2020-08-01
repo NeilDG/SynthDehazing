@@ -59,8 +59,10 @@ class DenoiseTrainer:
         return loss(pred, target)
     
     def likeness_loss(self, pred, target):
-        loss = ssim_loss.SSIM()
-        return 1 - loss(pred, target)
+        #loss = ssim_loss.SSIM()
+        #return 1 - loss(pred, target)
+        loss = nn.MSELoss()
+        return loss(pred, target)
     
     def train(self, dirty_tensor, clean_tensor):
         clean_like = self.G(dirty_tensor)
@@ -114,7 +116,7 @@ class DenoiseTrainer:
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss(iteration, self.losses_dict)
         self.visdom_reporter.plot_image(dirty_tensor, clean_tensor, clean_like)
-        self.visdom_reporter.plot_test_image(test_dirty_tensor, test_clean_tensor, test_clean_like)
+        self.visdom_reporter.plot_denoise_test_image(test_dirty_tensor, test_clean_tensor, test_clean_like)
     
     def infer(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"

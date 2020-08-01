@@ -55,7 +55,7 @@ class NoiseDataset(data.Dataset):
         self.vemon_list = vemon_list
         self.gta_list = gta_list
         
-        resized = (int(constants.TEST_IMAGE_SIZE[0] * 1.2), int(constants.TEST_IMAGE_SIZE[1] * 1.2))
+        resized = (int(constants.TEST_IMAGE_SIZE[0] * 1.01), int(constants.TEST_IMAGE_SIZE[1] * 1.01))
         # self.transform_op = transforms.Compose([
         #                             transforms.ToPILImage(),
         #                             transforms.Resize(resized),

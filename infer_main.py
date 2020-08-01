@@ -18,6 +18,7 @@ import constants
 def infer(batch_size, checkpath, version, iteration):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     
+    #gt = denoise_net_trainer.DenoiseTrainer(version, iteration, device, gen_blocks=3)
     gt = div2k_trainer.Div2kTrainer(version, iteration, device)
     checkpoint = torch.load(checkpath)
     gt.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
@@ -49,7 +50,7 @@ def infer(batch_size, checkpath, version, iteration):
 
 def main():
     VERSION = "div2k_denoise_v1.01"
-    ITERATION = "2"
+    ITERATION = "9"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
     
     infer(constants.infer_size, CHECKPATH, VERSION, ITERATION)

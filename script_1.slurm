@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J DN_4
+#SBATCH -J DN_11
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu
 #SBATCH --cpus-per-task=4
@@ -18,12 +18,12 @@ module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN
-srun python div2k_main.py --iteration=4 --coare=1 --cycle_weight=100.0 --img_to_load=71200 --load_previous=0
+srun python div2k_main.py --iteration=11 --coare=1 --cycle_weight=1.0 --img_to_load=71200 --load_previous=0
 source deactivate
 
 for i in {1..500}
     do
         source activate NeilGAN
-        srun python div2k_main.py --iteration=4 --coare=1 --cycle_weight=100.0 --img_to_load=71200 --load_previous=1
+        srun python div2k_main.py --iteration=11 --coare=1 --cycle_weight=1.0 --img_to_load=71200 --load_previous=1
         source deactivate
     done
