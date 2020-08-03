@@ -25,8 +25,8 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-VERSION = "dehazing_v1.00"
-ITERATION = "2"
+VERSION = "div2k_denoise_v1.01"
+ITERATION = "15"
 CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
