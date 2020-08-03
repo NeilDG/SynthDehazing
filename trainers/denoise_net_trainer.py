@@ -59,8 +59,10 @@ class DenoiseTrainer:
         return loss(pred, target)
     
     def likeness_loss(self, pred, target):
-        loss = ssim_loss.SSIM()
-        return 1 - loss(pred, target)
+        #loss = ssim_loss.SSIM()
+        #return 1 - loss(pred, target)
+        loss = nn.MSELoss()
+        return loss(pred, target)
     
     def train(self, dirty_tensor, clean_tensor):
         clean_like = self.G(dirty_tensor)
@@ -114,7 +116,7 @@ class DenoiseTrainer:
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss(iteration, self.losses_dict)
         self.visdom_reporter.plot_image(dirty_tensor, clean_tensor, clean_like)
-        self.visdom_reporter.plot_test_image(test_dirty_tensor, test_clean_tensor, test_clean_like)
+        self.visdom_reporter.plot_denoise_test_image(test_dirty_tensor, test_clean_tensor, test_clean_like)
     
     def infer(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
@@ -122,8 +124,8 @@ class DenoiseTrainer:
             clean_like = self.G(dirty_tensor).detach()
         
         #resize tensors for better viewing
-        resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 8.0, mode = "bilinear", recompute_scale_factor = True)
-        resized_fake = nn.functional.interpolate(clean_like, scale_factor = 8.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_fake = nn.functional.interpolate(clean_like, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
         
         print("New shapes: %s %s" % (np.shape(resized_normal), np.shape(resized_fake)))
         
@@ -142,7 +144,40 @@ class DenoiseTrainer:
         plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
         plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
         plt.show()
+    
+    def dehaze_infer(self, denoise_model, dirty_tensor, file_number):
+        LOCATION = os.getcwd() + "/figures/"
+        with torch.no_grad():
+            denoise_like = denoise_model(dirty_tensor) #first pass
+            clean_like = self.G(denoise_like).detach() #second pass to dehazing network
         
+        #resize tensors for better viewing
+        resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_denoise = nn.functional.interpolate(denoise_like, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
+        resized_fake = nn.functional.interpolate(clean_like, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
+        
+        print("New shapes: %s %s" % (np.shape(resized_normal), np.shape(resized_fake)))
+        
+        fig, ax = plt.subplots(3, 1)
+        fig.set_size_inches(constants.FIG_SIZE)
+        fig.tight_layout()
+        
+        ims = np.transpose(vutils.make_grid(resized_normal, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[0].set_axis_off()
+        ax[0].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(resized_denoise, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[1].set_axis_off()
+        ax[1].imshow(ims)
+        
+        ims = np.transpose(vutils.make_grid(resized_fake, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))
+        ax[2].set_axis_off()
+        ax[2].imshow(ims)
+        
+        plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.15) 
+        plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
+        plt.show()
+            
     def load_saved_state(self, iteration, checkpoint, generator_key, disriminator_key, optimizer_key):
         self.G.load_state_dict(checkpoint[generator_key + "A"])
         self.D.load_state_dict(checkpoint[disriminator_key + "A"])

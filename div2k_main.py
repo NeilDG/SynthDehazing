@@ -28,9 +28,9 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="0.001")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="500.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
 print = logger.log
 
@@ -49,13 +49,14 @@ def update_config(opts):
         constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
         constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_DIV2K_PATH = "/scratch1/scratch2/neil.delgallego/Div2K_Patch Dataset/"
         
-        constants.num_workers = 0
+        constants.num_workers = 4
         
 def main(argv):
     (opts, args) = parser.parse_args(argv)
-    logger.clear_log()
     update_config(opts)
+    logger.clear_log()
     print("=========BEGIN============")
     print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
@@ -83,7 +84,6 @@ def main(argv):
     
     # Create the dataloader
     train_loader = dataset_loader.load_div2k_train_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.batch_size, opts.img_to_load)
-    #noise_loader = dataset_loader.load_noise_dataset(constants.DATASET_NOISY_GTA_PATH, constants.DATASET_CLEAN_GTA_PATH, constants.batch_size, opts.img_to_load)
     test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
     index = 0
     
@@ -102,42 +102,38 @@ def main(argv):
         plt.title("Training - Clean Images")
         plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
         plt.show()
-        
-        # _, noisy_batch, clean_batch = next(iter(noise_loader))
-        # plt.figure(figsize=constants.FIG_SIZE)
-        # plt.axis("off")
-        # plt.title("Training - Synth Dirty Images")
-        # plt.imshow(np.transpose(vutils.make_grid(noisy_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
-        # plt.show()
-        
-        # plt.figure(figsize=constants.FIG_SIZE)
-        # plt.axis("off")
-        # plt.title("Training - Synth Clean Images")
-        # plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
-        # plt.show()
     
     print("Starting Training Loop...")
-    for epoch in range(start_epoch, constants.num_epochs):
-        # For each batch in the dataloader
-        for i, train_data in enumerate(train_loader, 0):
-            _, dirty_batch, clean_batch = train_data
+    if(constants.is_coare == 0):
+        for epoch in range(start_epoch, constants.num_epochs):
+            # For each batch in the dataloader
+            for i, train_data in enumerate(train_loader, 0):
+                _, dirty_batch, clean_batch = train_data
+                dirty_tensor = dirty_batch.to(device)
+                clean_tensor = clean_batch.to(device)
+                
+                gt.train(dirty_tensor, clean_tensor)
+                if(i % 500 == 0 and constants.is_coare == 0):
+                    view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
+                    view_dirty_batch = view_dirty_batch.to(device)
+                    view_clean_batch = view_clean_batch.to(device)
+                    gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
+                    iteration = iteration + 1
+                    index = (index + 1) % len(test_loader)
+                    if(index == 0):
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
+          
+            gt.save_states(epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+    else: 
+        for i, (name, dirty_batch, clean_batch) in enumerate(train_loader, 0):
             dirty_tensor = dirty_batch.to(device)
             clean_tensor = clean_batch.to(device)
-            
             gt.train(dirty_tensor, clean_tensor)
-            if(i % 500 == 0 and constants.is_coare == 0):
-                view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
-                view_dirty_batch = view_dirty_batch.to(device)
-                view_clean_batch = view_clean_batch.to(device)
-                gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
-                iteration = iteration + 1
-                index = (index + 1) % len(test_loader)
-                if(index == 0):
-                  test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)  
-                
-        
+            if(i % 20 == 0):
+                print("Iterating %d " % i)
+            
         #save every X epoch
-        gt.save_states(epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(start_epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

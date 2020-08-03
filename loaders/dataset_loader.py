@@ -44,7 +44,7 @@ def load_test_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
         image_dataset.TestDataset(a_list, b_list),
         batch_size=batch_size,
         num_workers=constants.num_workers,
-        shuffle=True
+        shuffle=False
     )
     
     return data_loader

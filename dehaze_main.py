@@ -30,19 +30,19 @@ parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="3")
 #parser.add_option('--disc_blocks', type=int, help="Weight", default="3")
 print = logger.log
 
-#--img_to_load=72296 --identity_weight=10.0 --likeness_weight=5.0 --adv_weight=1.0 --load_previous=0
+#--img_to_load=-1 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = 512
+        constants.batch_size = 1024
         
         constants.ITERATION = str(opts.iteration)
         constants.CHECKPATH = 'checkpoint/' + constants.VERSION + "_" + constants.ITERATION +'.pt'
@@ -50,6 +50,9 @@ def update_config(opts):
         constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
         constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        
+        constants.DATASET_HAZY_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
+        constants.DATASET_CLEAN_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
         
         constants.num_workers = 4
         
@@ -83,8 +86,8 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_train_dataset(constants.DATASET_NOISY_GTA_PATH, constants.DATASET_CLEAN_GTA_PATH, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_test_dataset(constants.DATASET_NOISY_GTA_PATH, constants.DATASET_CLEAN_GTA_PATH, constants.display_size, 500)
+    train_loader = dataset_loader.load_noise_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.display_size, 500)
     index = 0
     
     # Plot some training images
@@ -119,7 +122,7 @@ def main(argv):
                     iteration = iteration + 1
                     index = (index + 1) % len(test_loader)
                     if(index == 0):
-                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_NOISY_GTA_PATH, constants.DATASET_CLEAN_GTA_PATH, constants.batch_size, 500)
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, 500)
               
             gt.save_states(epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:

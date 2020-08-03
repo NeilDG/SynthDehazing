@@ -5,11 +5,13 @@ import constants
 
 
 def clear_log():
-   open('logs.txt', 'w').close()
+   file_name = "logs_" + constants.VERSION + "_" + constants.ITERATION + ".txt"
+   open(file_name, 'w+').close()
+   
 def log(message):
-    
+    file_name = "logs_" + constants.VERSION + "_" + constants.ITERATION + ".txt"
     if(constants.is_coare == 1):
-        with open('logs.txt', 'a') as f:
+        with open(file_name, 'a+') as f:
             print(message, file=f)
     else:
         print(message)

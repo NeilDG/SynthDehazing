@@ -37,7 +37,7 @@ class ResidualBlock(nn.Module):
         return x + self.conv_block(x)
 
 class Generator(nn.Module):
-    def __init__(self, input_nc=3):
+    def __init__(self, input_nc = 6):
         super(Generator, self).__init__()
         self.conv1 = [nn.ReflectionPad2d(2),
                     nn.Conv2d(input_nc, 64, 8),
@@ -58,15 +58,12 @@ class Generator(nn.Module):
         
         #3 residual blocks by default
         self.res1 = ResidualBlock(in_features)
-        
-        in_features = in_features + 256 #to account for concat
         self.res2 = ResidualBlock(in_features)
-        
-        in_features = in_features + 256 # to account for concat
         self.res3 = ResidualBlock(in_features)
+        self.res4 = ResidualBlock(in_features)
+        self.res5 = ResidualBlock(in_features)
         
         # Upsampling
-        in_features = in_features + 256 # to account for concat
         out_features = in_features//2
         self.conv5 = []
         for _ in range(2):
@@ -78,17 +75,20 @@ class Generator(nn.Module):
         
         # Output layer
         self.conv5 += [  nn.ReflectionPad2d(4),
-                    nn.Conv2d(256, 3, 8),
+                    nn.Conv2d(64, 3, 8),
                     nn.Tanh() ]
         
         self.conv5 = nn.Sequential(*self.conv5)
         
     
-    def forward(self, x, feature_getter):
-        x = self.conv1(x)
-        x = self.res1(x)
-        x = self.res2(torch.cat([x, feature_getter[0]], 1))
-        x = self.res3(torch.cat([x, feature_getter[1]], 1))
+    def forward(self, x, synth_x):
+        input = torch.cat([x, synth_x], 1)
+        y = self.conv1(input)
+        y = self.res1(y)
+        y = self.res2(y)
+        y = self.res3(y)
+        y = self.res4(y)
+        y = self.res5(y)
         
-        return self.conv5(torch.cat([x, feature_getter[2]], 1))
+        return self.conv5(y)
         
