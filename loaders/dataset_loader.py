@@ -43,7 +43,20 @@ def load_test_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
     data_loader = torch.utils.data.DataLoader(
         image_dataset.TestDataset(a_list, b_list),
         batch_size=batch_size,
-        num_workers=constants.num_workers,
+        num_workers=2,
+        shuffle=False
+    )
+    
+    return data_loader
+
+def load_dark_channel_test_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
+    a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
+    print("Length of images: %d, %d." % (len(a_list), len(b_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.DarkChannelTestDataset(a_list, b_list),
+        batch_size=batch_size,
+        num_workers=2,
         shuffle=False
     )
     

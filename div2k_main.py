@@ -28,9 +28,9 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="5.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="500.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="5.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
 print = logger.log
 
@@ -49,7 +49,7 @@ def update_config(opts):
         constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
         constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
-        constants.DATASET_DIV2K_PATH = "/scratch1/scratch2/neil.delgallego/Div2K_Patch Dataset/"
+        constants.DATASET_DIV2K_PATH = "/scratch1/scratch2/neil.delgallego/Div2k_Patch Dataset Enhanced/"
         
         constants.num_workers = 4
         

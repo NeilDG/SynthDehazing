@@ -28,10 +28,10 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--gen_blocks', type=int, help="Weight", default="3")
+parser.add_option('--gen_blocks', type=int, help="Weight", default="5")
 #parser.add_option('--disc_blocks', type=int, help="Weight", default="3")
 print = logger.log
 
@@ -87,7 +87,7 @@ def main(argv):
     
     # Create the dataloader
     train_loader = dataset_loader.load_noise_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.display_size, 500)
+    test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_CLEAN_PATH, constants.display_size, 500)
     index = 0
     
     # Plot some training images
@@ -114,7 +114,7 @@ def main(argv):
                 dirty_tensor = dirty_batch.to(device)
                 clean_tensor = clean_batch.to(device)
                 gt.train(dirty_tensor, clean_tensor)
-                if(i % 70 == 0):
+                if(i % 100 == 0):
                     view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
                     view_dirty_batch = view_dirty_batch.to(device)
                     view_clean_batch = view_clean_batch.to(device)
@@ -122,7 +122,7 @@ def main(argv):
                     iteration = iteration + 1
                     index = (index + 1) % len(test_loader)
                     if(index == 0):
-                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, 500)
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_CLEAN_PATH, constants.display_size, 500)
               
             gt.save_states(epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:

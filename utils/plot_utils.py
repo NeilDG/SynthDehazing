@@ -159,27 +159,80 @@ class VisdomReporter:
         else:
             self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images" + " " + str(constants.ITERATION)))
     
+    def plot_image(self, synth_dirty_tensor, synth_clean_tensor, synth_clean_like, real_dirty_tensor,
+                   real_clean_like):
+        if(constants.is_coare == 1):
+            #TODO: Fix COARE deadlock issue
+            return
+        
+        SYNTH_DIRTY_KEY = "A"
+        SYNTH_CLEAN_KEY = "C"
+        SYNTH_CLEAN_LIKE_KEY = "D"
+        REAL_DIRTY_KEY = "E"
+        REAL_DIRTY_LIKE_KEY = "F"
+        REAL_CLEAN_KEY = "G"
+        REAL_CLEAN_LIKE_KEY = "H"
+        
+        synth_dirty_group = vutils.make_grid(synth_dirty_tensor[:constants.display_size], nrow = 8, padding=2, normalize=True).cpu()
+        synth_clean_group = vutils.make_grid(synth_clean_tensor[:constants.display_size], nrow = 8, padding=2, normalize=True).cpu()
+        real_dirty_group = vutils.make_grid(real_dirty_tensor[:constants.display_size], nrow = 8, padding=2, normalize=True).cpu()
+        
+        synth_cleanlike_group = vutils.make_grid(synth_clean_like[:constants.display_size], nrow = 8, padding=2, normalize=True).cpu()
+        #real_dirtylike_group = vutils.make_grid(real_dirty_like[:constants.display_size], nrow = 8, padding=2, normalize=True).cpu()
+        real_cleanlike_group = vutils.make_grid(real_clean_like[:constants.display_size], nrow = 8, padding=2, normalize=True).cpu()
+        
+        if SYNTH_DIRTY_KEY not in self.image_windows:
+            self.image_windows[SYNTH_DIRTY_KEY] = self.vis.images(synth_dirty_group, opts = dict(caption = "Dirty images (synth)" + " " + str(constants.ITERATION)))
+        else:
+            self.vis.images(synth_dirty_group, win = self.image_windows[SYNTH_DIRTY_KEY], opts = dict(caption = "Dirty images (synth)" + " " + str(constants.ITERATION)))
+           
+        if SYNTH_CLEAN_KEY not in self.image_windows:
+            self.image_windows[SYNTH_CLEAN_KEY] = self.vis.images(synth_clean_group, opts = dict(caption = "Clean images (synth)" + " " + str(constants.ITERATION)))
+        else:
+            self.vis.images(synth_clean_group, win = self.image_windows[SYNTH_CLEAN_KEY], opts = dict(caption = "Clean images (synth)" + " " + str(constants.ITERATION)))
+        
+        if SYNTH_CLEAN_LIKE_KEY not in self.image_windows:
+            self.image_windows[SYNTH_CLEAN_LIKE_KEY] = self.vis.images(synth_cleanlike_group, opts = dict(caption = "Clean-like images (synth)" + " " + str(constants.ITERATION)))
+        else:
+            self.vis.images(synth_cleanlike_group, win = self.image_windows[SYNTH_CLEAN_LIKE_KEY], opts = dict(caption = "Clean-like images (synth)" + " " + str(constants.ITERATION)))
+        
+        if REAL_DIRTY_KEY not in self.image_windows:
+            self.image_windows[REAL_DIRTY_KEY] = self.vis.images(real_dirty_group, opts = dict(caption = "Dirty images (real)" + " " + str(constants.ITERATION)))
+        else:
+            self.vis.images(real_dirty_group, win = self.image_windows[REAL_DIRTY_KEY], opts = dict(caption = "Dirty images (real)" + " " + str(constants.ITERATION)))
+        
+        # if REAL_DIRTY_LIKE_KEY not in self.image_windows:
+        #     self.image_windows[REAL_DIRTY_LIKE_KEY] = self.vis.images(real_dirtylike_group, opts = dict(caption = "Dirty-like images (real)" + " " + str(constants.ITERATION)))
+        # else:
+        #     self.vis.images(real_dirtylike_group, win = self.image_windows[REAL_DIRTY_LIKE_KEY], opts = dict(caption = "Dirty-like images (real)" + " " + str(constants.ITERATION)))
+        
+        if REAL_CLEAN_LIKE_KEY not in self.image_windows:
+            self.image_windows[REAL_CLEAN_LIKE_KEY] = self.vis.images(real_cleanlike_group, opts = dict(caption = "Clean-like images (real)" + " " + str(constants.ITERATION)))
+        else:
+            self.vis.images(real_cleanlike_group, win = self.image_windows[REAL_CLEAN_LIKE_KEY], opts = dict(caption = "Clean-like images (real)" + " " + str(constants.ITERATION)))
+  
+        
+    
     def plot_finegrain_loss(self, iteration, losses_dict):        
         if(constants.is_coare == 1):
             #TODO: fix issue on matplot user permission for COARE
             return
         
         LOSS_KEY = "FINEGRAIN_LOSS"
-        x = [i for i in range(iteration, iteration + len(losses_dict[constants.IDENTITY_LOSS_KEY]))]
+        x = [i for i in range(iteration, iteration + len(losses_dict[constants.LIKENESS_LOSS_KEY]))]
         fig, ax = plt.subplots(4, 3, sharex=True)
         fig.set_size_inches(9, 9)
         fig.tight_layout()
         
-        ax[0,0].plot(x, losses_dict[constants.IDENTITY_LOSS_KEY], color = 'r', label = "Id loss per iteration")
-        ax[0,1].plot(x, losses_dict[constants.LIKENESS_LOSS_KEY], color = 'g', label = "Likeness loss per iteration")
+        ax[0,0].plot(x, losses_dict[constants.REALNESS_LOSS_KEY], color = 'r', label = "Realness loss per iteration")
+        ax[0,1].plot(x, losses_dict[constants.LIKENESS_LOSS_KEY], color = 'g', label = "Clarity loss per iteration")
         ax[0,2].plot(x, losses_dict[constants.G_LOSS_KEY], color = 'black', label = "G Overall loss per iteration")
         ax[1,0].plot(x, losses_dict[constants.D_OVERALL_LOSS_KEY], color = 'darkorange', label = "D overall loss per iteration")
         ax[1,1].plot(x, losses_dict[constants.G_ADV_LOSS_KEY], color = 'olive', label = "G Adv loss per iteration")
         ax[1,2].plot(x, losses_dict[constants.D_A_FAKE_LOSS_KEY], color = 'palevioletred', label = "D(A) fake loss")
         ax[2,0].plot(x, losses_dict[constants.D_A_REAL_LOSS_KEY], color = 'rosybrown', label = "D(A) real loss")
-        #ax[2,1].plot(x, losses_dict[constants.D_B_FAKE_LOSS_KEY], color = 'cyan', label = "D(B) fake loss")
-        #ax[2,2].plot(x, losses_dict[constants.D_B_REAL_LOSS_KEY], color = 'slategray', label = "D(B) real loss")
-        #ax[3,0].plot(x, losses_dict[constants.CYCLE_LOSS_KEY], color = 'b', label = "Cycle loss")
+        ax[2,1].plot(x, losses_dict[constants.D_B_FAKE_LOSS_KEY], color = 'cyan', label = "D(B) fake loss")
+        ax[2,2].plot(x, losses_dict[constants.D_B_REAL_LOSS_KEY], color = 'slategray', label = "D(B) real loss")
     
         fig.legend(loc = 'lower right')
         if LOSS_KEY not in self.loss_windows:

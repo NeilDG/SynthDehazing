@@ -68,6 +68,7 @@ class Div2kTrainer:
         HYPERPARAMS_PATH = "checkpoint/" + constants.VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
             print("Version: ", constants.CHECKPATH, file = f)
+            print("Residual blocks: 8", file = f)
             print("Learning rate: ", str(self.lr), file = f)
             print("====================================", file = f)
             print("Adv weight: ", str(self.adv_weight), file = f)
@@ -176,6 +177,13 @@ class Div2kTrainer:
         self.visdom_reporter.plot_image(dirty_tensor, clean_tensor, clean_like)
         self.visdom_reporter.plot_test_image(test_dirty_tensor, test_dirty_like, test_clean_tensor, test_clean_like, synth_clean_tensor)
     
+    def produce_image(self, dirty_tensor):
+        with torch.no_grad():
+            clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
+            resized_fake = nn.functional.interpolate(clean_like, scale_factor = 1.0, mode = "bilinear", recompute_scale_factor = True)
+        
+        return resized_fake
+   
     def infer(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
         with torch.no_grad():

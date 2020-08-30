@@ -8,9 +8,11 @@ Image and tensor utilities
 
 import torch.nn as nn
 import numpy as np
+import math
 import cv2
 from torch.autograd import Variable
 import torch
+from utils import pytorch_colors
 
 #for attaching hooks on pretrained models
 class SaveFeatures(nn.Module):
@@ -35,11 +37,24 @@ class CombineFeatures(nn.Module):
     def close(self):
         self.hook.remove()
 
+def normalize_to_matplotimg(img_tensor, batch_idx, std, mean):
+    img = img_tensor[batch_idx,:,:,:].numpy()
+    img = np.moveaxis(img, -1, 0)
+    img = np.moveaxis(img, -1, 0) #for properly displaying image in matplotlib
+    
+    img = ((img * std) + mean) #normalize back to 0-1 range
+    
+    img = cv2.convertScaleAbs(img, alpha=(255.0))
+    #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return img
+
 def convert_to_matplotimg(img_tensor, batch_idx):
     img = img_tensor[batch_idx,:,:,:].numpy()
     img = np.moveaxis(img, -1, 0)
     img = np.moveaxis(img, -1, 0) #for properly displaying image in matplotlib
     
+    img = cv2.convertScaleAbs(img, alpha=(255.0))
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
 
 def convert_to_opencv(img_tensor):
@@ -72,6 +87,94 @@ def preprocess_batch(batch):
     batch = batch.transpose(0, 1)
     return batch
 
+def merge_yuv_results_to_rgb(y_tensor, yuv_tensor):
+    yuv_tensor = yuv_tensor.transpose(0, 1)
+    y_tensor = y_tensor.transpose(0, 1)
+    (y, u, v) = torch.chunk(yuv_tensor, 3)
+    yuv_tensor = torch.cat((y_tensor, u, v))
+    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
+    return rgb_tensor
+
+def replace_dark_channel(rgb_tensor, dark_channel_old, dark_channel_new, alpha = 0.7, beta = 0.7):
+    yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
+    
+    yuv_tensor = yuv_tensor.transpose(0, 1)
+    dark_channel_old = dark_channel_old.transpose(0, 1)
+    dark_channel_new = dark_channel_new.transpose(0, 1)
+    
+    (y, u, v) = torch.chunk(yuv_tensor, 3)
+    
+    #deduct old dark channel from all channels and add new one
+    #r = r - dark_channel_old + dark_channel_new
+    #g = g - dark_channel_old + dark_channel_new
+    #b = b - dark_channel_old + dark_channel_new
+    y = y - (dark_channel_old * alpha) + (dark_channel_new * beta)
+    
+    yuv_tensor = torch.cat((y, u, v))
+    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
+    return rgb_tensor
+
+def remove_haze(rgb_tensor, dark_channel_old, dark_channel_new):
+    yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
+    
+    yuv_tensor = yuv_tensor.transpose(0, 1)
+    dark_channel_old = dark_channel_old.transpose(0, 1)
+    dark_channel_new = dark_channel_new.transpose(0, 1)
+    
+    (y, u, v) = torch.chunk(yuv_tensor, 3)
+    
+    #remove dark channel from y
+    y = y - dark_channel_old
+    
+    print("Shape of YUV tensor: ", np.shape(yuv_tensor))
+    
+    #replace with atmosphere and transmission from new dark channel
+    atmosphere = estimate_atmosphere(yuv_tensor[:,0,:,:], dark_channel_new[:,0,:,:])
+    transmission = estimate_transmission(yuv_tensor[:,0,:,:], atmosphere, dark_channel_new[:,0,:,:]).to('cuda:0')
+    
+    y = y * transmission
+    
+    yuv_tensor = torch.cat((y, u, v))
+    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
+    return rgb_tensor
+
+def get_dark_channel(I, w = 1):
+    b,g,r = cv2.split(I)
+    dc = cv2.min(cv2.min(r,g),b);
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(w,w))
+    dark = cv2.erode(dc,kernel)
+    return dark
+
+def estimate_atmosphere(im,dark):
+    im = im.cpu().numpy()
+    [h,w] = [128, 128]
+    imsz = h*w
+    numpx = int(max(math.floor(imsz/1000),1))
+    darkvec = dark.reshape(imsz,1);
+    imvec = im.reshape(imsz,3)
+
+    indices = darkvec.argsort();
+    indices = indices[imsz-numpx::]
+
+    atmsum = np.zeros([1,3])
+    for ind in range(1,numpx):
+       atmsum = atmsum + imvec[indices[ind]]
+
+    A = atmsum / numpx;
+    return A
+
+def estimate_transmission(im, A, dark_channel):
+    im = im.cpu().numpy()
+    
+    omega = 0.95;
+    im3 = np.empty(im.shape,im.dtype);
+
+    for ind in range(0,3):
+        im3[:,:,ind] = im[:,:,ind]/A[0,ind]
+
+    transmission = 1 - omega * dark_channel
+    return transmission
+    
 def make_rgb(batch):
     batch = batch.transpose(0, 1)
     (b, g, r) = torch.chunk(batch, 3)

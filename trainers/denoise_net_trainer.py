@@ -49,6 +49,16 @@ class DenoiseTrainer:
         self.id_weight = id_weight
         self.likeness_weight = likeness_weight
         
+         #save hyperparameters for bookeeping
+        HYPERPARAMS_PATH = "checkpoint/" + constants.VERSION + "_" + constants.ITERATION + ".config"
+        with open(HYPERPARAMS_PATH, "w") as f:
+            print("Version: ", constants.CHECKPATH, file = f)
+            print("Learning rate: ", str(self.lr), file = f)
+            print("====================================", file = f)
+            print("Adv weight: ", str(self.adv_weight), file = f)
+            print("Identity weight: ", str(self.id_weight), file = f)
+            print("Likeness weight: ", str(self.likeness_weight), file = f)
+        
     
     def adversarial_loss(self, pred, target):
         loss = nn.MSELoss()

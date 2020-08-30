@@ -62,6 +62,9 @@ class Generator(nn.Module):
         self.res3 = ResidualBlock(in_features)
         self.res4 = ResidualBlock(in_features)
         self.res5 = ResidualBlock(in_features)
+        #self.res6 = ResidualBlock(in_features)
+        #self.res7 = ResidualBlock(in_features)
+        #self.res8 = ResidualBlock(in_features)
         
         # Upsampling
         out_features = in_features//2
@@ -89,6 +92,9 @@ class Generator(nn.Module):
         y = self.res3(y)
         y = self.res4(y)
         y = self.res5(y)
+        #y = self.res6(y)
+        #y = self.res7(y)
+        #y = self.res8(y)
         
         return self.conv5(y)
         
