@@ -157,6 +157,10 @@ def get_dark_channel(I, w = 1):
     dark = cv2.erode(dc,kernel)
     return dark
 
+def get_y_channel(I, w = 1):
+    y,u,v = cv2.split(I)
+    return y
+
 def estimate_atmosphere(im,dark):
     im = im.cpu().numpy()
     [h,w] = [128, 128]

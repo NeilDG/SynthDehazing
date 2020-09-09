@@ -57,8 +57,8 @@ class NoiseDataset(data.Dataset):
         self.gta_list = gta_list
         
         self.initial_transform_op = transforms.Compose([
-                                    transforms.ToPILImage(),
-                                    transforms.Resize(constants.TEST_IMAGE_SIZE)
+                                    transforms.ToPILImage(mode= 'L'),
+                                    transforms.Resize(constants.TEST_IMAGE_SIZE),
                                     ])
             
         self.final_transform_op = transforms.Compose([transforms.ToTensor(),
@@ -71,12 +71,12 @@ class NoiseDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2YUV)[0]
-        #normal_img = tensor_utils.get_dark_channel(normal_img)
+        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2YUV)
+        normal_img = tensor_utils.get_y_channel(normal_img)
         
         img_id = self.gta_list[idx]
-        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2YUV)[0]
-        #topdown_img = tensor_utils.get_dark_channel(topdown_img)
+        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2YUV)
+        topdown_img = tensor_utils.get_y_channel(topdown_img)
                  
         normal_img = self.initial_transform_op(normal_img)
         topdown_img = self.initial_transform_op(topdown_img)
@@ -149,12 +149,12 @@ class DarkChannelTestDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2YUV)[0]
-        #normal_img = tensor_utils.get_dark_channel(normal_img)
+        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2YUV)
+        normal_img = tensor_utils.get_y_channel(normal_img)
         
         img_id = self.gta_list[idx]
-        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2YUV)[0]
-        #topdown_img = tensor_utils.get_dark_channel(topdown_img)
+        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2YUV)
+        topdown_img = tensor_utils.get_y_channel(topdown_img)
         
         if(self.transform_op):
             normal_img = self.transform_op(normal_img)
