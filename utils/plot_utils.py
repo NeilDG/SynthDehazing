@@ -88,7 +88,7 @@ class VisdomReporter:
             self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images" + " " + str(constants.ITERATION)))
     
     
-    def plot_test_image(self, dirty_tensor, dirty_like, clean_tensor, clean_like, synth_clean_tensor):    
+    def plot_test_image(self, dirty_tensor, dirty_like, clean_tensor, clean_like):    
         if(constants.is_coare == 1):
             #TODO: Fix COARE deadlock issue
             return
@@ -103,7 +103,6 @@ class VisdomReporter:
         dirty_like_group = vutils.make_grid(dirty_like[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
         clean_group = vutils.make_grid(clean_tensor[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
         clean_like_group = vutils.make_grid(clean_like[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
-        synth_clean_group = vutils.make_grid(synth_clean_tensor[:constants.test_display_size], nrow = 8, padding=2, normalize=True).cpu()
         
         if DIRTY_KEY not in self.image_windows:
             self.image_windows[DIRTY_KEY] = self.vis.images(dirty_group, opts = dict(caption = "Dirty images" + " " + str(constants.ITERATION)))
@@ -125,11 +124,6 @@ class VisdomReporter:
         else:
             self.vis.images(clean_like_group, win = self.image_windows[CLEAN_LIKE_KEY], opts = dict(caption = "Fake clean images" + " " + str(constants.ITERATION)))
         
-        if SYNTH_CLEAN_KEY not in self.image_windows:
-            self.image_windows[SYNTH_CLEAN_KEY] = self.vis.images(synth_clean_group, opts = dict(caption = "Clean images from synth " + " " + str(constants.ITERATION)))
-        else:
-            self.vis.images(synth_clean_group, win = self.image_windows[SYNTH_CLEAN_KEY], opts = dict(caption = "Clean images from synth " + " " + str(constants.ITERATION)))
-    
     def plot_image(self, dirty_tensor, clean_tensor, clean_like):
         if(constants.is_coare == 1):
             #TODO: Fix COARE deadlock issue
@@ -224,7 +218,7 @@ class VisdomReporter:
         fig.set_size_inches(9, 9)
         fig.tight_layout()
         
-        ax[0,0].plot(x, losses_dict[constants.REALNESS_LOSS_KEY], color = 'r', label = "Realness loss per iteration")
+        ax[0,0].plot(x, losses_dict[constants.CYCLE_LOSS_KEY], color = 'r', label = "Cycle loss per iteration")
         ax[0,1].plot(x, losses_dict[constants.LIKENESS_LOSS_KEY], color = 'g', label = "Clarity loss per iteration")
         ax[0,2].plot(x, losses_dict[constants.G_LOSS_KEY], color = 'black', label = "G Overall loss per iteration")
         ax[1,0].plot(x, losses_dict[constants.D_OVERALL_LOSS_KEY], color = 'darkorange', label = "D overall loss per iteration")

@@ -28,11 +28,10 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="5.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="5.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
-print = logger.log
 
 #--img_to_load=71200 --load_previous=0
 #Update config if on COARE
@@ -50,6 +49,8 @@ def update_config(opts):
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
         constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_DIV2K_PATH = "/scratch1/scratch2/neil.delgallego/Div2k_Patch Dataset Enhanced/"
+        constants.DATASET_HAZY_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
+        constants.DATASET_CLEAN_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
         
         constants.num_workers = 4
         
@@ -83,8 +84,8 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_div2k_train_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
+    train_loader = dataset_loader.load_div2k_train_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.DATASET_DIV2K_PATH, constants.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
     index = 0
     
     # Plot some training images
@@ -121,7 +122,7 @@ def main(argv):
                     iteration = iteration + 1
                     index = (index + 1) % len(test_loader)
                     if(index == 0):
-                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
           
             gt.save_states(epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else: 

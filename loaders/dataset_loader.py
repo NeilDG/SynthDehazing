@@ -36,6 +36,18 @@ def assemble_train_data(path_a, path_b, num_image_to_load = -1):
     
     return a_list, b_list
 
+def assemble_unpaired_data(path_a, num_image_to_load = -1):
+    a_list = []
+    
+    for (root, dirs, files) in os.walk(path_a):
+        for f in files:
+            file_name = os.path.join(root, f)
+            a_list.append(file_name)
+            if(num_image_to_load != -1 and len(a_list) == num_image_to_load):
+                break  
+    
+    return a_list
+
 def load_test_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
     a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
     print("Length of images: %d, %d." % (len(a_list), len(b_list)))
@@ -75,14 +87,19 @@ def load_noise_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
     
     return data_loader
 
-def load_div2k_train_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
-    a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
-    print("Length of images: %d, %d." % (len(a_list), len(b_list)))
+def load_div2k_train_dataset(path_a, path_b, path_c, batch_size = 8, num_image_to_load = -1):
+    a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
+    b_list = assemble_unpaired_data(path_b, num_image_to_load / 2)
+    c_list = assemble_unpaired_data(path_c, num_image_to_load)
+    
+    #specific for Hazy dataset. Combine synth and real data
+    a_list = a_list + b_list
+    print("Length of images: %d, %d." % (len(a_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.Div2kDataset(a_list, b_list),
+        image_dataset.Div2kDataset(a_list, c_list),
         batch_size=batch_size,
-        num_workers=3,
+        num_workers=6,
         shuffle=True
     )
     

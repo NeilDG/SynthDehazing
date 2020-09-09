@@ -127,7 +127,7 @@ def benchmark(checkpath, version, iteration):
             dark_img_tensor = torch.unsqueeze(dark_img_tensor, 0).to(device)
             rgb_img_tensor = rgb_transform_op(rgb_img).unsqueeze(0).to(device)
             
-            result_tensor = gt.infer_single(dark_img_tensor, rgb_img_tensor, alpha, beta)
+            result_tensor = gt.infer_single(dark_img_tensor, rgb_img_tensor)
             result_tensor = denoiser(result_tensor).cpu()
             
             plt.imshow(rgb_img)
@@ -195,8 +195,8 @@ def produce_video_batch(CHECKPATH, VERSION, ITERATION):
 
 
 def main():
-    VERSION = "dehaze_v1.02"
-    ITERATION = "3"
+    VERSION = "dehaze_v1.03"
+    ITERATION = "1"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
     
     #produce_video_batch(CHECKPATH, VERSION, ITERATION)

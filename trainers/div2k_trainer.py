@@ -29,12 +29,11 @@ class Div2kTrainer:
         self.D_A = denoise_gan.Discriminator().to(self.gpu_device) #use CycleGAN's discriminator
         self.D_B = denoise_gan.Discriminator().to(self.gpu_device)
         
-        self.denoise_model = denoise_gan.Generator(n_residual_blocks=3).to(self.gpu_device)
-        
-        denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
-        self.denoise_model.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
-        print(self.denoise_model.model[10])
-        print("Loaded ", constants.DENOISE_CHECKPATH)
+        #self.denoise_model = denoise_gan.Generator(n_residual_blocks=3).to(self.gpu_device)
+        # denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
+        # self.denoise_model.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
+        # print(self.denoise_model.model[10])
+        # print("Loaded ", constants.DENOISE_CHECKPATH)
         
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr = lr)
@@ -97,8 +96,9 @@ class Div2kTrainer:
         return loss(pred, target)
     
     def train(self, dirty_tensor, clean_tensor):
-        self.denoise_model.eval()
-        clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
+        #self.denoise_model.eval()
+        #clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
+        clean_like = self.G_A(dirty_tensor, dirty_tensor)
         dirty_like = self.G_B(clean_tensor)
         
         self.D_A.train()
@@ -129,8 +129,8 @@ class Div2kTrainer:
         self.G_B.train()
         self.optimizerG.zero_grad()
         
-        identity_like = self.G_A(clean_tensor, self.denoise_model(clean_tensor))
-        clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
+        identity_like = self.G_A(clean_tensor, clean_tensor)
+        clean_like = self.G_A(dirty_tensor, dirty_tensor)
         dirty_like = self.G_B(clean_like)
         
         identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
@@ -139,7 +139,7 @@ class Div2kTrainer:
         #B_cycle_loss = self.cycle_loss(self.G_A(dirty_like, self.denoise_model(dirty_like)), clean_tensor) * self.cycle_weight
     
         dirty_like = self.G_B(clean_tensor)
-        B_cycle_loss = self.cycle_loss(self.G_A(dirty_like, self.denoise_model(dirty_like)), clean_tensor) * self.cycle_weight
+        B_cycle_loss = self.cycle_loss(self.G_A(dirty_like, dirty_like), clean_tensor) * self.cycle_weight
         
         prediction = self.D_A(clean_like)
         real_tensor = torch.ones_like(prediction)
@@ -167,15 +167,14 @@ class Div2kTrainer:
     
     def visdom_report(self, iteration, dirty_tensor, clean_tensor, test_dirty_tensor, test_clean_tensor):
         with torch.no_grad():
-            clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
-            test_clean_like = self.G_A(test_dirty_tensor, self.denoise_model(test_dirty_tensor))
+            clean_like = self.G_A(dirty_tensor, dirty_tensor)
+            test_clean_like = self.G_A(test_dirty_tensor, test_dirty_tensor)
             test_dirty_like = self.G_B(test_clean_like)
-            synth_clean_tensor = self.denoise_model(test_dirty_tensor)
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss(iteration, self.losses_dict)
-        self.visdom_reporter.plot_image(dirty_tensor, clean_tensor, clean_like)
-        self.visdom_reporter.plot_test_image(test_dirty_tensor, test_dirty_like, test_clean_tensor, test_clean_like, synth_clean_tensor)
+        #self.visdom_reporter.plot_image(dirty_tensor, clean_tensor, clean_like)
+        self.visdom_reporter.plot_test_image(test_dirty_tensor, test_dirty_like, test_clean_tensor, test_clean_like)
     
     def produce_image(self, dirty_tensor):
         with torch.no_grad():
