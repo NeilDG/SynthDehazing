@@ -69,7 +69,7 @@ def load_noise_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
     data_loader = torch.utils.data.DataLoader(
         image_dataset.NoiseDataset(a_list, b_list),
         batch_size=batch_size,
-        num_workers=3,
+        num_workers=12,
         shuffle=True
     )
     

@@ -35,7 +35,7 @@ parser.add_option('--gen_blocks', type=int, help="Weight", default="5")
 #parser.add_option('--disc_blocks', type=int, help="Weight", default="3")
 #print = logger.log
 
-#--img_to_load=-1 --clarity_weight=1000.0 --cycle_weight=10.0 --load_previous=0
+#--img_to_load=-1 --clarity_weight=100.0 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
@@ -87,7 +87,7 @@ def main(argv):
     
     # Create the dataloader
     synth_train_loader = dataset_loader.load_noise_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, opts.img_to_load)
-    real_train_loader = dataset_loader.load_noise_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, opts.img_to_load)
+    #real_train_loader = dataset_loader.load_noise_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, opts.img_to_load)
     
     #synth_test_loader = dataset_loader.load_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.display_size, 500)
     real_test_loader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_CLEAN_PATH, constants.display_size, 500)
@@ -118,23 +118,23 @@ def main(argv):
     if(constants.is_coare == 0):
         for epoch in range(start_epoch, constants.num_epochs):
             # For each batch in the dataloader
-            for i, (synth_data, real_data) in enumerate(zip(synth_train_loader, real_train_loader)):
+            for i, (synth_data) in enumerate(synth_train_loader):
                 _, synth_dirty_batch, synth_clean_batch = synth_data
-                _, real_dirty_batch, real_clean_batch = real_data
+                #_, real_dirty_batch, real_clean_batch = real_data
                  
-                probability_real = 0.5
+                probability_real = 0.0
                 chance = random.random()
                 synth_dirty_tensor = synth_dirty_batch.to(device)
                 synth_clean_tensor = synth_clean_batch.to(device)
                 
-                real_dirty_tensor = real_dirty_batch.to(device)
-                real_clean_tensor = real_clean_batch.to(device)
+                #real_dirty_tensor = real_dirty_batch.to(device)
+                #real_clean_tensor = real_clean_batch.to(device)
                 
                 if(chance >= probability_real): 
                     gt.train(synth_dirty_tensor, synth_clean_tensor)
                 else:
-                    #print("Training real")
-                    gt.train(real_dirty_tensor, real_clean_tensor, False)
+                    print("Training real")
+                    #gt.train(real_dirty_tensor, real_clean_tensor, False)
                 
                 if(i % 200 == 0):
                     _, synth_dark_dirty_batch, synth_dark_clean_batch = next(iter(synth_dark_test_loader))

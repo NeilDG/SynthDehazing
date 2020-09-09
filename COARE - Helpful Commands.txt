@@ -19,6 +19,11 @@ sbatch script_2.slurm
 sbatch script_3.slurm
 sbatch script_4.slurm
 
+sbatch -w saliksik-gpu-05 script_1.slurm
+sbatch -w saliksik-gpu-06 script_2.slurm
+sbatch -w saliksik-gpu-05 script_3.slurm
+sbatch -w saliksik-gpu-06 script_4.slurm
+
 sbatch --export=c=100.0,s=100.0,iteration=2 multistyle.slurm
 sbatch --export=c=10.0,s=100.0,iteration=3 multistyle.slurm
 sbatch --export=c=100.0,s=50.0,iteration=4 multistyle.slurm

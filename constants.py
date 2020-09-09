@@ -25,8 +25,8 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-VERSION = "dehaze_v1.02"
-ITERATION = "7"
+VERSION = "dehaze_v1.03"
+ITERATION = "1"
 CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
@@ -54,7 +54,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 128
+batch_size = 256
 infer_size = 32
 
 num_workers = 12

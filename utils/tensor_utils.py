@@ -95,22 +95,34 @@ def merge_yuv_results_to_rgb(y_tensor, yuv_tensor):
     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
     return rgb_tensor
 
-def replace_dark_channel(rgb_tensor, dark_channel_old, dark_channel_new, alpha = 0.7, beta = 0.7):
+# def replace_dark_channel(rgb_tensor, dark_channel_old, dark_channel_new, alpha = 0.7, beta = 0.7):
+#     yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
+    
+#     yuv_tensor = yuv_tensor.transpose(0, 1)
+#     dark_channel_old = dark_channel_old.transpose(0, 1)
+#     dark_channel_new = dark_channel_new.transpose(0, 1)
+    
+#     (y, u, v) = torch.chunk(yuv_tensor, 3)
+    
+#     #deduct old dark channel from all channels and add new one
+#     #r = r - dark_channel_old + dark_channel_new
+#     #g = g - dark_channel_old + dark_channel_new
+#     #b = b - dark_channel_old + dark_channel_new
+#     y = y - (dark_channel_old * alpha) + (dark_channel_new * beta)
+    
+#     yuv_tensor = torch.cat((y, u, v))
+#     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
+#     return rgb_tensor
+
+def replace_y_channel(rgb_tensor, y_new):
     yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
     
     yuv_tensor = yuv_tensor.transpose(0, 1)
-    dark_channel_old = dark_channel_old.transpose(0, 1)
-    dark_channel_new = dark_channel_new.transpose(0, 1)
+    y_new = y_new.transpose(0, 1)
     
     (y, u, v) = torch.chunk(yuv_tensor, 3)
     
-    #deduct old dark channel from all channels and add new one
-    #r = r - dark_channel_old + dark_channel_new
-    #g = g - dark_channel_old + dark_channel_new
-    #b = b - dark_channel_old + dark_channel_new
-    y = y - (dark_channel_old * alpha) + (dark_channel_new * beta)
-    
-    yuv_tensor = torch.cat((y, u, v))
+    yuv_tensor = torch.cat((y_new, u, v))
     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
     return rgb_tensor
 

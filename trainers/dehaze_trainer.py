@@ -19,7 +19,7 @@ from utils import tensor_utils
 
 class DehazeTrainer:
     
-    def __init__(self, gan_version, gan_iteration, gpu_device, gen_blocks, lr = 0.0005):
+    def __init__(self, gan_version, gan_iteration, gpu_device, gen_blocks, lr = 0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
         self.gan_version = gan_version
