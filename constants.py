@@ -26,7 +26,7 @@ GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
 VERSION = "dehaze_colortransfer_v1.04"
-ITERATION = "1"
+ITERATION = "6"
 CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 

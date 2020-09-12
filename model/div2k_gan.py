@@ -37,7 +37,7 @@ class ResidualBlock(nn.Module):
         return x + self.conv_block(x)
 
 class Generator(nn.Module):
-    def __init__(self, input_nc = 6):
+    def __init__(self, input_nc = 3):
         super(Generator, self).__init__()
         self.conv1 = [nn.ReflectionPad2d(2),
                     nn.Conv2d(input_nc, 64, 8),
@@ -84,9 +84,9 @@ class Generator(nn.Module):
         self.conv5 = nn.Sequential(*self.conv5)
         
     
-    def forward(self, x, synth_x):
-        input = torch.cat([x, synth_x], 1)
-        y = self.conv1(input)
+    def forward(self, x):
+        #input = torch.cat([x, synth_x], 1)
+        y = self.conv1(x)
         y = self.res1(y)
         y = self.res2(y)
         y = self.res3(y)

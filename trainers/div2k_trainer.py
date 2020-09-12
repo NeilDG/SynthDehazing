@@ -98,7 +98,7 @@ class Div2kTrainer:
     def train(self, dirty_tensor, clean_tensor):
         #self.denoise_model.eval()
         #clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
-        clean_like = self.G_A(dirty_tensor, dirty_tensor)
+        clean_like = self.G_A(dirty_tensor)
         dirty_like = self.G_B(clean_tensor)
         
         self.D_A.train()
@@ -129,8 +129,8 @@ class Div2kTrainer:
         self.G_B.train()
         self.optimizerG.zero_grad()
         
-        identity_like = self.G_A(clean_tensor, clean_tensor)
-        clean_like = self.G_A(dirty_tensor, dirty_tensor)
+        identity_like = self.G_A(clean_tensor)
+        clean_like = self.G_A(dirty_tensor)
         dirty_like = self.G_B(clean_like)
         
         identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
@@ -139,7 +139,7 @@ class Div2kTrainer:
         #B_cycle_loss = self.cycle_loss(self.G_A(dirty_like, self.denoise_model(dirty_like)), clean_tensor) * self.cycle_weight
     
         dirty_like = self.G_B(clean_tensor)
-        B_cycle_loss = self.cycle_loss(self.G_A(dirty_like, dirty_like), clean_tensor) * self.cycle_weight
+        B_cycle_loss = self.cycle_loss(self.G_A(dirty_like), clean_tensor) * self.cycle_weight
         
         prediction = self.D_A(clean_like)
         real_tensor = torch.ones_like(prediction)
@@ -167,8 +167,8 @@ class Div2kTrainer:
     
     def visdom_report(self, iteration, dirty_tensor, clean_tensor, test_dirty_tensor, test_clean_tensor):
         with torch.no_grad():
-            clean_like = self.G_A(dirty_tensor, dirty_tensor)
-            test_clean_like = self.G_A(test_dirty_tensor, test_dirty_tensor)
+            clean_like = self.G_A(dirty_tensor)
+            test_clean_like = self.G_A(test_dirty_tensor)
             test_dirty_like = self.G_B(test_clean_like)
         
         #report to visdom

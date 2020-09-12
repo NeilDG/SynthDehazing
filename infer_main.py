@@ -84,12 +84,12 @@ def produce_video(video_path, checkpath, version, iteration):
                 
 def benchmark(checkpath, version, iteration):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/Unannotated"
-    #HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy"
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy"
     
     GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT"
     
-    #SAVE_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/results/"
-    SAVE_PATH = "E:/Hazy Dataset Benchmark/Unannotated Results/"
+    SAVE_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/results/"
+    #SAVE_PATH = "E:/Hazy Dataset Benchmark/Unannotated Results/"
     
     OUTPUT_SIZE = (708, 1164)
     alpha = 1.0
@@ -110,43 +110,64 @@ def benchmark(checkpath, version, iteration):
                 file_name = os.path.join(root, f)
                 hazy_list.append(file_name)
     
-    for (root, dirs, files) in os.walk(HAZY_PATH):
+    for (root, dirs, files) in os.walk(GT_PATH):
         for f in files:
                 file_name = os.path.join(root, f)
                 gt_list.append(file_name)
     
     dark_transform_op, rgb_transform_op = get_transform_ops(OUTPUT_SIZE)
     
+    FIG_ROWS = 3; FIG_COLS = 6
+    fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
+    fig.set_size_inches(24,7)
+    column = 0
+    fig_num = 0
     with torch.no_grad():
         for i, (hazy_path, gt_path) in enumerate(zip(hazy_list, gt_list)):
             rgb_img = cv2.imread(hazy_path)
             rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
             dark_img = tensor_utils.get_dark_channel(rgb_img)
+            gt_img = cv2.imread(gt_path)
+            gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
             
             dark_img_tensor = dark_transform_op(dark_img)
             dark_img_tensor = torch.unsqueeze(dark_img_tensor, 0).to(device)
             rgb_img_tensor = rgb_transform_op(rgb_img).unsqueeze(0).to(device)
+            gt_img_tensor = rgb_transform_op(gt_img).unsqueeze(0)
             
-            result_tensor = gt.infer_single(dark_img_tensor, rgb_img_tensor)
-            result_tensor = denoiser(result_tensor).cpu()
+            result_tensor = gt.infer_single(dark_img_tensor, rgb_img_tensor, alpha, beta)
+            #result_tensor = denoiser(result_tensor).cpu()
             
-            plt.imshow(rgb_img)
-            plt.show()
+            rgb_img_tensor = rgb_img_tensor.cpu()
+            rgb_img = tensor_utils.normalize_to_matplotimg(rgb_img_tensor, 0, 0.5, 0.5)
+            #result_img = tensor_utils.normalize_to_matplotimg(result_tensor, 0, 0.5, 0.5)
+            result_img = result_tensor
+            gt_img = tensor_utils.normalize_to_matplotimg(gt_img_tensor, 0, 0.5, 0.5)
             
-            result_img = tensor_utils.normalize_to_matplotimg(result_tensor, 0, 0.5, 0.5)
-            plt.imshow(result_img)
-            plt.show()
+            # result_img = cv2.cvtColor(result_img, cv2.COLOR_RGB2BGR)
+            # file_name = SAVE_PATH + "img_"+str(i)+ "_" + version + "_" +str(iteration)+".jpg"
+            # cv2.imwrite(file_name, result_img)
             
-            result_img = cv2.cvtColor(result_img, cv2.COLOR_RGB2BGR)
-            file_name = SAVE_PATH + "img_"+str(i)+ "_" + version + "_" +str(iteration)+".jpg"
-            cv2.imwrite(file_name, result_img)
+            ax[0,column].imshow(rgb_img); ax[0,column].axis('off')
+            ax[1,column].imshow(result_img); ax[1,column].axis('off')
+            ax[2,column].imshow(gt_img); ax[2,column].axis('off')
+            column = column + 1
             
-            # gt_img = cv2.imread(gt_path)
-            # gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
-
-            # plt.imshow(gt_img)
-            # plt.show()
-                  
+            if(column == FIG_COLS):
+                fig_num = fig_num + 1
+                file_name = SAVE_PATH + "fig_"+str(fig_num)+ "_" + version + "_" +str(iteration)+".jpg"
+                plt.savefig(file_name)
+                plt.show()
+                
+                #create new figure
+                fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
+                fig.set_size_inches(24,7)
+                column = 0
+        
+        fig_num = fig_num + 1
+        file_name = SAVE_PATH + "fig_"+str(fig_num)+ "_" + version + "_" +str(iteration)+".jpg"
+        plt.savefig(file_name)
+        plt.show()
         
 def dehaze_infer(batch_size, checkpath, version, iteration):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -194,13 +215,38 @@ def produce_video_batch(CHECKPATH, VERSION, ITERATION):
         produce_video(video_path, CHECKPATH, VERSION, ITERATION)
 
 
+def dark_channel_test():
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/Unannotated"
+    #HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy"
+    
+    GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT"
+    
+    hazy_list = []; gt_list = []
+    for (root, dirs, files) in os.walk(HAZY_PATH):
+        for f in files:
+                file_name = os.path.join(root, f)
+                hazy_list.append(file_name)
+    
+    for (root, dirs, files) in os.walk(GT_PATH):
+        for f in files:
+                file_name = os.path.join(root, f)
+                gt_list.append(file_name)
+
+    for i, (hazy_path, gt_path) in enumerate(zip(hazy_list, gt_list)):
+        rgb_img = cv2.imread(hazy_path)
+        rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
+        dark_img = tensor_utils.get_dark_channel_and_mask(rgb_img)
+        break
+        
+    
 def main():
-    VERSION = "dehaze_v1.03"
-    ITERATION = "1"
+    VERSION = "dehaze_v1.02"
+    ITERATION = "3"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
     
     #produce_video_batch(CHECKPATH, VERSION, ITERATION)
     benchmark(CHECKPATH, VERSION, ITERATION)
+    #dark_channel_test()
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

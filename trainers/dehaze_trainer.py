@@ -183,7 +183,8 @@ class DehazeTrainer:
         with torch.no_grad():
             dark_clean_tensor = self.G_A(dark_dirty_tensor)
         
-        rgb_clean_tensor = tensor_utils.replace_dark_channel(rgb_dirty_tensor, dark_dirty_tensor, dark_clean_tensor, alpha, beta)
+        #rgb_clean_tensor = tensor_utils.replace_dark_channel(rgb_dirty_tensor, dark_dirty_tensor, dark_clean_tensor, alpha, beta)
+        rgb_clean_tensor = tensor_utils.replace_dark_channel(rgb_dirty_tensor, dark_clean_tensor)
         
         return rgb_clean_tensor
         
