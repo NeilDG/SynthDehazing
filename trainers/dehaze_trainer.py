@@ -48,6 +48,14 @@ class DehazeTrainer:
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
         self.losses_dict[constants.D_B_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_B_REAL_LOSS_KEY] = []
+        
+        self.caption_dict = {}
+        self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
+        self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
+        self.caption_dict[constants.REALNESS_LOSS_KEY] = "Realness loss per iteration"
+        self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
+        self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
+        self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(B) fake loss per iteration"
     
     def update_penalties(self, adv_weight, clarity_weight, cycle_weight):
         #what penalties to use for losses?
@@ -55,10 +63,10 @@ class DehazeTrainer:
         self.clarity_weight = clarity_weight
         self.cycle_weight = cycle_weight
         
-         #save hyperparameters for bookeeping
-        HYPERPARAMS_PATH = "checkpoint/" + constants.VERSION + "_" + constants.ITERATION + ".config"
+        #save hyperparameters for bookeeping
+        HYPERPARAMS_PATH = "checkpoint/" + constants.DEHAZER_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
-            print("Version: ", constants.CHECKPATH, file = f)
+            print("Version: ", constants.DEHAZER_CHECKPATH, file = f)
             print("Learning rate: ", str(self.lr), file = f)
             print("====================================", file = f)
             print("Adv weight: ", str(self.adv_weight), file = f)
@@ -154,7 +162,6 @@ class DehazeTrainer:
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
         self.losses_dict[constants.LIKENESS_LOSS_KEY].append(clarity_loss.item())
         self.losses_dict[constants.REALNESS_LOSS_KEY].append(realness_loss.item())
-        self.losses_dict[constants.G_ADV_LOSS_KEY].append(adv_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
         self.losses_dict[constants.D_B_FAKE_LOSS_KEY].append(D_B_fake_loss.item())
@@ -175,19 +182,19 @@ class DehazeTrainer:
         real_cleanlike_rgb_tensor = tensor_utils.replace_dark_channel(real_rgb_dirty_tensor, real_dark_dirty_tensor, real_clean_like)
 
         #report to visdom
-        self.visdom_reporter.plot_finegrain_loss(iteration, self.losses_dict)
-        self.visdom_reporter.plot_image(synth_dirty_tensor, synth_clean_tensor, synth_clean_like, 
-                                        real_rgb_dirty_tensor, real_cleanlike_rgb_tensor)
+        self.visdom_reporter.plot_finegrain_loss("dehazing_loss", iteration, self.losses_dict, self.caption_dict)
+        self.visdom_reporter.plot_image(synth_dirty_tensor, "Training Dirty images")
+        self.visdom_reporter.plot_image(synth_clean_tensor, "Training Clean images")
+        self.visdom_reporter.plot_image(synth_clean_like, "Training Clean-like images")
+        self.visdom_reporter.plot_image(real_rgb_dirty_tensor, "Test Dirty images")
+        self.visdom_reporter.plot_image(real_cleanlike_rgb_tensor, "Test Clean images")
+        self.visdom_reporter.plot_image(real_clean_like, "Test Clean-like images")
     
-    def infer_single(self, dark_dirty_tensor, rgb_dirty_tensor, alpha = 0.7, beta = 0.7):
+    def infer_single(self, dark_dirty_tensor):
         with torch.no_grad():
             dark_clean_tensor = self.G_A(dark_dirty_tensor)
         
-        #rgb_clean_tensor = tensor_utils.replace_dark_channel(rgb_dirty_tensor, dark_dirty_tensor, dark_clean_tensor, alpha, beta)
-        rgb_clean_tensor = tensor_utils.replace_dark_channel(rgb_dirty_tensor, dark_clean_tensor)
-        
-        return rgb_clean_tensor
-        
+        return dark_clean_tensor  
     
     def dehaze_infer(self, denoise_model, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"

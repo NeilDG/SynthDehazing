@@ -13,6 +13,7 @@ import cv2
 from torch.autograd import Variable
 import torch
 from utils import pytorch_colors
+import matplotlib.pyplot as plt
 
 #for attaching hooks on pretrained models
 class SaveFeatures(nn.Module):
@@ -95,24 +96,24 @@ def merge_yuv_results_to_rgb(y_tensor, yuv_tensor):
     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
     return rgb_tensor
 
-# def replace_dark_channel(rgb_tensor, dark_channel_old, dark_channel_new, alpha = 0.7, beta = 0.7):
-#     yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
+def replace_dark_channel(rgb_tensor, dark_channel_old, dark_channel_new, alpha = 0.7, beta = 0.7):
+    yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
     
-#     yuv_tensor = yuv_tensor.transpose(0, 1)
-#     dark_channel_old = dark_channel_old.transpose(0, 1)
-#     dark_channel_new = dark_channel_new.transpose(0, 1)
+    yuv_tensor = yuv_tensor.transpose(0, 1)
+    dark_channel_old = dark_channel_old.transpose(0, 1)
+    dark_channel_new = dark_channel_new.transpose(0, 1)
     
-#     (y, u, v) = torch.chunk(yuv_tensor, 3)
+    (y, u, v) = torch.chunk(yuv_tensor, 3)
     
-#     #deduct old dark channel from all channels and add new one
-#     #r = r - dark_channel_old + dark_channel_new
-#     #g = g - dark_channel_old + dark_channel_new
-#     #b = b - dark_channel_old + dark_channel_new
-#     y = y - (dark_channel_old * alpha) + (dark_channel_new * beta)
+    #deduct old dark channel from all channels and add new one
+    #r = r - dark_channel_old + dark_channel_new
+    #g = g - dark_channel_old + dark_channel_new
+    #b = b - dark_channel_old + dark_channel_new
+    y = y - (dark_channel_old * alpha) + (dark_channel_new * beta)
     
-#     yuv_tensor = torch.cat((y, u, v))
-#     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
-#     return rgb_tensor
+    yuv_tensor = torch.cat((y, u, v))
+    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
+    return rgb_tensor
 
 def replace_y_channel(rgb_tensor, y_new):
     yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
@@ -156,6 +157,56 @@ def get_dark_channel(I, w = 1):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(w,w))
     dark = cv2.erode(dc,kernel)
     return dark
+
+# def replace_dark_channel(rgb_tensor, dark_channel_new):
+#     rgb_img = normalize_to_matplotimg(rgb_tensor.cpu(), 0, 0.5, 0.5)
+#     dark_channel_new_img = normalize_to_matplotimg(dark_channel_new.cpu(), 0, 0.5, 0.5)
+#     b, g, r = cv2.split(rgb_img)
+    
+#     dc, mask_r, mask_g, mask_b = get_dark_channel_and_mask(r, g, b)
+    
+#     #print(np.shape(r), np.shape(dc), np.shape(dark_channel_new_img), np.shape(mask_r))
+#     r = cv2.subtract(r, dc, mask = mask_r)
+#     g = cv2.subtract(g, dc, mask = mask_g)
+#     b = cv2.subtract(b, dc, mask = mask_b)
+    
+#     r = cv2.add(r, dark_channel_new_img, mask = mask_r)
+#     g = cv2.add(g, dark_channel_new_img, mask = mask_g)
+#     b = cv2.add(b, dark_channel_new_img, mask = mask_b)
+    
+#     rgb_img = cv2.merge((b,g,r))
+#     return rgb_img
+
+def get_dark_channel_and_mask(r, g, b):
+    min_1 = cv2.min(r,g)
+
+    mask_r = cv2.bitwise_and(min_1, r)
+    mask_g = cv2.bitwise_and(min_1, g)
+
+    min_2 = cv2.min(min_1, b)
+    mask_b = cv2.bitwise_and(min_2, b)
+    
+    _, mask_r = cv2.threshold(mask_r, 1, 1, cv2.THRESH_BINARY)
+    _, mask_g = cv2.threshold(mask_g, 1, 1, cv2.THRESH_BINARY)
+    _, mask_b = cv2.threshold(mask_b, 1, 1, cv2.THRESH_BINARY)
+    
+    # plt.imshow(mask_r, cmap = 'gray')
+    # plt.show()
+    
+    # plt.imshow(mask_g, cmap = 'gray')
+    # plt.show()
+    
+    # plt.imshow(mask_b, cmap = 'gray')
+    # plt.show()
+    
+    dc = cv2.min(cv2.min(r,g),b);
+    
+    # plt.imshow(dc, cmap = 'gray')
+    # plt.show()
+    
+    #kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(w,w))
+    #dark = cv2.erode(dc,kernel)
+    return dc, mask_r, mask_g, mask_b
 
 def get_y_channel(I, w = 1):
     y,u,v = cv2.split(I)

@@ -51,10 +51,10 @@ class Div2kDataset(data.Dataset):
     def __len__(self):
         return len(self.vemon_list)
     
-class NoiseDataset(data.Dataset):
-    def __init__(self, vemon_list, gta_list):
-        self.vemon_list = vemon_list
-        self.gta_list = gta_list
+class HazeDataset(data.Dataset):
+    def __init__(self, hazy_list, clear_list):
+        self.hazy_list = hazy_list
+        self.clear_list = clear_list
         
         self.initial_transform_op = transforms.Compose([
                                     transforms.ToPILImage(mode= 'L'),
@@ -67,34 +67,58 @@ class NoiseDataset(data.Dataset):
         
     
     def __getitem__(self, idx):
-        img_id = self.vemon_list[idx]
+        img_id = self.hazy_list[idx]
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2YUV)
-        normal_img = tensor_utils.get_y_channel(normal_img)
+        hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2YUV)
+        hazy_img = tensor_utils.get_y_channel(hazy_img)
         
-        img_id = self.gta_list[idx]
-        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2YUV)
-        topdown_img = tensor_utils.get_y_channel(topdown_img)
+        img_id = self.clear_list[idx]
+        clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2YUV)
+        clear_img = tensor_utils.get_y_channel(clear_img)
                  
-        normal_img = self.initial_transform_op(normal_img)
-        topdown_img = self.initial_transform_op(topdown_img)
+        hazy_img = self.initial_transform_op(hazy_img)
+        clear_img = self.initial_transform_op(clear_img)
         
-        crop_indices = transforms.RandomCrop.get_params(normal_img, output_size=constants.BIRD_IMAGE_SIZE)
+        crop_indices = transforms.RandomCrop.get_params(hazy_img, output_size=constants.BIRD_IMAGE_SIZE)
         i, j, h, w = crop_indices
         
-        normal_img = transforms.functional.crop(normal_img, i, j, h, w)
-        topdown_img = transforms.functional.crop(topdown_img, i, j, h, w)
+        hazy_img = transforms.functional.crop(hazy_img, i, j, h, w)
+        clear_img = transforms.functional.crop(clear_img, i, j, h, w)
         
-        normal_img = self.final_transform_op(normal_img)
-        topdown_img = self.final_transform_op(topdown_img)
+        hazy_img = self.final_transform_op(hazy_img)
+        clear_img = self.final_transform_op(clear_img)
             
                 
-        return file_name, normal_img, topdown_img
+        return file_name, hazy_img, clear_img
     
     def __len__(self):
-        return len(self.vemon_list)
+        return len(self.hazy_list)
+
+class ColorDataset(data.Dataset):
+    def __init__(self, rgb_list):
+        self.rgb_list = rgb_list
+        
+        self.initial_transform_op = transforms.Compose([
+                                    transforms.ToPILImage(),
+                                    transforms.RandomCrop(constants.BIRD_IMAGE_SIZE),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5), (0.5))
+                                    ])  
+    
+    def __getitem__(self, idx):
+        img_id = self.rgb_list[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+        
+        rgb_img = cv2.imread(img_id); rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
+        rgb_img = self.initial_transform_op(rgb_img)
+        
+        return file_name, rgb_img
+    
+    def __len__(self):
+        return len(self.rgb_list)
 
 class TestDataset(data.Dataset):
     def __init__(self, vemon_list, gta_list):

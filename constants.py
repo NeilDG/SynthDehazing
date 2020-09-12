@@ -25,9 +25,12 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-VERSION = "dehaze_colortransfer_v1.04"
+DEHAZER_VERSION = "dehazer_v1.04"
+COLORIZER_VERSION = "dehazer_v1.04"
 ITERATION = "6"
-CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
+
+DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
+COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys

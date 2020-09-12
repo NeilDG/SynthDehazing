@@ -173,8 +173,12 @@ class Div2kTrainer:
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss(iteration, self.losses_dict)
-        #self.visdom_reporter.plot_image(dirty_tensor, clean_tensor, clean_like)
-        self.visdom_reporter.plot_test_image(test_dirty_tensor, test_dirty_like, test_clean_tensor, test_clean_like)
+        self.visdom_reporter.plot_image(dirty_tensor, "Training Dirty images")
+        self.visdom_reporter.plot_image(clean_tensor, "Training Clean images")
+        self.visdom_reporter.plot_image(clean_like, "Training Clean-like images")
+        self.visdom_reporter.plot_image(test_dirty_tensor, "Test Dirty images")
+        self.visdom_reporter.plot_image(test_clean_tensor, "Test Clean images")
+        self.visdom_reporter.plot_image(test_clean_like, "Test Clean-like images")
     
     def produce_image(self, dirty_tensor):
         with torch.no_grad():
