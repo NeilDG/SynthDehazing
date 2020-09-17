@@ -15,7 +15,7 @@ DATASET_PLACES_PATH = "E:/Places Dataset/"
 DATASET_DIV2K_PATH = "E:/VEMON_Transfer/train/C/"
 
 BIRD_IMAGE_SIZE = (32, 32) #320 x 192 original
-TEST_IMAGE_SIZE = (400, 400)
+TEST_IMAGE_SIZE = (128, 128)
 DIV2K_IMAGE_SIZE = (2040, 1404)
 FIG_SIZE = (TEST_IMAGE_SIZE[0], TEST_IMAGE_SIZE[1])
 TENSORBOARD_PATH = os.getcwd() + "/train_plot/"
@@ -25,9 +25,9 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-DEHAZER_VERSION = "dehazer_v1.04"
-COLORIZER_VERSION = "dehazer_v1.04"
-ITERATION = "6"
+DEHAZER_VERSION = "dehazer_v1.05"
+COLORIZER_VERSION = "colorizer_v1.05"
+ITERATION = "2"
 
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'

@@ -96,6 +96,17 @@ def merge_yuv_results_to_rgb(y_tensor, yuv_tensor):
     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
     return rgb_tensor
 
+def yuv_to_rgb(yuv_tensor):
+    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor)
+    return rgb_tensor
+
+def change_yuv(y_tensor, yuv_tensor):
+    yuv_tensor = yuv_tensor.transpose(0, 1)
+    y_tensor = y_tensor.transpose(0, 1)
+    (y, u, v) = torch.chunk(yuv_tensor, 3)
+    yuv_tensor = torch.cat((y_tensor, u, v))
+    return yuv_tensor.transpose(0, 1)
+
 def replace_dark_channel(rgb_tensor, dark_channel_old, dark_channel_new, alpha = 0.7, beta = 0.7):
     yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
     
@@ -208,9 +219,13 @@ def get_dark_channel_and_mask(r, g, b):
     #dark = cv2.erode(dc,kernel)
     return dc, mask_r, mask_g, mask_b
 
-def get_y_channel(I, w = 1):
+def get_y_channel(I):
     y,u,v = cv2.split(I)
     return y
+
+def get_uv_channel(I):
+    y,u,v = cv2.split(I)
+    return cv2.merge((u,v))
 
 def estimate_atmosphere(im,dark):
     im = im.cpu().numpy()

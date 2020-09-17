@@ -15,6 +15,23 @@ import torchvision.transforms as transforms
 import constants
 from utils import tensor_utils
 
+
+class GlobalConfig():
+    def __init__(self):
+        self.i = 0
+        self.j = 0
+        self.h = 0
+        self.w = 0
+    
+    def set_vars(i, j, h, w):
+        self.i = i
+        self.j = j
+        self.h = h
+        self.w = w
+    
+    def get_vars():
+        return self.i, self.j, self.h, self.w
+
 class Div2kDataset(data.Dataset):
     def __init__(self, vemon_list, div2k_list):
         self.vemon_list = vemon_list
@@ -100,22 +117,43 @@ class ColorDataset(data.Dataset):
     def __init__(self, rgb_list):
         self.rgb_list = rgb_list
         
-        self.initial_transform_op = transforms.Compose([
+        self.rgb_transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
-                                    transforms.RandomCrop(constants.BIRD_IMAGE_SIZE),
-                                    transforms.ToTensor(),
-                                    transforms.Normalize((0.5), (0.5))
+                                    transforms.Resize(constants.TEST_IMAGE_SIZE)
                                     ])  
+        
+        self.gray_transform_op = transforms.Compose([
+                                    transforms.ToPILImage(mode= 'L'),
+                                    transforms.Resize(constants.TEST_IMAGE_SIZE)
+                                    ])
+            
+        self.final_transform_op = transforms.Compose([transforms.ToTensor(),
+                                                      transforms.Normalize((0.5), (0.5))])
+        
     
     def __getitem__(self, idx):
         img_id = self.rgb_list[idx]
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        rgb_img = cv2.imread(img_id); rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
-        rgb_img = self.initial_transform_op(rgb_img)
+        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+        gray_img = tensor_utils.get_y_channel(img)
+        #yuv_img = tensor_utils.get_uv_channel(img)
         
-        return file_name, rgb_img
+        gray_img = self.gray_transform_op(gray_img)
+        
+        crop_indices = transforms.RandomCrop.get_params(gray_img, output_size=constants.BIRD_IMAGE_SIZE)
+        i, j, h, w = crop_indices
+        
+        yuv_img = self.rgb_transform_op(img)
+        
+        gray_img = transforms.functional.crop(gray_img, i, j, h, w)
+        yuv_img = transforms.functional.crop(yuv_img, i, j, h, w)
+        
+        gray_img = self.final_transform_op(gray_img)
+        yuv_img = self.final_transform_op(yuv_img)
+        
+        return file_name, gray_img, yuv_img
     
     def __len__(self):
         return len(self.rgb_list)
@@ -152,6 +190,34 @@ class TestDataset(data.Dataset):
     
     def __len__(self):
         return len(self.vemon_list)
+
+class ColorTestDataset(data.Dataset):
+    def __init__(self, rgb_list):
+        self.rgb_list = rgb_list
+        
+        self.transform_op = transforms.Compose([
+                                    transforms.ToPILImage(),
+                                    transforms.Resize(constants.TEST_IMAGE_SIZE),
+                                    transforms.CenterCrop(constants.TEST_IMAGE_SIZE),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5), (0.5))
+                                    ])
+    def __getitem__(self, idx):
+        img_id = self.rgb_list[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+        
+        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+        gray_img = tensor_utils.get_y_channel(img)
+        #uv_img = tensor_utils.get_uv_channel(img)
+        
+        gray_img = self.transform_op(gray_img)
+        yuv_img = self.transform_op(img)
+        
+        return file_name, gray_img, yuv_img
+    
+    def __len__(self):
+        return len(self.rgb_list)
     
 class DarkChannelTestDataset(data.Dataset):
     def __init__(self, vemon_list, gta_list):

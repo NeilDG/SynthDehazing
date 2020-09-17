@@ -78,7 +78,7 @@ def load_dehaze_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
     data_loader = torch.utils.data.DataLoader(
         image_dataset.HazeDataset(a_list, b_list),
         batch_size=batch_size,
-        num_workers=6,
+        num_workers=3,
         shuffle=True
     )
     
@@ -88,14 +88,27 @@ def load_rgb_dataset(path_a, batch_size = 8, num_image_to_load = -1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
     print("Length of color dataset: %d." % (len(a_list)))
 
-    data_loader = torch.utils.data.DataLoader(
+    rgb_data_loader = torch.utils.data.DataLoader(
         image_dataset.ColorDataset(a_list),
         batch_size=batch_size,
-        num_workers=6,
+        num_workers=3,
         shuffle=True
     )
     
-    return data_loader
+    return rgb_data_loader
+
+def load_rgb_test_dataset(path_a, batch_size = 8, num_image_to_load = -1):
+    a_list = assemble_unpaired_data(path_a, num_image_to_load)
+    print("Length of color dataset: %d." % (len(a_list)))
+
+    rgb_data_loader = torch.utils.data.DataLoader(
+        image_dataset.ColorTestDataset(a_list),
+        batch_size=batch_size,
+        num_workers=3,
+        shuffle=True
+    )
+    
+    return rgb_data_loader
 
 def load_div2k_train_dataset(path_a, path_b, path_c, batch_size = 8, num_image_to_load = -1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)

@@ -218,28 +218,30 @@ class VisdomReporter:
             #TODO: fix issue on matplot user permission for COARE
             return
         
+        loss_keys = list(losses_dict.keys())
+        caption_keys = list(caption_dict.keys())
+        colors = ['r', 'g', 'black', 'darkorange', 'olive', 'palevioletred', 'rosybrown', 'cyan', 'slategray', 'darkmagenta', 'linen', 'chocolate']
+        index = 0
+        
         x = [i for i in range(iteration, iteration + len(losses_dict[constants.G_LOSS_KEY]))]
         COLS = 3; ROWS = 4
         fig, ax = plt.subplots(ROWS, COLS, sharex=True)
         fig.set_size_inches(9, 9)
         fig.tight_layout()
         
-        loss_keys = losses_dict.keys()
-        caption_values = caption_dict.values()
-        
-        print(loss_keys)
-        
-        index = 0
         for i in range(ROWS):
             for j in range(COLS):
-                ax[i, j].plot(x, loss_values[loss_keys], color = 'r', label = str(caption_values[index]))
-                index = index + 1
+                if(index < len(loss_keys)):
+                    ax[i, j].plot(x, losses_dict[loss_keys[index]], color = colors[index], label = str(caption_dict[caption_keys[index]]))
+                    index = index + 1
+                else:
+                    break
     
         fig.legend(loc = 'lower right')
         if loss_key not in self.loss_windows:
             self.loss_windows[loss_key] = self.vis.matplot(plt, opts = dict(caption = "Losses" + " " + str(constants)))
         else:
-           self.vis.matplot(plt, win = self.loss_windows[loss_key], opts = dict(caption = "Losses" + " " + str(constants))) 
+            self.vis.matplot(plt, win = self.loss_windows[loss_key], opts = dict(caption = "Losses" + " " + str(constants))) 
           
         plt.show()
         

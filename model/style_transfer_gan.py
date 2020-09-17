@@ -22,10 +22,10 @@ def weights_init(m):
             
 class Generator(nn.Module):
     
-    def __init__(self, filter_size = 512, bottleneck_size = 128):
+    def __init__(self, input_nc = 3, output_nc = 3, filter_size = 512, bottleneck_size = 128):
         super(Generator, self).__init__()
         
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 3, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = input_nc, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
                                    nn.BatchNorm2d(filter_size),
                                    nn.ReLU(True))
         
@@ -57,7 +57,7 @@ class Generator(nn.Module):
             nn.BatchNorm2d(filter_size),
             nn.ReLU(True))
         
-        self.upconv4 = nn.Sequential(nn.ConvTranspose2d(in_channels = filter_size, out_channels = 3, kernel_size=4, stride=2, padding=1, bias=False),
+        self.upconv4 = nn.Sequential(nn.ConvTranspose2d(in_channels = filter_size, out_channels = output_nc, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh())
         
         self.apply(weights_init)
