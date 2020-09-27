@@ -204,6 +204,40 @@ def dehaze_infer(batch_size, checkpath, version, iteration):
         vemon_tensor = vemon_batch.to(device)
         item_number = item_number + 1
         dehazer.dehaze_infer(denoiser, vemon_tensor, item_number)
+    
+
+def color_transfer(checkpath, version, iteration):
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    
+    colorizer = div2k_trainer.Div2kTrainer(version, iteration, device, g_lr = 0.0002, d_lr = 0.0002)
+    
+    checkpoint = torch.load(checkpath)
+    colorizer.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+ 
+    print("Loaded results checkpt ",checkpath)
+    print("===================================================")
+    
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_DIV2K_PATH, constants.infer_size, -1)
+    
+    # Plot some training images
+    name_batch, dirty_batch, clean_batch = next(iter(dataloader))
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Training - Old Images")
+    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.show()
+    
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Training - New Images")
+    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.show()
+    
+    item_number = 0
+    for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
+        input_tensor = dirty_batch.to(device)
+        item_number = item_number + 1
+        colorizer.infer(input_tensor, item_number)
 
 def produce_video_batch(CHECKPATH, VERSION, ITERATION):
     VIDEO_FOLDER_PATH = "E:/VEMON Dataset/vemon videos/"
@@ -240,13 +274,13 @@ def dark_channel_test():
         
     
 def main():
-    VERSION = "dehaze_v1.02"
+    VERSION = "dehaze_colortransfer_v1.05"
     ITERATION = "3"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
     
     #produce_video_batch(CHECKPATH, VERSION, ITERATION)
-    benchmark(CHECKPATH, VERSION, ITERATION)
-    #dark_channel_test()
+    #benchmark(CHECKPATH, VERSION, ITERATION)
+    color_transfer(CHECKPATH, VERSION, ITERATION)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

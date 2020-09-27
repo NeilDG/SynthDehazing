@@ -21,7 +21,6 @@ import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import div2k_trainer
 import constants
-from utils import logger
      
 parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
@@ -30,20 +29,22 @@ parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--identity_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="100.0")
-parser.add_option('--cycle_weight', type=float, help="Weight", default="100.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 
-#--img_to_load=71200 --load_previous=0
+#--img_to_load=10000 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = 512
+        constants.batch_size = 64
         
         constants.ITERATION = str(opts.iteration)
-        constants.CHECKPATH = 'checkpoint/' + constants.VERSION + "_" + constants.ITERATION +'.pt'
+        constants.COLOR_TRANFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION +'.pt'
         
         constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
@@ -57,7 +58,6 @@ def update_config(opts):
 def main(argv):
     (opts, args) = parser.parse_args(argv)
     update_config(opts)
-    logger.clear_log()
     print("=========BEGIN============")
     print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
@@ -69,23 +69,23 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
     
-    gt = div2k_trainer.Div2kTrainer(constants.VERSION, constants.ITERATION, device)
+    gt = div2k_trainer.Div2kTrainer(constants.COLOR_TRANSFER_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
     gt.update_penalties(opts.adv_weight, opts.identity_weight, opts.likeness_weight, opts.cycle_weight)
     start_epoch = 0
     iteration = 0
     
     if(opts.load_previous): 
-        checkpoint = torch.load(constants.CHECKPATH)
+        checkpoint = torch.load(constants.COLOR_TRANFER_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1   
         iteration = checkpoint['iteration'] + 1
         gt.load_saved_state(iteration, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
  
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.COLOR_TRANFER_CHECKPATH, start_epoch))
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_div2k_train_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.DATASET_DIV2K_PATH, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
+    train_loader = dataset_loader.load_div2k_train_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.display_size, 500)
     index = 0
     
     # Plot some training images
@@ -124,7 +124,7 @@ def main(argv):
                     if(index == 0):
                       test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
           
-            gt.save_states(epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+            gt.save_states(epoch, iteration, constants.COLOR_TRANFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else: 
         for i, (name, dirty_batch, clean_batch) in enumerate(train_loader, 0):
             dirty_tensor = dirty_batch.to(device)
@@ -134,7 +134,7 @@ def main(argv):
                 print("Iterating %d " % i)
             
         #save every X epoch
-        gt.save_states(start_epoch, iteration, constants.CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(start_epoch, iteration, constants.COLOR_TRANFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

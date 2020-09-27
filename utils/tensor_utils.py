@@ -88,12 +88,15 @@ def preprocess_batch(batch):
     batch = batch.transpose(0, 1)
     return batch
 
-def merge_yuv_results_to_rgb(y_tensor, yuv_tensor):
-    yuv_tensor = yuv_tensor.transpose(0, 1)
+def merge_yuv_results_to_rgb(y_tensor, uv_tensor):
+    uv_tensor = uv_tensor.transpose(0, 1)
     y_tensor = y_tensor.transpose(0, 1)
-    (y, u, v) = torch.chunk(yuv_tensor, 3)
+    
+    (u, v) = torch.chunk(uv_tensor, 2)
     yuv_tensor = torch.cat((y_tensor, u, v))
-    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
+    rgb_tensor = pytorch_colors.lab_to_rgb(yuv_tensor.transpose(0, 1))
+    #rgb_tensor = ((rgb_tensor * 0.5) + 0.5) #normalize back to 0-1 range
+    rgb_tensor = ((rgb_tensor * 1.0) + 1.0)
     return rgb_tensor
 
 def yuv_to_rgb(yuv_tensor):

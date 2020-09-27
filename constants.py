@@ -25,12 +25,15 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-DEHAZER_VERSION = "dehazer_v1.05"
-COLORIZER_VERSION = "colorizer_v1.05"
-ITERATION = "2"
+DEHAZER_VERSION = "dehazer_v1.07"
+COLORIZER_VERSION = "colorizer_v1.06"
+COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.06"
+
+ITERATION = "1"
 
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
+COLOR_TRANFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION +'.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys
@@ -57,8 +60,8 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 256
-infer_size = 32
+batch_size = 512
+infer_size = 16
 
 num_workers = 12
 

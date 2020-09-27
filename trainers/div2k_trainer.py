@@ -13,15 +13,17 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 import torchvision.utils as vutils
 from custom_losses import ssim_loss
+from custom_losses import vgg_loss_model as vgg
 from utils import logger
 from utils import plot_utils
 from utils import tensor_utils
 
 class Div2kTrainer:
     
-    def __init__(self, gan_version, gan_iteration, gpu_device, lr = 0.0002):
+    def __init__(self, gan_version, gan_iteration, gpu_device, g_lr, d_lr):
         self.gpu_device = gpu_device
-        self.lr = lr
+        self.g_lr = g_lr
+        self.d_lr = d_lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
         self.G_A = cg.Generator().to(self.gpu_device)
@@ -36,8 +38,8 @@ class Div2kTrainer:
         # print("Loaded ", constants.DENOISE_CHECKPATH)
         
         self.visdom_reporter = plot_utils.VisdomReporter()
-        self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr = lr)
-        self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters(), self.D_B.parameters()), lr = lr)
+        self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr = self.g_lr)
+        self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters(), self.D_B.parameters()), lr = self.d_lr)
         self.initialize_dict()
         
     
@@ -55,6 +57,18 @@ class Div2kTrainer:
         self.losses_dict[constants.D_B_REAL_LOSS_KEY] = []
         self.losses_dict[constants.CYCLE_LOSS_KEY] = []
         
+        self.caption_dict = {}
+        self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
+        self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
+        self.caption_dict[constants.IDENTITY_LOSS_KEY] = "Identity loss per iteration"
+        self.caption_dict[constants.CYCLE_LOSS_KEY] = "Cycle loss per iteration"
+        self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
+        self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
+        self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
+        self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
+        self.caption_dict[constants.D_B_FAKE_LOSS_KEY] = "D(B) fake loss per iteration"
+        self.caption_dict[constants.D_B_REAL_LOSS_KEY] = "D(B) real loss per iteration"
+        
     
     def update_penalties(self, adv_weight, id_weight, likeness_weight, cycle_weight):
         #what penalties to use for losses?
@@ -64,11 +78,12 @@ class Div2kTrainer:
         self.cycle_weight = cycle_weight
         
         #save hyperparameters for bookeeping
-        HYPERPARAMS_PATH = "checkpoint/" + constants.VERSION + "_" + constants.ITERATION + ".config"
+        HYPERPARAMS_PATH = "checkpoint/" + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
-            print("Version: ", constants.CHECKPATH, file = f)
+            print("Version: ", constants.COLOR_TRANFER_CHECKPATH, file = f)
             print("Residual blocks: 8", file = f)
-            print("Learning rate: ", str(self.lr), file = f)
+            print("Learning rate for G: ", str(self.g_lr), file = f)
+            print("Learning rate for D: ", str(self.d_lr), file = f)
             print("====================================", file = f)
             print("Adv weight: ", str(self.adv_weight), file = f)
             print("Identity weight: ", str(self.id_weight), file = f)
@@ -86,13 +101,13 @@ class Div2kTrainer:
         return loss(pred, target)
     
     def cycle_loss(self, pred, target):
-        loss = nn.L1Loss()
+        loss = nn.MSELoss()
         return loss(pred, target)
+        #loss = ssim_loss.SSIM()
+        #return 1 - loss(pred, target)
     
     def likeness_loss(self, pred, target):
-        # loss = ssim_loss.SSIM()
-        # return 1 - loss(pred, target)
-        loss = nn.MSELoss()
+        loss = vgg.VGGPerceptualLoss().to(self.gpu_device)
         return loss(pred, target)
     
     def train(self, dirty_tensor, clean_tensor):
@@ -172,11 +187,12 @@ class Div2kTrainer:
             test_dirty_like = self.G_B(test_clean_like)
         
         #report to visdom
-        self.visdom_reporter.plot_finegrain_loss(iteration, self.losses_dict)
+        self.visdom_reporter.plot_finegrain_loss("color transfer loss", iteration, self.losses_dict, self.caption_dict)
         self.visdom_reporter.plot_image(dirty_tensor, "Training Dirty images")
         self.visdom_reporter.plot_image(clean_tensor, "Training Clean images")
         self.visdom_reporter.plot_image(clean_like, "Training Clean-like images")
         self.visdom_reporter.plot_image(test_dirty_tensor, "Test Dirty images")
+        self.visdom_reporter.plot_image(test_dirty_like, "Test Dirty-like images")
         self.visdom_reporter.plot_image(test_clean_tensor, "Test Clean images")
         self.visdom_reporter.plot_image(test_clean_like, "Test Clean-like images")
     
@@ -190,7 +206,7 @@ class Div2kTrainer:
     def infer(self, dirty_tensor, file_number):
         LOCATION = os.getcwd() + "/figures/"
         with torch.no_grad():
-            clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor)).detach()
+            clean_like = self.G_A(dirty_tensor).detach()
         
         #resize tensors for better viewing
         resized_normal = nn.functional.interpolate(dirty_tensor, scale_factor = 4.0, mode = "bilinear", recompute_scale_factor = True)
@@ -199,7 +215,7 @@ class Div2kTrainer:
         print("New shapes: %s %s" % (np.shape(resized_normal), np.shape(resized_fake)))
         
         fig, ax = plt.subplots(2, 1)
-        fig.set_size_inches(constants.FIG_SIZE)
+        fig.set_size_inches((32, 16))
         fig.tight_layout()
         
         ims = np.transpose(vutils.make_grid(resized_normal, nrow = 8, padding=2, normalize=True).cpu(),(1,2,0))

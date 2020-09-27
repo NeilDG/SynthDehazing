@@ -86,7 +86,8 @@ class Generator(nn.Module):
     
     def forward(self, x):
         #input = torch.cat([x, synth_x], 1)
-        y = self.conv1(x)
+        input = x
+        y = self.conv1(input)
         y = self.res1(y)
         y = self.res2(y)
         y = self.res3(y)

@@ -111,8 +111,8 @@ def create_gta_noisy_data():
         count = count + 1
 
 def create_hazy_data(offset):
-    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_3_clean.mp4"
-    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_3_haze.mp4"
+    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_4_clean.mp4"
+    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_4_haze.mp4"
     
     CLEAN_SAVE_PATH = "E:/Synth Hazy/clean/"
     HAZY_SAVE_PATH = "E:/Synth Hazy/hazy/"

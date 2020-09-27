@@ -21,7 +21,6 @@ import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import denoise_net_trainer
 import constants
-from utils import logger
      
 parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
@@ -33,7 +32,6 @@ parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="5")
 #parser.add_option('--disc_blocks', type=int, help="Weight", default="3")
-print = logger.log
 
 #--img_to_load=-1 --load_previous=0
 #Update config if on COARE
@@ -58,7 +56,6 @@ def update_config(opts):
         
 def main(argv):
     (opts, args) = parser.parse_args(argv)
-    logger.clear_log()
     update_config(opts)
     print("=========BEGIN============")
     print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))

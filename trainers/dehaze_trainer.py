@@ -26,9 +26,9 @@ class DehazeTrainer:
         self.gan_iteration = gan_iteration
         self.visdom_reporter = plot_utils.VisdomReporter()
         
-        self.G_A = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks=gen_blocks).to(self.gpu_device)
+        self.G_A = cg.Generator(input_nc = 3, output_nc = 3, n_residual_blocks=gen_blocks).to(self.gpu_device)
         #self.G_B = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks=gen_blocks).to(self.gpu_device)
-        self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)
+        self.D_A = cg.Discriminator(input_nc = 3).to(self.gpu_device)
         #self.D_B = cg.Discriminator(input_nc = 1).to(self.gpu_device)
         
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr = lr)
@@ -67,7 +67,7 @@ class DehazeTrainer:
             print("Clarity weight: ", str(self.clarity_weight), file = f)
     
     def adversarial_loss(self, pred, target):
-        loss = nn.MSELoss()
+        loss = nn.L1Loss()
         return loss(pred, target)
     
     def realness_loss(self, pred, target):

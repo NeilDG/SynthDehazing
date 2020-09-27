@@ -33,15 +33,26 @@ def assemble_train_data(path_a, path_b, num_image_to_load = -1):
     
     return a_list, b_list
 
-def assemble_unpaired_data(path_a, num_image_to_load = -1):
+def assemble_unpaired_data(path_a, num_image_to_load = -1, force_complete = False):
     a_list = []
     
+    loaded = 0
     for (root, dirs, files) in os.walk(path_a):
-        for f in files:
-            file_name = os.path.join(root, f)
-            a_list.append(file_name)
-            if(num_image_to_load != -1 and len(a_list) == num_image_to_load):
-                break  
+            for f in files:
+                file_name = os.path.join(root, f)
+                a_list.append(file_name)
+                loaded = loaded + 1
+                if(num_image_to_load != -1 and len(a_list) == num_image_to_load):
+                    break
+    
+    while loaded != num_image_to_load and force_complete:
+        for (root, dirs, files) in os.walk(path_a):
+            for f in files:
+                file_name = os.path.join(root, f)
+                a_list.append(file_name)
+                loaded = loaded + 1
+                if(num_image_to_load != -1 and len(a_list) == num_image_to_load):
+                    break  
     
     return a_list
 
@@ -113,10 +124,10 @@ def load_rgb_test_dataset(path_a, batch_size = 8, num_image_to_load = -1):
 def load_div2k_train_dataset(path_a, path_b, path_c, batch_size = 8, num_image_to_load = -1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
     b_list = assemble_unpaired_data(path_b, num_image_to_load / 2)
-    c_list = assemble_unpaired_data(path_c, num_image_to_load)
-    
     #specific for Hazy dataset. Combine synth and real data
     a_list = a_list + b_list
+    c_list = assemble_unpaired_data(path_c, len(a_list), True)
+    
     print("Length of images: %d, %d." % (len(a_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
