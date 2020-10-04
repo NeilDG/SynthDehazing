@@ -217,7 +217,7 @@ def color_transfer(checkpath, version, iteration):
     print("Loaded results checkpt ",checkpath)
     print("===================================================")
     
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_DIV2K_PATH, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_VEMON_PATH, constants.infer_size, -1)
     
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -274,8 +274,8 @@ def dark_channel_test():
         
     
 def main():
-    VERSION = "dehaze_colortransfer_v1.05"
-    ITERATION = "3"
+    VERSION = "dehaze_colortransfer_v1.06"
+    ITERATION = "8"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
     
     #produce_video_batch(CHECKPATH, VERSION, ITERATION)

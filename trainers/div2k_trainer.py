@@ -2,8 +2,8 @@
 # Template trainer. Do not use this for actual training.
 
 import os
-from model import div2k_gan as cg
-from model import vanilla_cycle_gan as denoise_gan
+from model import style_transfer_gan as transfer_gan
+from model import vanilla_cycle_gan as discrim_gan
 import constants
 import torch
 import random
@@ -26,12 +26,12 @@ class Div2kTrainer:
         self.d_lr = d_lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
-        self.G_A = cg.Generator().to(self.gpu_device)
-        self.G_B = denoise_gan.Generator().to(self.gpu_device)
-        self.D_A = denoise_gan.Discriminator().to(self.gpu_device) #use CycleGAN's discriminator
-        self.D_B = denoise_gan.Discriminator().to(self.gpu_device)
+        self.G_A = transfer_gan.Generator().to(self.gpu_device)
+        self.G_B = transfer_gan.Generator().to(self.gpu_device)
+        self.D_A = discrim_gan.Discriminator().to(self.gpu_device) #use CycleGAN's discriminator
+        self.D_B = discrim_gan.Discriminator().to(self.gpu_device)
         
-        #self.denoise_model = denoise_gan.Generator(n_residual_blocks=3).to(self.gpu_device)
+        #self.denoise_model = transfer_gan.Generator(n_residual_blocks=3).to(self.gpu_device)
         # denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
         # self.denoise_model.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
         # print(self.denoise_model.model[10])
@@ -81,7 +81,6 @@ class Div2kTrainer:
         HYPERPARAMS_PATH = "checkpoint/" + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
             print("Version: ", constants.COLOR_TRANFER_CHECKPATH, file = f)
-            print("Residual blocks: 8", file = f)
             print("Learning rate for G: ", str(self.g_lr), file = f)
             print("Learning rate for D: ", str(self.d_lr), file = f)
             print("====================================", file = f)
@@ -89,6 +88,9 @@ class Div2kTrainer:
             print("Identity weight: ", str(self.id_weight), file = f)
             print("Likeness weight: ", str(self.likeness_weight), file = f)
             print("Cycle weight: ", str(self.cycle_weight), file = f)
+            print("====================================", file = f)
+            print("Brightness enhance: ", str(constants.brightness_enhance), file = f)
+            print("Contrast enhance: ", str(constants.contrast_enhance), file = f)
             
         
     
@@ -107,8 +109,10 @@ class Div2kTrainer:
         #return 1 - loss(pred, target)
     
     def likeness_loss(self, pred, target):
-        loss = vgg.VGGPerceptualLoss().to(self.gpu_device)
+        loss = nn.MSELoss()
         return loss(pred, target)
+        # loss = vgg.VGGPerceptualLoss().to(self.gpu_device)
+        # return loss(pred, target)
     
     def train(self, dirty_tensor, clean_tensor):
         #self.denoise_model.eval()
@@ -149,11 +153,11 @@ class Div2kTrainer:
         dirty_like = self.G_B(clean_like)
         
         identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
-        likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
+        A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight        
         A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
-        #B_cycle_loss = self.cycle_loss(self.G_A(dirty_like, self.denoise_model(dirty_like)), clean_tensor) * self.cycle_weight
     
         dirty_like = self.G_B(clean_tensor)
+        B_likeness_loss = self.likeness_loss(dirty_like, dirty_tensor) * self.likeness_weight
         B_cycle_loss = self.cycle_loss(self.G_A(dirty_like), clean_tensor) * self.cycle_weight
         
         prediction = self.D_A(clean_like)
@@ -164,7 +168,7 @@ class Div2kTrainer:
         real_tensor = torch.ones_like(prediction)
         B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
         
-        errG = identity_loss + likeness_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
+        errG = identity_loss + A_likeness_loss + B_likeness_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
         errG.backward()
         self.optimizerG.step()
         
@@ -172,8 +176,8 @@ class Div2kTrainer:
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
         self.losses_dict[constants.IDENTITY_LOSS_KEY].append(identity_loss.item())
-        self.losses_dict[constants.LIKENESS_LOSS_KEY].append(likeness_loss.item())
-        self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss + B_adv_loss.item())
+        self.losses_dict[constants.LIKENESS_LOSS_KEY].append(A_likeness_loss.item() + B_likeness_loss.item())
+        self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item() + B_adv_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
         self.losses_dict[constants.D_B_FAKE_LOSS_KEY].append(D_B_fake_loss.item())
@@ -234,9 +238,9 @@ class Div2kTrainer:
         self.G_A.load_state_dict(checkpoint[generator_key + "A"])
         self.G_B.load_state_dict(checkpoint[generator_key + "B"])
         self.D_A.load_state_dict(checkpoint[disriminator_key + "A"])
-        #self.D_B.load_state_dict(checkpoint[disriminator_key + "B"])
+        self.D_B.load_state_dict(checkpoint[disriminator_key + "B"])
         self.optimizerG.load_state_dict(checkpoint[generator_key + optimizer_key])
-        #self.optimizerD.load_state_dict(checkpoint[disriminator_key + optimizer_key])
+        self.optimizerD.load_state_dict(checkpoint[disriminator_key + optimizer_key])
     
     def save_states(self, epoch, iteration, path, generator_key, disriminator_key, optimizer_key):
         save_dict = {'epoch': epoch, 'iteration': iteration}

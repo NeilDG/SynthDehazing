@@ -31,10 +31,11 @@ parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--clarity_weight', type=float, help="Weight", default="100.0")
-parser.add_option('--color_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--color_weight', type=float, help="Weight", default="100.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="5")
-#parser.add_option('--disc_blocks', type=int, help="Weight", default="3")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 
 #--img_to_load=-1 --load_previous=0
 #Update config if on COARE
@@ -83,8 +84,8 @@ def main(argv):
     dehazer = dehaze_trainer.DehazeTrainer(constants.DEHAZER_VERSION, constants.ITERATION, device, opts.gen_blocks)
     dehazer.update_penalties(opts.clarity_weight, opts.adv_weight)
     
-    colorizer = correction_trainer.CorrectionTrainer(constants.COLORIZER_VERSION, constants.ITERATION, device, opts.gen_blocks)
-    colorizer.update_penalties(opts.color_weight, opts.cycle_weight, opts.adv_weight)
+    #colorizer = correction_trainer.CorrectionTrainer(constants.COLORIZER_VERSION, constants.ITERATION, device, opts.gen_blocks, opts.g_lr, opts.d_lr)
+    #colorizer.update_penalties(opts.color_weight, opts.cycle_weight, opts.adv_weight)
     start_epoch = 0
     iteration = 0
     
@@ -94,29 +95,32 @@ def main(argv):
         start_epoch = dehaze_checkpoint['epoch'] + 1   
         iteration = dehaze_checkpoint['iteration'] + 1
         dehazer.load_saved_state(iteration, dehaze_checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
-        colorizer.load_saved_state(iteration, color_checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        #colorizer.load_saved_state(iteration, color_checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
         
         print("Loaded checkpt: %s %s Current epoch: %d" % (constants.DEHAZER_CHECKPATH, constants.COLORIZER_CHECKPATH, start_epoch))
         print("===================================================")
     
     # Create the dataloader
     synth_train_loader = dataset_loader.load_dehaze_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, opts.img_to_load)
-    rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_VEMON_PATH, constants.batch_size, opts.img_to_load)
+    rgb_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH, constants.batch_size, opts.img_to_load)
+    #rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_VEMON_PATH, constants.batch_size, opts.img_to_load)
     
-    rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH, constants.display_size, 500)
-    synth_dark_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.display_size, 500)
+    #rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH, constants.display_size, 500)
+    #synth_dark_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.display_size, 500)
     
     index = 0
     
     # Plot some training images
     if(constants.is_coare == 0):
         _, synth_noisy_batch, synth_clean_batch = next(iter(synth_train_loader))
-        _, gray_batch, yuv_batch = next(iter(rgb_train_loader))
+        #_, rgb_batch, yuv_batch = next(iter(rgb_train_loader))
+        _, rgb_batch = next(iter(rgb_test_loader))
         
         show_images(synth_noisy_batch, "Training - Hazy Images")
         show_images(synth_clean_batch, "Training - Clean Images")
-        show_images(gray_batch, "Training - Gray Images")
-        show_images(tensor_utils.yuv_to_rgb(yuv_batch), "Training - Colored Images")
+        show_images(rgb_batch, "Test - Real Images")
+        #show_images(gray_batch, "Training - Gray Images")
+        #show_images(tensor_utils.merge_yuv_results_to_rgb(gray_batch, yuv_batch), "Training - Colored Images")
     
     print("Starting Training Loop...")
     if(constants.is_coare == 0):
@@ -128,15 +132,15 @@ def main(argv):
                 hazy_tensor = hazy_batch.to(device)
                 clean_tensor = clean_batch.to(device)
                 gray_tensor = gray_batch.to(device)
-                rgb_tensor = yuv_batch.to(device)
+                uv_tensor = yuv_batch.to(device)
                 
                 #train dehazing
                 dehazer.train(hazy_tensor, clean_tensor)
                 #train colorization
-                colorizer.train(dehazer.infer_single(gray_tensor), rgb_tensor)
+                #colorizer.train(dehazer.infer_single(gray_tensor), uv_tensor)
                 
                 if(i % 50 == 0):
-                    _, synth_dark_dirty_batch, synth_dark_clean_batch = next(iter(synth_dark_test_loader))
+                    #_, synth_dark_dirty_batch, synth_dark_clean_batch = next(iter(synth_dark_test_loader))
                     _, gray_batch, yuv_batch = next(iter(rgb_test_loader))
                     
                     synth_dark_dirty_batch = synth_dark_dirty_batch.to(device)
@@ -145,7 +149,7 @@ def main(argv):
                     yuv_batch = yuv_batch.to(device)
                                         
                     dehazer.visdom_report(iteration, synth_dark_dirty_batch, synth_dark_clean_batch, gray_batch)
-                    colorizer.visdom_report(iteration, dehazer.infer_single(gray_batch), yuv_batch)
+                    #colorizer.visdom_report(iteration, dehazer.infer_single(gray_batch), yuv_batch)
                     iteration = iteration + 1
                     
                     index = (index + 1) % len(synth_dark_test_loader)
@@ -154,7 +158,7 @@ def main(argv):
                       synth_dark_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.display_size, 500)
               
             dehazer.save_states(epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
-            colorizer.save_states(epoch, iteration, constants.COLORIZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+            #colorizer.save_states(epoch, iteration, constants.COLORIZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:
         for i, (dehaze_data, rgb_data) in enumerate(zip(synth_train_loader, rgb_train_loader)):
                 _, hazy_batch, clean_batch = dehaze_data

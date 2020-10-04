@@ -27,21 +27,25 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--cycle_weight', type=float, help="Weight", default="100.0")
+parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00")
+parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 
-#--img_to_load=10000 --load_previous=0
+#--img_to_load=-1 --load_previous=0
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
+    constants.brightness_enhance = opts.brightness_enhance
+    constants.contrast_enhance = opts.contrast_enhance
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = 64
+        constants.batch_size = 1024
         
         constants.ITERATION = str(opts.iteration)
         constants.COLOR_TRANFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION +'.pt'
@@ -58,7 +62,7 @@ def update_config(opts):
 def main(argv):
     (opts, args) = parser.parse_args(argv)
     update_config(opts)
-    print("=========BEGIN============")
+    print("=====================BEGIN============================")
     print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
     

@@ -38,11 +38,13 @@ class Div2kDataset(data.Dataset):
         self.div2k_list = div2k_list
         
         resized = (int(constants.TEST_IMAGE_SIZE[0] * 1.01), int(constants.TEST_IMAGE_SIZE[1] * 1.01))
-        self.transform_op = transforms.Compose([
+        self.initial_transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
-                                    #transforms.Resize(resized),
                                     transforms.RandomCrop(constants.BIRD_IMAGE_SIZE),
-                                    transforms.RandomHorizontalFlip(),
+                                    transforms.RandomHorizontalFlip()
+                                    ])
+        
+        self.final_transform_op = transforms.Compose([
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                                     ])
@@ -58,23 +60,31 @@ class Div2kDataset(data.Dataset):
         
         img_id = self.div2k_list[idx]
         topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2RGB)
+               
+        normal_img = self.initial_transform_op(normal_img)
+        topdown_img = self.initial_transform_op(topdown_img)
         
-        if(self.transform_op):            
-            normal_img = self.transform_op(normal_img)
-            topdown_img = self.transform_op(topdown_img)
+        normal_img = transforms.functional.adjust_brightness(normal_img, constants.brightness_enhance)
+        topdown_img = transforms.functional.adjust_brightness(topdown_img, constants.brightness_enhance)
+        
+        normal_img = transforms.functional.adjust_contrast(normal_img, constants.contrast_enhance)
+        topdown_img = transforms.functional.adjust_contrast(topdown_img, constants.contrast_enhance)
+        
+        normal_img = self.final_transform_op(normal_img)
+        topdown_img = self.final_transform_op(topdown_img)
             
         return file_name, normal_img, topdown_img
     
     def __len__(self):
         return len(self.vemon_list)
-    
-class HazeDataset(data.Dataset):
+
+class DarkChannelHazeDataset(data.Dataset):
     def __init__(self, hazy_list, clear_list):
         self.hazy_list = hazy_list
         self.clear_list = clear_list
         
         self.initial_transform_op = transforms.Compose([
-                                    transforms.ToPILImage(mode= 'L'),
+                                    transforms.ToPILImage(mode = 'L'),
                                     transforms.Resize(constants.TEST_IMAGE_SIZE),
                                     ])
             
@@ -112,7 +122,83 @@ class HazeDataset(data.Dataset):
     
     def __len__(self):
         return len(self.hazy_list)
+    
+class HazeDataset(data.Dataset):
+    def __init__(self, hazy_list, clear_list):
+        self.hazy_list = hazy_list
+        self.clear_list = clear_list
+        
+        self.initial_transform_op = transforms.Compose([
+                                    transforms.ToPILImage(),
+                                    transforms.Resize(constants.TEST_IMAGE_SIZE),
+                                    ])
+            
+        self.final_transform_op = transforms.Compose([transforms.ToTensor(),
+                                                      transforms.Normalize((0.5), (0.5))])
+        
+        
+    
+    def __getitem__(self, idx):
+        img_id = self.hazy_list[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+        
+        hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
+        
+        img_id = self.clear_list[idx]
+        clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
+                 
+        hazy_img = self.initial_transform_op(hazy_img)
+        clear_img = self.initial_transform_op(clear_img)
+        
+        crop_indices = transforms.RandomCrop.get_params(hazy_img, output_size=constants.BIRD_IMAGE_SIZE)
+        i, j, h, w = crop_indices
+        
+        hazy_img = transforms.functional.crop(hazy_img, i, j, h, w)
+        clear_img = transforms.functional.crop(clear_img, i, j, h, w)
+        
+        hazy_img = transforms.functional.adjust_brightness(hazy_img, 1.25)
+        clear_img = transforms.functional.adjust_brightness(clear_img, 1.25)
+        
+        hazy_img = self.final_transform_op(hazy_img)
+        clear_img = self.final_transform_op(clear_img)  
+        
+        #hazy_img = tensor_utils.rgb_to_yuv(hazy_img)
+        #clear_img = tensor_utils.rgb_to_yuv(clear_img)
+                
+        return file_name, hazy_img, clear_img
+    
+    def __len__(self):
+        return len(self.hazy_list)
 
+class HazeTestDataset(data.Dataset):
+    def __init__(self, rgb_list):
+        self.rgb_list = rgb_list
+        
+        self.initial_transform_op = transforms.Compose([
+                                    transforms.ToPILImage(),
+                                    transforms.Resize(constants.TEST_IMAGE_SIZE),
+                                    transforms.CenterCrop(constants.TEST_IMAGE_SIZE)
+                                    ])
+        
+        self.final_transform_op = transforms.Compose([
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5), (0.5))
+                                    ])
+    def __getitem__(self, idx):
+        img_id = self.rgb_list[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+        
+        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = self.initial_transform_op(img)
+        img = self.final_transform_op(img)
+        
+        return file_name, img
+    
+    def __len__(self):
+        return len(self.rgb_list)
+    
 class ColorDataset(data.Dataset):
     def __init__(self, rgb_list):
         self.rgb_list = rgb_list
@@ -136,16 +222,16 @@ class ColorDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
+        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         gray_img = tensor_utils.get_y_channel(img)
-        #yuv_img = tensor_utils.get_uv_channel(img)
+        yuv_img = tensor_utils.get_uv_channel(img)
         
         gray_img = self.gray_transform_op(gray_img)
         
         crop_indices = transforms.RandomCrop.get_params(gray_img, output_size=constants.BIRD_IMAGE_SIZE)
         i, j, h, w = crop_indices
         
-        yuv_img = self.rgb_transform_op(img)
+        yuv_img = self.rgb_transform_op(yuv_img)
         
         gray_img = transforms.functional.crop(gray_img, i, j, h, w)
         yuv_img = transforms.functional.crop(yuv_img, i, j, h, w)
@@ -159,9 +245,9 @@ class ColorDataset(data.Dataset):
         return len(self.rgb_list)
 
 class TestDataset(data.Dataset):
-    def __init__(self, vemon_list, gta_list):
-        self.vemon_list = vemon_list
-        self.gta_list = gta_list
+    def __init__(self, a_list, b_list):
+        self.a_list = a_list
+        self.b_list = b_list
         
         self.transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
@@ -174,13 +260,13 @@ class TestDataset(data.Dataset):
         
     
     def __getitem__(self, idx):
-        img_id = self.vemon_list[idx]
+        img_id = self.a_list[idx]
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
         normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB)
         
-        img_id = self.gta_list[idx]
+        img_id = self.b_list[idx]
         topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2RGB)
         
         if(self.transform_op):
@@ -189,7 +275,7 @@ class TestDataset(data.Dataset):
         return file_name, normal_img, topdown_img
     
     def __len__(self):
-        return len(self.vemon_list)
+        return len(self.a_list)
 
 class ColorTestDataset(data.Dataset):
     def __init__(self, rgb_list):
@@ -198,7 +284,7 @@ class ColorTestDataset(data.Dataset):
         self.transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
                                     transforms.Resize(constants.TEST_IMAGE_SIZE),
-                                    transforms.CenterCrop(constants.TEST_IMAGE_SIZE),
+                                    transforms.RandomCrop(constants.TEST_IMAGE_SIZE),
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.5), (0.5))
                                     ])
@@ -209,10 +295,10 @@ class ColorTestDataset(data.Dataset):
         
         img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
         gray_img = tensor_utils.get_y_channel(img)
-        #uv_img = tensor_utils.get_uv_channel(img)
+        yuv_img = tensor_utils.get_uv_channel(img)
         
         gray_img = self.transform_op(gray_img)
-        yuv_img = self.transform_op(img)
+        yuv_img = self.transform_op(yuv_img)
         
         return file_name, gray_img, yuv_img
     
@@ -239,11 +325,11 @@ class DarkChannelTestDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2YUV)
+        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2LAB)
         normal_img = tensor_utils.get_y_channel(normal_img)
         
         img_id = self.gta_list[idx]
-        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2YUV)
+        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2LAB)
         topdown_img = tensor_utils.get_y_channel(topdown_img)
         
         if(self.transform_op):

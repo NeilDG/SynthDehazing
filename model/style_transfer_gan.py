@@ -19,6 +19,23 @@ def weights_init(m):
         elif classname.find('BatchNorm') != -1:
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
+
+class ResidualBlock(nn.Module):
+    def __init__(self, in_features):
+        super(ResidualBlock, self).__init__()
+
+        conv_block = [  nn.ReflectionPad2d(1),
+                        nn.Conv2d(in_features, in_features, 3),
+                        nn.InstanceNorm2d(in_features),
+                        nn.ReLU(inplace=True),
+                        nn.ReflectionPad2d(1),
+                        nn.Conv2d(in_features, in_features, 3),
+                        nn.InstanceNorm2d(in_features)  ]
+
+        self.conv_block = nn.Sequential(*conv_block)
+
+    def forward(self, x):
+        return x + self.conv_block(x)
             
 class Generator(nn.Module):
     
@@ -52,6 +69,13 @@ class Generator(nn.Module):
                                    nn.BatchNorm2d(out_size),
                                    nn.ReLU(True),
                                    nn.Dropout(0.5))
+        
+        
+        #4 residual blocks
+        self.res1 = ResidualBlock(out_size)
+        self.res2 = ResidualBlock(out_size)
+        self.res3 = ResidualBlock(out_size)
+        self.res4 = ResidualBlock(out_size)
         
         in_size = out_size
         out_size = int(in_size / 2)
@@ -87,6 +111,11 @@ class Generator(nn.Module):
        x2 = self.conv2(x1)
        x3 = self.conv3(x2)
        x4 = self.conv4(x3)
+       
+       x4 = self.res1(x4)
+       x4 = self.res2(x4)
+       x4 = self.res3(x4)
+       x4 = self.res4(x4)
        
        y1 = self.upconv1(x4)
        y2 = self.upconv2(y1 + x3)
