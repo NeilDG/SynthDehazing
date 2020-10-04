@@ -103,6 +103,9 @@ def yuv_to_rgb(yuv_tensor):
     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor)
     return rgb_tensor
 
+def rgb_to_yuv(rgb_tensor):
+    return pytorch_colors.rgb_to_yuv(rgb_tensor)
+
 def change_yuv(y_tensor, yuv_tensor):
     yuv_tensor = yuv_tensor.transpose(0, 1)
     y_tensor = y_tensor.transpose(0, 1)

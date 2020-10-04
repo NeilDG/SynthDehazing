@@ -10,6 +10,8 @@ DATASET_CLEAN_GTA_PATH = "E:/Noisy GTA/clean/"
 
 DATASET_HAZY_PATH = "E:/Synth Hazy/hazy/"
 DATASET_CLEAN_PATH = "E:/Synth Hazy/clean/"
+DATASET_HAZY_TEST_PATH_1 = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+DATASET_HAZY_TEST_PATH_2 = "E:/Hazy Dataset Benchmark/Unannotated/"
 
 DATASET_PLACES_PATH = "E:/Places Dataset/"
 DATASET_DIV2K_PATH = "E:/VEMON_Transfer/train/C/"
@@ -17,7 +19,7 @@ DATASET_DIV2K_PATH = "E:/VEMON_Transfer/train/C/"
 BIRD_IMAGE_SIZE = (32, 32) #320 x 192 original
 TEST_IMAGE_SIZE = (128, 128)
 DIV2K_IMAGE_SIZE = (2040, 1404)
-FIG_SIZE = (TEST_IMAGE_SIZE[0], TEST_IMAGE_SIZE[1])
+FIG_SIZE = (16, 16)
 TENSORBOARD_PATH = os.getcwd() + "/train_plot/"
 
 #========================================================================#
@@ -25,7 +27,7 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-DEHAZER_VERSION = "dehazer_v1.07"
+DEHAZER_VERSION = "dehazer_v1.08"
 COLORIZER_VERSION = "colorizer_v1.06"
 COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.06"
 
@@ -60,10 +62,11 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 512
+batch_size = 256
 infer_size = 16
 
-num_workers = 12
+brightness_enhance = 1.0
+contrast_enhance = 1.0
 
 #Running on COARE?
 is_coare = 0

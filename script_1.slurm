@@ -9,7 +9,7 @@
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph 
 #SBATCH --mail-type=END 
 
-ITERATION=1
+ITERATION=7
 
 # check which GPU device was allocated
 echo "CUDA_DEVICE=/dev/nvidia/$CUDA_VISIBLE_DEVICES"
@@ -23,12 +23,12 @@ source activate NeilGAN
 
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge scikit-image
-srun python div2k_main.py --iteration=$ITERATION --coare=1 --identity_weight=50.0 --likeness_weight=1.0 --cycle_weight=50.0 --img_to_load=-1 --load_previous=0
+srun python div2k_main.py --iteration=$ITERATION --coare=1 --identity_weight=50.0 --likeness_weight=0.0 --cycle_weight=50.0 --img_to_load=-1 --load_previous=0
 source deactivate
 
-for i in {1..500}
+for i in {1..300}
     do
         source activate NeilGAN
-        srun python div2k_main.py --iteration=$ITERATION --coare=1 --identity_weight=50.0 --likeness_weight=1.0 --cycle_weight=50.0 --img_to_load=-1 --load_previous=1
+        srun python div2k_main.py --iteration=$ITERATION --coare=1 --identity_weight=50.0 --likeness_weight=0.0 --cycle_weight=50.0 --img_to_load=-1 --load_previous=1
         source deactivate
     done
