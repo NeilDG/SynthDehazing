@@ -5,11 +5,11 @@
 #SBATCH --cpus-per-task=4
 #SBATCH -G 1
 #SBATCH --ntasks=1
-#SBATCH --output=DH_4.out
+#SBATCH --output=DH_5.out
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph
 #SBATCH --mail-type=END
 
-ITERATION=4
+ITERATION=5
 
 # check which GPU device was allocated
 echo "CUDA_DEVICE=/dev/nvidia/$CUDA_VISIBLE_DEVICES"
@@ -23,12 +23,12 @@ source activate NeilGAN
 
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge scikit-image
-srun python dehaze_main.py --iteration=$ITERATION --clarity_weight=250.0 --coare=1 --img_to_load=-1 --load_previous=0
+srun python dehaze_main.py --iteration=$ITERATION --clarity_weight=50.0 --brightness_enhance=1.25 --coare=1 --img_to_load=-1 --load_previous=0
 source deactivate
 
 for i in {1..500}
     do
         source activate NeilGAN
-        srun python dehaze_main.py --iteration=$ITERATION --clarity_weight=250.0 --coare=1 --img_to_load=-1 --load_previous=1
+        srun python dehaze_main.py --iteration=$ITERATION --clarity_weight=50.0 --brightness_enhance=1.25 --coare=1 --img_to_load=-1 --load_previous=1
         source deactivate
     done

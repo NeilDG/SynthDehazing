@@ -19,45 +19,88 @@ def weights_init(m):
         elif classname.find('BatchNorm') != -1:
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
+
+class ResidualBlock(nn.Module):
+    def __init__(self, in_features):
+        super(ResidualBlock, self).__init__()
+
+        conv_block = [  nn.ReflectionPad2d(1),
+                        nn.Conv2d(in_features, in_features, 3),
+                        nn.InstanceNorm2d(in_features),
+                        nn.ReLU(inplace=True),
+                        nn.ReflectionPad2d(1),
+                        nn.Conv2d(in_features, in_features, 3),
+                        nn.InstanceNorm2d(in_features)  ]
+
+        self.conv_block = nn.Sequential(*conv_block)
+
+    def forward(self, x):
+        return x + self.conv_block(x)
             
 class Generator(nn.Module):
     
-    def __init__(self, filter_size = 512, bottleneck_size = 128):
+    def __init__(self, input_nc = 3, output_nc = 3, filter_size = 64):
         super(Generator, self).__init__()
         
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 3, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
+        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = input_nc, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
                                    nn.BatchNorm2d(filter_size),
                                    nn.ReLU(True))
         
-        self.conv2 = nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(filter_size),
+        in_size = filter_size
+        out_size = in_size * 2
+        
+        self.conv2 = nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(out_size),
                                    nn.ReLU(True),
                                    nn.Dropout(0.5))
         
-        self.conv3 = nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(filter_size),
+        in_size = out_size
+        out_size = in_size * 2
+        
+        self.conv3 = nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(out_size),
                                    nn.ReLU(True),
                                    nn.Dropout(0.5))
         
-        self.conv4 = nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = bottleneck_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(bottleneck_size),
+        in_size = out_size
+        out_size = in_size * 2
+        
+        self.conv4 = nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
+                                   nn.BatchNorm2d(out_size),
                                    nn.ReLU(True),
                                    nn.Dropout(0.5))
         
-        self.upconv1 = nn.Sequential(nn.ConvTranspose2d(in_channels = bottleneck_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(filter_size),
+        
+        #4 residual blocks
+        self.res1 = ResidualBlock(out_size)
+        self.res2 = ResidualBlock(out_size)
+        self.res3 = ResidualBlock(out_size)
+        self.res4 = ResidualBlock(out_size)
+        
+        in_size = out_size
+        out_size = int(in_size / 2)
+        
+        self.upconv1 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(out_size),
             nn.ReLU(True))
     
+        in_size = out_size
+        out_size = int(in_size / 2)
         
-        self.upconv2 = nn.Sequential(nn.ConvTranspose2d(in_channels = filter_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(filter_size),
+        self.upconv2 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(out_size),
             nn.ReLU(True))
         
-        self.upconv3 = nn.Sequential(nn.ConvTranspose2d(in_channels = filter_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(filter_size),
+        in_size = out_size
+        out_size = int(in_size / 2)
+        
+        self.upconv3 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(out_size),
             nn.ReLU(True))
         
-        self.upconv4 = nn.Sequential(nn.ConvTranspose2d(in_channels = filter_size, out_channels = 3, kernel_size=4, stride=2, padding=1, bias=False),
+        in_size = out_size
+        
+        self.upconv4 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = output_nc, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh())
         
         self.apply(weights_init)
@@ -68,6 +111,11 @@ class Generator(nn.Module):
        x2 = self.conv2(x1)
        x3 = self.conv3(x2)
        x4 = self.conv4(x3)
+       
+       x4 = self.res1(x4)
+       x4 = self.res2(x4)
+       x4 = self.res3(x4)
+       x4 = self.res4(x4)
        
        y1 = self.upconv1(x4)
        y2 = self.upconv2(y1 + x3)
