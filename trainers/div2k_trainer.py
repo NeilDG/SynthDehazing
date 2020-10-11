@@ -16,6 +16,7 @@ from custom_losses import ssim_loss
 from custom_losses import vgg_loss_model as vgg
 from utils import logger
 from utils import plot_utils
+from utils import pytorch_colors
 from utils import tensor_utils
 
 class Div2kTrainer:
@@ -50,6 +51,7 @@ class Div2kTrainer:
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
         self.losses_dict[constants.IDENTITY_LOSS_KEY] = []
         self.losses_dict[constants.LIKENESS_LOSS_KEY] = []
+        self.losses_dict[constants.COLOR_SHIFT_LOSS_KEY] = []
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
@@ -63,6 +65,7 @@ class Div2kTrainer:
         self.caption_dict[constants.IDENTITY_LOSS_KEY] = "Identity loss per iteration"
         self.caption_dict[constants.CYCLE_LOSS_KEY] = "Cycle loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
+        self.caption_dict[constants.COLOR_SHIFT_LOSS_KEY] = "Color shift loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
@@ -70,12 +73,13 @@ class Div2kTrainer:
         self.caption_dict[constants.D_B_REAL_LOSS_KEY] = "D(B) real loss per iteration"
         
     
-    def update_penalties(self, adv_weight, id_weight, likeness_weight, cycle_weight):
+    def update_penalties(self, adv_weight, id_weight, likeness_weight, cycle_weight, color_shift_weight):
         #what penalties to use for losses?
         self.adv_weight = adv_weight
         self.id_weight = id_weight
         self.likeness_weight = likeness_weight
         self.cycle_weight = cycle_weight
+        self.color_shift_weight = color_shift_weight
         
         #save hyperparameters for bookeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + ".config"
@@ -113,7 +117,30 @@ class Div2kTrainer:
         return loss(pred, target)
         # loss = vgg.VGGPerceptualLoss().to(self.gpu_device)
         # return loss(pred, target)
-    
+
+    def color_shift_loss(self, pred, target):
+        pred_lab = pytorch_colors.rgb_to_lab(pred.detach())
+        target_lab = pytorch_colors.rgb_to_lab(target.detach())
+
+        (y,u,v) = torch.chunk(pred_lab.transpose(0,1), 3)
+        pred_ab = torch.cat((u,v))
+
+        (y,u,v) = torch.chunk(target_lab.transpose(0,1), 3)
+        target_ab = torch.cat((u,v))
+
+
+        pred_ab = torch.cat((torch.zeros_like(y), pred_ab))
+        target_ab = torch.cat((torch.zeros_like(y), target_ab))
+        pred_ab = pred_ab.transpose(0,1)
+        target_ab = target_ab.transpose(0,1)
+
+        #impose color penalty to tensor for autograd by canceling out original pred/target pair
+        pred = pred + pred_ab
+        target = target + target_ab
+
+        loss = nn.L1Loss()
+        return loss(pred, target)
+
     def train(self, dirty_tensor, clean_tensor):
         #self.denoise_model.eval()
         #clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
@@ -153,11 +180,13 @@ class Div2kTrainer:
         dirty_like = self.G_B(clean_like)
         
         identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
-        A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight        
+        A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
+        A_color_shift_loss = self.color_shift_loss(clean_like, clean_tensor) * self.color_shift_weight
         A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
     
         dirty_like = self.G_B(clean_tensor)
         B_likeness_loss = self.likeness_loss(dirty_like, dirty_tensor) * self.likeness_weight
+        B_color_shift_loss = self.color_shift_loss(dirty_like, dirty_like) * self.color_shift_weight
         B_cycle_loss = self.cycle_loss(self.G_A(dirty_like), clean_tensor) * self.cycle_weight
         
         prediction = self.D_A(clean_like)
@@ -168,7 +197,7 @@ class Div2kTrainer:
         real_tensor = torch.ones_like(prediction)
         B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
         
-        errG = identity_loss + A_likeness_loss + B_likeness_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
+        errG = identity_loss + A_likeness_loss + B_likeness_loss + A_color_shift_loss + B_color_shift_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
         errG.backward()
         self.optimizerG.step()
         
@@ -177,6 +206,7 @@ class Div2kTrainer:
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
         self.losses_dict[constants.IDENTITY_LOSS_KEY].append(identity_loss.item())
         self.losses_dict[constants.LIKENESS_LOSS_KEY].append(A_likeness_loss.item() + B_likeness_loss.item())
+        self.losses_dict[constants.COLOR_SHIFT_LOSS_KEY].append(A_color_shift_loss.item() + B_color_shift_loss.item())
         self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item() + B_adv_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())

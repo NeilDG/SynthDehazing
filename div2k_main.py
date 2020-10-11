@@ -27,16 +27,17 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--color_shift_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="100.0")
 parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00")
 parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 
-#--img_to_load=-1 --load_previous=0
+#--img_to_load=-1 --load_previous=1
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
@@ -74,7 +75,7 @@ def main(argv):
     print("Device: %s" % device)
     
     gt = div2k_trainer.Div2kTrainer(constants.COLOR_TRANSFER_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
-    gt.update_penalties(opts.adv_weight, opts.identity_weight, opts.likeness_weight, opts.cycle_weight)
+    gt.update_penalties(opts.adv_weight, opts.identity_weight, opts.likeness_weight, opts.cycle_weight, opts.color_shift_weight)
     start_epoch = 0
     iteration = 0
     
@@ -126,7 +127,7 @@ def main(argv):
                     iteration = iteration + 1
                     index = (index + 1) % len(test_loader)
                     if(index == 0):
-                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_DIV2K_PATH, constants.display_size, 500)
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.display_size, 500)
           
             gt.save_states(epoch, iteration, constants.COLOR_TRANFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else: 

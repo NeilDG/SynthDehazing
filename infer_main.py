@@ -38,7 +38,7 @@ def get_transform_ops(output_size):
 
 def produce_video(video_path, checkpath, version, iteration):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    gt = dehaze_trainer.DehazeTrainer(version, iteration, device, gen_blocks = 5)
+    gt = dehaze_trainer.DehazeTrainer(version, iteration, device, gen_blocks = 8, g_lr = 0.0002, d_lr = 0.0002)
     checkpoint = torch.load(checkpath)
     gt.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     
@@ -65,19 +65,31 @@ def produce_video(video_path, checkpath, version, iteration):
             success,rgb_img = vidcap.read()
             if(success):
                 rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
-                dark_img = tensor_utils.get_dark_channel(rgb_img)
-                
-                dark_img_tensor = dark_transform_op(dark_img)
-                dark_img_tensor = torch.unsqueeze(dark_img_tensor, 0).to(device)
+                #dark_img = tensor_utils.get_dark_channel(rgb_img)
+                #dark_img_tensor = dark_transform_op(dark_img)
+                #dark_img_tensor = torch.unsqueeze(dark_img_tensor, 0).to(device)
+
                 rgb_img_tensor = rgb_transform_op(rgb_img).unsqueeze(0).to(device)
                 
-                result_tensor = gt.infer_single(dark_img_tensor, rgb_img_tensor, alpha, beta)
+                result_tensor = gt.infer_single(rgb_img_tensor)
                 result_tensor = denoiser(result_tensor).cpu()
                 
                 result_img = tensor_utils.normalize_to_matplotimg(result_tensor, 0, 0.5, 0.5)
-                
-                #plt.imshow(result_img)
-                #plt.show()
+
+                #test - check brightness/contrast
+                # brightness = 1.0
+                # contrast = 1.0
+                # for i in range(10):
+                #     to_pil_op = transforms.ToPILImage()
+                #     display_img = to_pil_op(result_img)
+                #     display_img = transforms.functional.adjust_brightness(display_img, brightness)
+                #     display_img = transforms.functional.adjust_contrast(display_img, contrast)
+                #     #brightness = brightness + 0.1
+                #     contrast = contrast + 0.1
+                #     plt.imshow(display_img)
+                #     plt.show()
+
+
                 result_img = cv2.cvtColor(result_img, cv2.COLOR_RGB2BGR)
                 video_out.write(result_img)
         video_out.release()
@@ -217,7 +229,7 @@ def color_transfer(checkpath, version, iteration):
     print("Loaded results checkpt ",checkpath)
     print("===================================================")
     
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_VEMON_PATH, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.infer_size, -1)
     
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -274,13 +286,13 @@ def dark_channel_test():
         
     
 def main():
-    VERSION = "dehaze_colortransfer_v1.06"
-    ITERATION = "8"
+    VERSION = "dehazer_v1.08"
+    ITERATION = "1"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
     
-    #produce_video_batch(CHECKPATH, VERSION, ITERATION)
+    produce_video_batch(CHECKPATH, VERSION, ITERATION)
     #benchmark(CHECKPATH, VERSION, ITERATION)
-    color_transfer(CHECKPATH, VERSION, ITERATION)
+    #color_transfer(CHECKPATH, VERSION, ITERATION)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

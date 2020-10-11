@@ -147,24 +147,32 @@ class HazeDataset(data.Dataset):
         
         img_id = self.clear_list[idx]
         clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
+
+        #img_id = self.real_hazy_list[idx]
+        #real_hazy_img = cv2.imread(img_id); real_hazy_img = cv2.cvtColor(real_hazy_img, cv2.COLOR_BGR2RGB)
                  
         hazy_img = self.initial_transform_op(hazy_img)
         clear_img = self.initial_transform_op(clear_img)
+        #real_hazy_img  = self.initial_transform_op(real_hazy_img)
         
         crop_indices = transforms.RandomCrop.get_params(hazy_img, output_size=constants.BIRD_IMAGE_SIZE)
         i, j, h, w = crop_indices
         
         hazy_img = transforms.functional.crop(hazy_img, i, j, h, w)
         clear_img = transforms.functional.crop(clear_img, i, j, h, w)
-        
-        hazy_img = transforms.functional.adjust_brightness(hazy_img, 1.25)
-        clear_img = transforms.functional.adjust_brightness(clear_img, 1.25)
+        #real_hazy_img = transforms.functional.crop(real_hazy_img, i, j, h, w)
+
+        hazy_img = transforms.functional.adjust_brightness(hazy_img, constants.brightness_enhance)
+        clear_img = transforms.functional.adjust_brightness(clear_img, constants.brightness_enhance)
+        #real_hazy_img = transforms.functional.adjust_brightness(real_hazy_img, constants.brightness_enhance)
+
+        hazy_img = transforms.functional.adjust_contrast(hazy_img, constants.contrast_enhance)
+        hazy_img = transforms.functional.adjust_contrast(hazy_img, constants.contrast_enhance)
+        #real_hazy_img = transforms.functional.adjust_brightness(real_hazy_img, constants.brightness_enhance)
         
         hazy_img = self.final_transform_op(hazy_img)
-        clear_img = self.final_transform_op(clear_img)  
-        
-        #hazy_img = tensor_utils.rgb_to_yuv(hazy_img)
-        #clear_img = tensor_utils.rgb_to_yuv(clear_img)
+        clear_img = self.final_transform_op(clear_img)
+        #real_hazy_img = self.final_transform_op(real_hazy_img)
                 
         return file_name, hazy_img, clear_img
     
@@ -222,16 +230,16 @@ class ColorDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
         gray_img = tensor_utils.get_y_channel(img)
-        yuv_img = tensor_utils.get_uv_channel(img)
+        #yuv_img = tensor_utils.get_uv_channel(img)
+        yuv_img = img
         
         gray_img = self.gray_transform_op(gray_img)
-        
-        crop_indices = transforms.RandomCrop.get_params(gray_img, output_size=constants.BIRD_IMAGE_SIZE)
-        i, j, h, w = crop_indices
-        
         yuv_img = self.rgb_transform_op(yuv_img)
+
+        crop_indices = transforms.RandomCrop.get_params(yuv_img, output_size=constants.BIRD_IMAGE_SIZE)
+        i, j, h, w = crop_indices
         
         gray_img = transforms.functional.crop(gray_img, i, j, h, w)
         yuv_img = transforms.functional.crop(yuv_img, i, j, h, w)
@@ -243,39 +251,6 @@ class ColorDataset(data.Dataset):
     
     def __len__(self):
         return len(self.rgb_list)
-
-class TestDataset(data.Dataset):
-    def __init__(self, a_list, b_list):
-        self.a_list = a_list
-        self.b_list = b_list
-        
-        self.transform_op = transforms.Compose([
-                                    transforms.ToPILImage(),
-                                    transforms.Resize(constants.TEST_IMAGE_SIZE),
-                                    transforms.CenterCrop(constants.TEST_IMAGE_SIZE),
-                                    transforms.ToTensor(),
-                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                                    ])
-        
-        
-    
-    def __getitem__(self, idx):
-        img_id = self.a_list[idx]
-        path_segment = img_id.split("/")
-        file_name = path_segment[len(path_segment) - 1]
-        
-        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB)
-        
-        img_id = self.b_list[idx]
-        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2RGB)
-        
-        if(self.transform_op):
-            normal_img = self.transform_op(normal_img)
-            topdown_img = self.transform_op(topdown_img)
-        return file_name, normal_img, topdown_img
-    
-    def __len__(self):
-        return len(self.a_list)
 
 class ColorTestDataset(data.Dataset):
     def __init__(self, rgb_list):
@@ -295,7 +270,7 @@ class ColorTestDataset(data.Dataset):
         
         img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
         gray_img = tensor_utils.get_y_channel(img)
-        yuv_img = tensor_utils.get_uv_channel(img)
+        yuv_img = img
         
         gray_img = self.transform_op(gray_img)
         yuv_img = self.transform_op(yuv_img)

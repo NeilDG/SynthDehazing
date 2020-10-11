@@ -19,7 +19,7 @@ DATASET_DIV2K_PATH = "E:/VEMON_Transfer/train/C/"
 BIRD_IMAGE_SIZE = (32, 32) #320 x 192 original
 TEST_IMAGE_SIZE = (128, 128)
 DIV2K_IMAGE_SIZE = (2040, 1404)
-FIG_SIZE = (16, 16)
+FIG_SIZE = (16, 32)
 TENSORBOARD_PATH = os.getcwd() + "/train_plot/"
 
 #========================================================================#
@@ -27,9 +27,9 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-DEHAZER_VERSION = "dehazer_v1.08"
-COLORIZER_VERSION = "colorizer_v1.06"
-COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.06"
+DEHAZER_VERSION = "dehazer_v1.09"
+COLORIZER_VERSION = "colorizer_v1.07"
+COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.07"
 
 ITERATION = "1"
 
@@ -46,7 +46,7 @@ TV_LOSS_KEY = "tv"
 G_ADV_LOSS_KEY = "g_adv"
 LIKENESS_LOSS_KEY = "likeness"
 REALNESS_LOSS_KEY = "realness"
-
+COLOR_SHIFT_LOSS_KEY = "colorshift"
 
 D_OVERALL_LOSS_KEY = "d_loss"
 D_A_REAL_LOSS_KEY = "d_real_a"

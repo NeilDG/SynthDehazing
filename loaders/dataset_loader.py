@@ -84,7 +84,9 @@ def load_dark_channel_test_dataset(path_a, path_b, batch_size = 8, num_image_to_
 
 def load_dehaze_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
     a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
-    print("Length of dehazing dataset: %d, %d." % (len(a_list), len(b_list)))
+    #c_list = assemble_unpaired_data(path_c, len(b_list), True)
+    print("Length of dehazing dataset: %d, %d" % (len(a_list), len(b_list)))
+    #print("Length of dehazing dataset: %d, %d, %d" % (len(a_list), len(b_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
         image_dataset.HazeDataset(a_list, b_list),
@@ -92,7 +94,23 @@ def load_dehaze_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
         num_workers=6,
         shuffle=True
     )
-    
+
+    return data_loader
+
+
+def load_dark_channel_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
+    a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
+    # c_list = assemble_unpaired_data(path_c, len(b_list), True)
+    print("Length of dehazing dataset: %d, %d" % (len(a_list), len(b_list)))
+    # print("Length of dehazing dataset: %d, %d, %d" % (len(a_list), len(b_list), len(c_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.DarkChannelHazeDataset(a_list, b_list),
+        batch_size=batch_size,
+        num_workers=6,
+        shuffle=True
+    )
+
     return data_loader
 
 def load_dehaze_dataset_test(path_a, batch_size = 8, num_image_to_load = -1):
@@ -117,7 +135,7 @@ def load_rgb_dataset(path_a, batch_size = 8, num_image_to_load = -1):
     rgb_data_loader = torch.utils.data.DataLoader(
         image_dataset.ColorDataset(a_list),
         batch_size=batch_size,
-        num_workers=3,
+        num_workers=6,
         shuffle=True
     )
     
