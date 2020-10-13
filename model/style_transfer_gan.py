@@ -76,6 +76,8 @@ class Generator(nn.Module):
         self.res2 = ResidualBlock(out_size)
         self.res3 = ResidualBlock(out_size)
         self.res4 = ResidualBlock(out_size)
+        self.res5 = ResidualBlock(out_size)
+        self.res6 = ResidualBlock(out_size)
         
         in_size = out_size
         out_size = int(in_size / 2)
@@ -116,6 +118,8 @@ class Generator(nn.Module):
        x4 = self.res2(x4)
        x4 = self.res3(x4)
        x4 = self.res4(x4)
+       x4 = self.res5(x4)
+       x4 = self.res6(x4)
        
        y1 = self.upconv1(x4)
        y2 = self.upconv2(y1 + x3)

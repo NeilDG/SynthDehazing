@@ -14,12 +14,17 @@ from loaders import dataset_loader
 from trainers import denoise_net_trainer
 from trainers import div2k_trainer
 from trainers import dehaze_trainer
-from model import vanilla_cycle_gan as denoise_gan
+from model import vanilla_cycle_gan as cg
+from model import style_transfer_gan as sg
 import constants
 from torchvision import transforms
 import cv2
 from utils import tensor_utils
 import os
+import glob
+from skimage.measure import compare_ssim
+from skimage.measure import compare_mse
+from skimage.measure import compare_nrmse
 
 def get_transform_ops(output_size):
     dark_transform_op = transforms.Compose([transforms.ToPILImage(), 
@@ -93,16 +98,76 @@ def produce_video(video_path, checkpath, version, iteration):
                 result_img = cv2.cvtColor(result_img, cv2.COLOR_RGB2BGR)
                 video_out.write(result_img)
         video_out.release()
-                
-def benchmark(checkpath, version, iteration):
+
+def benchmark():
+    DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.09_1.pt"
+    COLORIZER_CHECKPATH = "checkpoint/colorizer_v1.07_1.pt"
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+    GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
+    SAVE_PATH = "results/"
+    BENCHMARK_PATH = "results/metrics.txt"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    dehazer = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks=5).to(device)
+    dehazer_checkpt = torch.load(DEHAZER_CHECKPATH)
+    dehazer.load_state_dict(dehazer_checkpt[constants.GENERATOR_KEY + "A"])
+
+    colorizer = sg.Generator(input_nc = 3, output_nc = 3).to(device)
+    colorizer_checkpt = torch.load(COLORIZER_CHECKPATH)
+    colorizer.load_state_dict(colorizer_checkpt[constants.GENERATOR_KEY + "A"])
+
+    OUTPUT_SIZE = (512, 512)
+    hazy_list = glob.glob(HAZY_PATH + "*.jpg")
+    gt_list = glob.glob(GT_PATH + "*.jpg")
+    y_transform_op, yuv_transform_op = get_transform_ops(OUTPUT_SIZE)
+
+    print(hazy_list, gt_list)
+    average_SSIM = 0.0
+    with open(BENCHMARK_PATH, "w") as f:
+        for i, (hazy_path, gt_path) in enumerate(zip(hazy_list, gt_list)):
+            with torch.no_grad():
+                img_name = hazy_path.split("\\")[1]
+
+                yuv_img = cv2.imread(hazy_path)
+                yuv_img = cv2.cvtColor(yuv_img, cv2.COLOR_BGR2YUV)
+                y_img = tensor_utils.get_y_channel(yuv_img)
+
+                gt_img = cv2.imread(gt_path)
+                gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2YUV)
+                gt_img = cv2.resize(gt_img, OUTPUT_SIZE, interpolation=cv2.INTER_CUBIC)
+
+                y_tensor = y_transform_op(y_img)
+                gt_tensor = yuv_transform_op(gt_img)
+                y_tensor = torch.unsqueeze(y_tensor, 0).to(device)
+                gt_tensor = torch.unsqueeze(gt_tensor, 0).to(device)
+                y_tensor_clean = dehazer(y_tensor)
+
+                (y, u, v) = torch.chunk(gt_tensor.transpose(0, 1), 3)
+                input_tensor = torch.cat((y_tensor_clean.transpose(0, 1), u, v)).transpose(0, 1)
+                input_tensor_clean = colorizer(input_tensor)
+
+                input_tensor_clean = tensor_utils.yuv_to_rgb(input_tensor_clean).cpu()
+                result_img = tensor_utils.normalize_to_matplotimg(input_tensor_clean, 0, 0.5, 0.5)
+                gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
+                result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
+                cv2.imwrite(SAVE_PATH + img_name, result_img)
+
+                #measure SSIM
+                SSIM = np.round(compare_ssim(result_img, gt_img, multichannel=True), 4)
+                print("SSIM of " + hazy_path + " : ", SSIM, file = f)
+                average_SSIM += SSIM
+
+        average_SSIM = average_SSIM / len(hazy_list) * 1.0
+        print("Average SSIM: ", average_SSIM, file = f)
+
+
+def create_figures(checkpath, version, iteration):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/Unannotated"
     HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy"
-    
     GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT"
-    
-    SAVE_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/results/"
+    SAVE_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
     #SAVE_PATH = "E:/Hazy Dataset Benchmark/Unannotated Results/"
-    
+
     OUTPUT_SIZE = (708, 1164)
     alpha = 1.0
     beta = 1.0
@@ -112,10 +177,11 @@ def benchmark(checkpath, version, iteration):
     checkpoint = torch.load(checkpath)
     gt.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     
-    denoiser = denoise_gan.Generator(n_residual_blocks=3).to(device)
+    denoiser = cg.Generator(n_residual_blocks=3).to(device)
     denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
     denoiser.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
-    
+
+
     hazy_list = []; gt_list = []
     for (root, dirs, files) in os.walk(HAZY_PATH):
         for f in files:
@@ -184,7 +250,7 @@ def benchmark(checkpath, version, iteration):
 def dehaze_infer(batch_size, checkpath, version, iteration):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     
-    denoiser = denoise_gan.Generator(n_residual_blocks=3).to(device)
+    denoiser = cg.Generator(n_residual_blocks=3).to(device)
     denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
     denoiser.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
     dehazer = denoise_net_trainer.DenoiseTrainer(version, iteration, device, gen_blocks=3)
@@ -290,8 +356,8 @@ def main():
     ITERATION = "1"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
     
-    produce_video_batch(CHECKPATH, VERSION, ITERATION)
-    #benchmark(CHECKPATH, VERSION, ITERATION)
+    #produce_video_batch(CHECKPATH, VERSION, ITERATION)
+    benchmark()
     #color_transfer(CHECKPATH, VERSION, ITERATION)
 
 #FIX for broken pipe num_workers issue.

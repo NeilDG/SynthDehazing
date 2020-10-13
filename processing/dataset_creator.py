@@ -55,11 +55,6 @@ def create_div2k_data():
         normal_img = cv2.imread(div2k_data[k])
         normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB)
         
-        transform_op_1 = transforms.Compose([
-                                    transforms.ToPILImage(),
-                                    transforms.TenCrop((512, 512))
-                                    ])
-        
         final_op = transforms.Compose([transforms.ToPILImage(), 
                                        transforms.RandomHorizontalFlip(),
                                        transforms.Resize((512, 512)),
@@ -81,7 +76,7 @@ def create_div2k_data():
             #plt.show()
             #plt.imshow(final_img)
             #plt.show()
-            cv2.imwrite(file_name, cv2.cvtColor(cv2.convertScaleAbs(final_img, alpha=(255.0)), cv2.COLOR_BGR2RGB))
+            cv2.imwrite(file_name, cv2.cvtColor(cv2.convertScaleAbs(final_img, alpha=255.0), cv2.COLOR_BGR2RGB))
             print("Saved: ", file_name)
             count = count + 1
             

@@ -31,7 +31,7 @@ DEHAZER_VERSION = "dehazer_v1.09"
 COLORIZER_VERSION = "colorizer_v1.07"
 COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.07"
 
-ITERATION = "1"
+ITERATION = "2"
 
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
@@ -62,7 +62,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 256
+batch_size = 128
 infer_size = 16
 
 brightness_enhance = 1.0
