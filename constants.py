@@ -1,23 +1,26 @@
 # -*- coding: utf-8 -*-
 import os
 
-DATASET_VEMON_PATH = "E:/VEMON_Transfer/train/A/"
-DATASET_GTA_PATH = "E:/VEMON_Transfer/train/B/"
+DATASET_VEMON_PATH_COMPLETE = "E:/VEMON_Transfer/train/A/"
+DATASET_VEMON_PATH_PATCH = "E:/VEMON_Transfer/train/B/"
 DATASET_GTA_PATH_2= "E:/VEMON Dataset/pending/frames/"
 
 DATASET_NOISY_GTA_PATH = "E:/Noisy GTA/noisy/"
 DATASET_CLEAN_GTA_PATH = "E:/Noisy GTA/clean/"
 
-DATASET_HAZY_PATH = "E:/Synth Hazy/hazy/"
-DATASET_CLEAN_PATH = "E:/Synth Hazy/clean/"
+DATASET_HAZY_PATH_COMPLETE = "E:/Synth Hazy/hazy/"
+DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy/clean/"
+DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
+DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
+
 DATASET_HAZY_TEST_PATH_1 = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
 DATASET_HAZY_TEST_PATH_2 = "E:/Hazy Dataset Benchmark/Unannotated/"
 
 DATASET_PLACES_PATH = "E:/Places Dataset/"
 DATASET_DIV2K_PATH = "E:/VEMON_Transfer/train/C/"
 
-BIRD_IMAGE_SIZE = (32, 32) #320 x 192 original
-TEST_IMAGE_SIZE = (128, 128)
+PATCH_IMAGE_SIZE = (32, 32)
+TEST_IMAGE_SIZE = (512, 512)
 DIV2K_IMAGE_SIZE = (2040, 1404)
 FIG_SIZE = (16, 32)
 TENSORBOARD_PATH = os.getcwd() + "/train_plot/"
@@ -62,7 +65,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 128
+batch_size = 256
 infer_size = 16
 
 brightness_enhance = 1.0

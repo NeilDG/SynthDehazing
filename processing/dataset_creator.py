@@ -48,21 +48,21 @@ def unsharp_mask(div2k_img):
     
     return unsharp_image
 
-def create_div2k_data():
-    div2k_data = assemble_img_list(DATASET_DIV2K_PATH)
+def create_img_data(dataset_path, save_path, filename_format, img_size, patch_size, repeats):
+    img_list = assemble_img_list(dataset_path)
     count = 0
-    for k in range(len(div2k_data)):
-        normal_img = cv2.imread(div2k_data[k])
+    for k in range(len(img_list)):
+        normal_img = cv2.imread(img_list[k])
         normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB)
         
         final_op = transforms.Compose([transforms.ToPILImage(), 
                                        transforms.RandomHorizontalFlip(),
-                                       transforms.Resize((512, 512)),
-                                       transforms.RandomCrop(constants.TEST_IMAGE_SIZE),
+                                       transforms.Resize(img_size),
+                                       transforms.RandomCrop(patch_size),
                                        transforms.ToTensor()])
         
-        for i in range(89):
-            file_name = SAVE_PATH + "div2k_patch_%d.png" % count
+        for i in range(repeats):
+            file_name = save_path + filename_format % count
             
             new_img = final_op(normal_img).numpy()
             final_img = unsharp_mask(new_img)
@@ -72,14 +72,49 @@ def create_div2k_data():
             final_img = np.moveaxis(final_img, -1, 0)
             final_img = np.moveaxis(final_img, -1, 0)
             
-            #plt.imshow(new_img)
-            #plt.show()
-            #plt.imshow(final_img)
-            #plt.show()
+            # plt.imshow(new_img)
+            # plt.show()
+            # plt.imshow(final_img)
+            # plt.show()
+
             cv2.imwrite(file_name, cv2.cvtColor(cv2.convertScaleAbs(final_img, alpha=255.0), cv2.COLOR_BGR2RGB))
             print("Saved: ", file_name)
             count = count + 1
-            
+
+
+def create_paired_img_data(dataset_path_a, dataset_path_b, save_path_a, save_path_b, filename_format, img_size, patch_size, repeats):
+    img_list_a = assemble_img_list(dataset_path_a)
+    img_list_b = assemble_img_list(dataset_path_b)
+
+    count = 0
+    for k in range(len(img_list_a)):
+        img_a = cv2.imread(img_list_a[k])
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)
+        img_b = cv2.imread(img_list_b[k])
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
+
+        initial_transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(img_size),
+        ])
+
+        for i in range(repeats):
+            file_name_a = save_path_a + filename_format % count
+            file_name_b = save_path_b + filename_format % count
+
+            img_a_patch = initial_transform_op(img_a)
+            img_b_patch = initial_transform_op(img_b)
+
+            crop_indices = transforms.RandomCrop.get_params(img_a_patch, output_size=patch_size)
+            i, j, h, w = crop_indices
+
+            img_a_patch = transforms.functional.crop(img_a_patch, i, j, h, w)
+            img_b_patch = transforms.functional.crop(img_b_patch, i, j, h, w)
+
+            img_a_patch.save(file_name_a)
+            img_b_patch.save(file_name_b)
+            print("Saved: ", file_name_a, file_name_b)
+            count = count + 1
   
 def create_gta_noisy_data():
     NOISY_SAVE_PATH = "E:/Noisy GTA/noisy/"
@@ -144,7 +179,14 @@ def create_hazy_data(offset):
 def main():
     #create_gta_noisy_data()
     #create_div2k_data()
-    create_hazy_data(0)
-        
+    #create_hazy_data(0)
+
+    PATH_A = "E:/Synth Hazy/hazy/"
+    SAVE_PATH_A = "E:/Synth Hazy - Patch/hazy/"
+
+    PATH_B = "E:/Synth Hazy/clean/"
+    SAVE_PATH_B = "E:/Synth Hazy - Patch/clean/"
+    create_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 10)
+
 if __name__=="__main__": 
     main()   

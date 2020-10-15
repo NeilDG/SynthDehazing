@@ -53,10 +53,10 @@ def update_config(opts):
 
         constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
-        constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_VEMON_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
 
-        constants.DATASET_HAZY_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
-        constants.DATASET_CLEAN_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
+        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
+        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
 
         constants.num_workers = 4
 
@@ -105,8 +105,8 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    synth_train_loader = dataset_loader.load_dehaze_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, opts.img_to_load)
-    vemon_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH, constants.batch_size, opts.img_to_load)
+    synth_train_loader = dataset_loader.load_dehaze_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+    vemon_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
     hazy_1_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_1, constants.batch_size, opts.img_to_load)
     hazy_2_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_2, constants.batch_size, opts.img_to_load)
 
@@ -157,7 +157,7 @@ def main(argv):
                     index = (index + 1) % len(vemon_test_loader)
 
                     if(index == 0):
-                      vemon_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH, constants.batch_size, opts.img_to_load)
+                      vemon_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
                       hazy_1_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_1, constants.batch_size, opts.img_to_load)
                       hazy_2_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_2, constants.batch_size, opts.img_to_load)
             dehazer.save_states(epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)

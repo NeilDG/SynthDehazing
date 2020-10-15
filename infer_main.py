@@ -41,60 +41,51 @@ def get_transform_ops(output_size):
     
     return dark_transform_op, rgb_transform_op
 
-def produce_video(video_path, checkpath, version, iteration):
+def produce_video(video_path):
+    DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.09_1.pt"
+    COLORIZER_CHECKPATH = "checkpoint/colorizer_v1.07_2.pt"
+
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    gt = dehaze_trainer.DehazeTrainer(version, iteration, device, gen_blocks = 8, g_lr = 0.0002, d_lr = 0.0002)
-    checkpoint = torch.load(checkpath)
-    gt.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
-    
-    denoiser = denoise_gan.Generator(n_residual_blocks=3).to(device)
-    denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
-    denoiser.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
+
+    dehazer = cg.Generator(input_nc=1, output_nc=1, n_residual_blocks=5).to(device)
+    dehazer_checkpt = torch.load(DEHAZER_CHECKPATH)
+    dehazer.load_state_dict(dehazer_checkpt[constants.GENERATOR_KEY + "A"])
+
+    colorizer = sg.Generator(input_nc=3, output_nc=3).to(device)
+    colorizer_checkpt = torch.load(COLORIZER_CHECKPATH)
+    colorizer.load_state_dict(colorizer_checkpt[constants.GENERATOR_KEY + "A"])
     
     vidcap = cv2.VideoCapture(video_path)
     success,image = vidcap.read()
     success = True
     
-    OUTPUT_SIZE = (480,704)
-    dark_transform_op, rgb_transform_op = get_transform_ops(OUTPUT_SIZE)
+    #OUTPUT_SIZE = (480,704)
+    OUTPUT_SIZE = (960, 1408)
+    y_transform_op, yuv_transform_op = get_transform_ops(OUTPUT_SIZE)
     
     video_name = video_path.split("/")[3].split(".")[0]
-    SAVE_PATH = "E:/VEMON Dataset/vemon enhanced/" + video_name + "_" + version + "_" +str(iteration)+"_enhanced.avi"
+    SAVE_PATH = "E:/VEMON Dataset/vemon enhanced/" + video_name + "dehazer_v1.09_1_enhanced.avi"
     
     video_out = cv2.VideoWriter(SAVE_PATH, cv2.VideoWriter_fourcc(*"MJPG"), 8.0, (OUTPUT_SIZE[1],OUTPUT_SIZE[0]))
-    
-    alpha = 0.7
-    beta = 0.7
     with torch.no_grad():
         while success:
-            success,rgb_img = vidcap.read()
+            success,yuv_img = vidcap.read()
             if(success):
-                rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
-                #dark_img = tensor_utils.get_dark_channel(rgb_img)
-                #dark_img_tensor = dark_transform_op(dark_img)
-                #dark_img_tensor = torch.unsqueeze(dark_img_tensor, 0).to(device)
+                yuv_img = cv2.cvtColor(yuv_img, cv2.COLOR_BGR2YUV)
+                y_img = tensor_utils.get_y_channel(yuv_img)
+                yuv_tensor = yuv_transform_op(yuv_img)
+                yuv_tensor = torch.unsqueeze(yuv_tensor, 0).to(device)
+                y_tensor = y_transform_op(y_img)
+                y_tensor = torch.unsqueeze(y_tensor, 0).to(device)
+                y_tensor_clean = dehazer(y_tensor)
 
-                rgb_img_tensor = rgb_transform_op(rgb_img).unsqueeze(0).to(device)
-                
-                result_tensor = gt.infer_single(rgb_img_tensor)
-                result_tensor = denoiser(result_tensor).cpu()
-                
-                result_img = tensor_utils.normalize_to_matplotimg(result_tensor, 0, 0.5, 0.5)
+                (y, u, v) = torch.chunk(yuv_tensor.transpose(0, 1), 3)
+                input_tensor = torch.cat((y_tensor_clean.transpose(0, 1), u, v)).transpose(0, 1)
+                input_tensor_clean = colorizer(input_tensor)
 
-                #test - check brightness/contrast
-                # brightness = 1.0
-                # contrast = 1.0
-                # for i in range(10):
-                #     to_pil_op = transforms.ToPILImage()
-                #     display_img = to_pil_op(result_img)
-                #     display_img = transforms.functional.adjust_brightness(display_img, brightness)
-                #     display_img = transforms.functional.adjust_contrast(display_img, contrast)
-                #     #brightness = brightness + 0.1
-                #     contrast = contrast + 0.1
-                #     plt.imshow(display_img)
-                #     plt.show()
-
-
+                input_tensor_clean = tensor_utils.yuv_to_rgb(input_tensor_clean).cpu()
+                result_img = tensor_utils.normalize_to_matplotimg(input_tensor_clean, 0, 0.5, 0.5)
+                #result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
                 result_img = cv2.cvtColor(result_img, cv2.COLOR_RGB2BGR)
                 video_out.write(result_img)
         video_out.release()
@@ -261,7 +252,7 @@ def dehaze_infer(batch_size, checkpath, version, iteration):
     print("Loaded results checkpt ",checkpath)
     print("===================================================")
     
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_CLEAN_PATH, batch_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, batch_size, -1)
     
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -295,7 +286,7 @@ def color_transfer(checkpath, version, iteration):
     print("Loaded results checkpt ",checkpath)
     print("===================================================")
     
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_VEMON_PATH_COMPLETE, constants.infer_size, -1)
     
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -317,14 +308,14 @@ def color_transfer(checkpath, version, iteration):
         item_number = item_number + 1
         colorizer.infer(input_tensor, item_number)
 
-def produce_video_batch(CHECKPATH, VERSION, ITERATION):
+def produce_video_batch():
     VIDEO_FOLDER_PATH = "E:/VEMON Dataset/vemon videos/"
     #VIDEO_FOLDER_PATH = "E:/VEMON Dataset/mmda videos/"
     video_list = os.listdir(VIDEO_FOLDER_PATH)
     for i in range(len(video_list)):
         video_path = VIDEO_FOLDER_PATH + video_list[i]
         print(video_path)
-        produce_video(video_path, CHECKPATH, VERSION, ITERATION)
+        produce_video(video_path)
 
 
 def dark_channel_test():
@@ -356,8 +347,8 @@ def main():
     ITERATION = "1"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
     
-    #produce_video_batch(CHECKPATH, VERSION, ITERATION)
-    benchmark()
+    produce_video_batch()
+    #benchmark()
     #color_transfer(CHECKPATH, VERSION, ITERATION)
 
 #FIX for broken pipe num_workers issue.

@@ -13,50 +13,54 @@ import constants
 import os
 from torchvision import transforms
 
-def assemble_train_data(path_a, path_b, num_image_to_load = -1):
-    a_list = []; b_list = []
-    
+
+def assemble_train_data(path_a, path_b, num_image_to_load=-1):
+    a_list = [];
+    b_list = []
+
     for (root, dirs, files) in os.walk(path_a):
         for f in files:
             file_name = os.path.join(root, f)
-            #print(file_name)
+            # print(file_name)
             a_list.append(file_name)
-            if(num_image_to_load != -1 and len(a_list) == num_image_to_load):
-                break  
-    
+            if (num_image_to_load != -1 and len(a_list) == num_image_to_load):
+                break
+
     for (root, dirs, files) in os.walk(path_b):
         for f in files:
             file_name = os.path.join(root, f)
             b_list.append(file_name)
-            if(num_image_to_load != -1 and len(b_list) == num_image_to_load):
+            if (num_image_to_load != -1 and len(b_list) == num_image_to_load):
                 break
-    
+
     return a_list, b_list
 
-def assemble_unpaired_data(path_a, num_image_to_load = -1, force_complete = False):
+
+def assemble_unpaired_data(path_a, num_image_to_load=-1, force_complete=False):
     a_list = []
-    
+
     loaded = 0
     for (root, dirs, files) in os.walk(path_a):
-            for f in files:
-                file_name = os.path.join(root, f)
-                a_list.append(file_name)
-                loaded = loaded + 1
-                if(num_image_to_load != -1 and len(a_list) == num_image_to_load):
-                    break
-    
+        for f in files:
+            file_name = os.path.join(root, f)
+            a_list.append(file_name)
+            loaded = loaded + 1
+            if (num_image_to_load != -1 and len(a_list) == num_image_to_load):
+                break
+
     while loaded != num_image_to_load and force_complete:
         for (root, dirs, files) in os.walk(path_a):
             for f in files:
                 file_name = os.path.join(root, f)
                 a_list.append(file_name)
                 loaded = loaded + 1
-                if(num_image_to_load != -1 and len(a_list) == num_image_to_load):
-                    break  
-    
+                if (num_image_to_load != -1 and len(a_list) == num_image_to_load):
+                    break
+
     return a_list
 
-def load_test_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
+
+def load_test_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
     a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
     print("Length of test images: %d, %d." % (len(a_list), len(b_list)))
 
@@ -66,10 +70,11 @@ def load_test_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
         num_workers=2,
         shuffle=False
     )
-    
+
     return data_loader
 
-def load_dark_channel_test_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
+
+def load_dark_channel_test_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
     a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
     print("Length of dark channel test images: %d, %d." % (len(a_list), len(b_list)))
 
@@ -79,14 +84,15 @@ def load_dark_channel_test_dataset(path_a, path_b, batch_size = 8, num_image_to_
         num_workers=2,
         shuffle=False
     )
-    
+
     return data_loader
 
-def load_dehaze_dataset(path_a, path_b, batch_size = 8, num_image_to_load = -1):
+
+def load_dehaze_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
     a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
-    #c_list = assemble_unpaired_data(path_c, len(b_list), True)
+    # c_list = assemble_unpaired_data(path_c, len(b_list), True)
     print("Length of dehazing dataset: %d, %d" % (len(a_list), len(b_list)))
-    #print("Length of dehazing dataset: %d, %d, %d" % (len(a_list), len(b_list), len(c_list)))
+    # print("Length of dehazing dataset: %d, %d, %d" % (len(a_list), len(b_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
         image_dataset.HazeDataset(a_list, b_list),
@@ -113,7 +119,8 @@ def load_dark_channel_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1
 
     return data_loader
 
-def load_dehaze_dataset_test(path_a, batch_size = 8, num_image_to_load = -1):
+
+def load_dehaze_dataset_test(path_a, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
     print("Length of dehazing test dataset: %d" % (len(a_list)))
 
@@ -123,12 +130,11 @@ def load_dehaze_dataset_test(path_a, batch_size = 8, num_image_to_load = -1):
         num_workers=2,
         shuffle=True
     )
-    
+
     return data_loader
 
 
-
-def load_rgb_dataset(path_a, batch_size = 8, num_image_to_load = -1):
+def load_rgb_dataset(path_a, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
     print("Length of color dataset: %d." % (len(a_list)))
 
@@ -138,10 +144,11 @@ def load_rgb_dataset(path_a, batch_size = 8, num_image_to_load = -1):
         num_workers=6,
         shuffle=True
     )
-    
+
     return rgb_data_loader
 
-def load_rgb_test_dataset(path_a, batch_size = 8, num_image_to_load = -1):
+
+def load_rgb_test_dataset(path_a, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
     print("Length of color dataset: %d." % (len(a_list)))
 
@@ -151,16 +158,17 @@ def load_rgb_test_dataset(path_a, batch_size = 8, num_image_to_load = -1):
         num_workers=3,
         shuffle=True
     )
-    
+
     return rgb_data_loader
 
-def load_div2k_train_dataset(path_a, path_b, path_c, batch_size = 8, num_image_to_load = -1):
+
+def load_div2k_train_dataset(path_a, path_b, path_c, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
     b_list = assemble_unpaired_data(path_b, num_image_to_load / 2)
-    #specific for Hazy dataset. Combine synth and real data
+    # specific for Hazy dataset. Combine synth and real data
     a_list = a_list + b_list
     c_list = assemble_unpaired_data(path_c, len(a_list), True)
-    
+
     print("Length of images: %d, %d." % (len(a_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
@@ -169,5 +177,5 @@ def load_div2k_train_dataset(path_a, path_b, path_c, batch_size = 8, num_image_t
         num_workers=10,
         shuffle=True
     )
-    
+
     return data_loader

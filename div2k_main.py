@@ -53,10 +53,10 @@ def update_config(opts):
         
         constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
-        constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_VEMON_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_DIV2K_PATH = "/scratch1/scratch2/neil.delgallego/Div2k_Patch Dataset Enhanced/"
-        constants.DATASET_HAZY_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
-        constants.DATASET_CLEAN_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
+        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
+        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
         
         constants.num_workers = 4
         
@@ -89,8 +89,8 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_div2k_train_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.display_size, 500)
+    train_loader = dataset_loader.load_div2k_train_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
     index = 0
     
     # Plot some training images
@@ -127,7 +127,7 @@ def main(argv):
                     iteration = iteration + 1
                     index = (index + 1) % len(test_loader)
                     if(index == 0):
-                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.display_size, 500)
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
           
             gt.save_states(epoch, iteration, constants.COLOR_TRANFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else: 

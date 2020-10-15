@@ -40,7 +40,7 @@ class Div2kDataset(data.Dataset):
         resized = (int(constants.TEST_IMAGE_SIZE[0] * 1.01), int(constants.TEST_IMAGE_SIZE[1] * 1.01))
         self.initial_transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
-                                    transforms.RandomCrop(constants.BIRD_IMAGE_SIZE),
+                                    transforms.RandomCrop(constants.PATCH_IMAGE_SIZE),
                                     transforms.RandomHorizontalFlip()
                                     ])
         
@@ -82,14 +82,18 @@ class DarkChannelHazeDataset(data.Dataset):
     def __init__(self, hazy_list, clear_list):
         self.hazy_list = hazy_list
         self.clear_list = clear_list
-        
-        self.initial_transform_op = transforms.Compose([
-                                    transforms.ToPILImage(mode = 'L'),
-                                    transforms.Resize(constants.TEST_IMAGE_SIZE),
-                                    ])
-            
-        self.final_transform_op = transforms.Compose([transforms.ToTensor(),
-                                                      transforms.Normalize((0.5), (0.5))])
+        self.transform_op = transforms.Compose([
+            transforms.ToPILImage(mode = 'L'),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5), (0.5), (0.5))])
+
+        # self.initial_transform_op = transforms.Compose([
+        #                             transforms.ToPILImage(mode = 'L'),
+        #                             transforms.Resize(constants.TEST_IMAGE_SIZE),
+        #                             ])
+        #
+        # self.final_transform_op = transforms.Compose([transforms.ToTensor(),
+        #                                               transforms.Normalize((0.5), (0.5))])
         
         
     
@@ -105,19 +109,20 @@ class DarkChannelHazeDataset(data.Dataset):
         clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2YUV)
         clear_img = tensor_utils.get_y_channel(clear_img)
                  
-        hazy_img = self.initial_transform_op(hazy_img)
-        clear_img = self.initial_transform_op(clear_img)
-        
-        crop_indices = transforms.RandomCrop.get_params(hazy_img, output_size=constants.BIRD_IMAGE_SIZE)
-        i, j, h, w = crop_indices
-        
-        hazy_img = transforms.functional.crop(hazy_img, i, j, h, w)
-        clear_img = transforms.functional.crop(clear_img, i, j, h, w)
-        
-        hazy_img = self.final_transform_op(hazy_img)
-        clear_img = self.final_transform_op(clear_img)
-            
-                
+        # hazy_img = self.initial_transform_op(hazy_img)
+        # clear_img = self.initial_transform_op(clear_img)
+        #
+        # crop_indices = transforms.RandomCrop.get_params(hazy_img, output_size=constants.PATCH_IMAGE_SIZE)
+        # i, j, h, w = crop_indices
+        #
+        # hazy_img = transforms.functional.crop(hazy_img, i, j, h, w)
+        # clear_img = transforms.functional.crop(clear_img, i, j, h, w)
+        #
+        # hazy_img = self.final_transform_op(hazy_img)
+        # clear_img = self.final_transform_op(clear_img)
+        hazy_img = self.transform_op(hazy_img)
+        clear_img = self.transform_op(clear_img)
+
         return file_name, hazy_img, clear_img
     
     def __len__(self):
@@ -134,7 +139,7 @@ class HazeDataset(data.Dataset):
                                     ])
             
         self.final_transform_op = transforms.Compose([transforms.ToTensor(),
-                                                      transforms.Normalize((0.5), (0.5))])
+                                                      transforms.Normalize((0.5), (0.5), (0.5))])
         
         
     
@@ -155,7 +160,7 @@ class HazeDataset(data.Dataset):
         clear_img = self.initial_transform_op(clear_img)
         #real_hazy_img  = self.initial_transform_op(real_hazy_img)
         
-        crop_indices = transforms.RandomCrop.get_params(hazy_img, output_size=constants.BIRD_IMAGE_SIZE)
+        crop_indices = transforms.RandomCrop.get_params(hazy_img, output_size=constants.PATCH_IMAGE_SIZE)
         i, j, h, w = crop_indices
         
         hazy_img = transforms.functional.crop(hazy_img, i, j, h, w)
@@ -213,16 +218,18 @@ class ColorDataset(data.Dataset):
         
         self.rgb_transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
-                                    transforms.Resize(constants.TEST_IMAGE_SIZE)
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5), (0.5), (0.5))
                                     ])  
         
         self.gray_transform_op = transforms.Compose([
                                     transforms.ToPILImage(mode= 'L'),
-                                    transforms.Resize(constants.TEST_IMAGE_SIZE)
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5), (0.5), (0.5))
                                     ])
             
-        self.final_transform_op = transforms.Compose([transforms.ToTensor(),
-                                                      transforms.Normalize((0.5), (0.5))])
+        # self.final_transform_op = transforms.Compose([transforms.ToTensor(),
+        #                                               transforms.Normalize((0.5), (0.5))])
         
     
     def __getitem__(self, idx):
@@ -232,20 +239,19 @@ class ColorDataset(data.Dataset):
         
         img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
         gray_img = tensor_utils.get_y_channel(img)
-        #yuv_img = tensor_utils.get_uv_channel(img)
         yuv_img = img
         
         gray_img = self.gray_transform_op(gray_img)
         yuv_img = self.rgb_transform_op(yuv_img)
 
-        crop_indices = transforms.RandomCrop.get_params(yuv_img, output_size=constants.BIRD_IMAGE_SIZE)
-        i, j, h, w = crop_indices
-        
-        gray_img = transforms.functional.crop(gray_img, i, j, h, w)
-        yuv_img = transforms.functional.crop(yuv_img, i, j, h, w)
-        
-        gray_img = self.final_transform_op(gray_img)
-        yuv_img = self.final_transform_op(yuv_img)
+        # crop_indices = transforms.RandomCrop.get_params(yuv_img, output_size=constants.PATCH_IMAGE_SIZE)
+        # i, j, h, w = crop_indices
+        #
+        # gray_img = transforms.functional.crop(gray_img, i, j, h, w)
+        # yuv_img = transforms.functional.crop(yuv_img, i, j, h, w)
+        #
+        # gray_img = self.final_transform_op(gray_img)
+        # yuv_img = self.final_transform_op(yuv_img)
         
         return file_name, gray_img, yuv_img
     
@@ -261,7 +267,7 @@ class ColorTestDataset(data.Dataset):
                                     transforms.Resize(constants.TEST_IMAGE_SIZE),
                                     transforms.RandomCrop(constants.TEST_IMAGE_SIZE),
                                     transforms.ToTensor(),
-                                    transforms.Normalize((0.5), (0.5))
+                                    transforms.Normalize((0.5), (0.5), (0.5))
                                     ])
     def __getitem__(self, idx):
         img_id = self.rgb_list[idx]

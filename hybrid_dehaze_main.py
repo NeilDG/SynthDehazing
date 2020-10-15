@@ -34,8 +34,8 @@ parser.add_option('--clarity_weight', type=float, help="Weight", default="100.0"
 parser.add_option('--color_weight', type=float, help="Weight", default="500.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="5")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0001")
-parser.add_option('--d_lr', type=float, help="LR", default="0.0001")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 
 #--img_to_load=-1 --load_previous=0
 #Update config if on COARE
@@ -52,10 +52,10 @@ def update_config(opts):
         
         constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
-        constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_VEMON_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         
-        constants.DATASET_HAZY_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
-        constants.DATASET_CLEAN_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
+        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
+        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
         
         constants.num_workers = 4
 
@@ -102,10 +102,10 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    synth_train_loader = dataset_loader.load_dark_channel_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, opts.img_to_load)
-    synth_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, 500)
-    rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_VEMON_PATH, constants.batch_size,opts.img_to_load)
-    rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH, constants.batch_size, 500)
+    synth_train_loader = dataset_loader.load_dark_channel_dataset(constants.DATASET_HAZY_PATH_PATCH, constants.DATASET_CLEAN_PATH_PATCH, constants.batch_size, opts.img_to_load)
+    synth_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, 4, 500)
+    rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_VEMON_PATH_PATCH, constants.batch_size, opts.img_to_load)
+    rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
     index = 0
     
     # Plot some training images
@@ -135,7 +135,7 @@ def main(argv):
                 #train colorization
                 colorizer.train(dehazer.infer_single(gray_tensor), yuv_tensor)
                 
-                if(i % 50 == 0):
+                if(i % 500 == 0):
                     _, synth_dark_dirty_batch, synth_dark_clean_batch = next(iter(synth_test_loader))
                     _, y_batch, yuv_batch = next(iter(rgb_test_loader))
                     
@@ -150,8 +150,8 @@ def main(argv):
                     
                     index = (index + 1) % len(synth_test_loader)
                     if(index == 0):
-                      rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH, constants.display_size, 500)
-                      synth_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.batch_size, 500)
+                      rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
+                      synth_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, constants.batch_size, 500)
               
             dehazer.save_states(epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
             colorizer.save_states(epoch, iteration, constants.COLORIZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
