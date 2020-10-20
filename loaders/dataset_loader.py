@@ -155,7 +155,7 @@ def load_rgb_test_dataset(path_a, batch_size=8, num_image_to_load=-1):
     rgb_data_loader = torch.utils.data.DataLoader(
         image_dataset.ColorTestDataset(a_list),
         batch_size=batch_size,
-        num_workers=3,
+        num_workers=2,
         shuffle=True
     )
 

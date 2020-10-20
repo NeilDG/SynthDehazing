@@ -57,6 +57,9 @@ D_A_FAKE_LOSS_KEY = "d_fake_a"
 D_B_REAL_LOSS_KEY = "d_real_b"
 D_B_FAKE_LOSS_KEY = "d_fake_b"
 
+#DARK CHANNEL FILTER SIZE
+DC_FILTER_SIZE = 15
+
 # Set random seed for reproducibility
 manualSeed = 999
 
@@ -65,7 +68,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 256
+batch_size = 512
 infer_size = 16
 
 brightness_enhance = 1.0

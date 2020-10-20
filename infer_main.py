@@ -42,7 +42,7 @@ def get_transform_ops(output_size):
     return dark_transform_op, rgb_transform_op
 
 def produce_video(video_path):
-    DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.09_1.pt"
+    DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.09_2.pt"
     COLORIZER_CHECKPATH = "checkpoint/colorizer_v1.07_2.pt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -64,7 +64,7 @@ def produce_video(video_path):
     y_transform_op, yuv_transform_op = get_transform_ops(OUTPUT_SIZE)
     
     video_name = video_path.split("/")[3].split(".")[0]
-    SAVE_PATH = "E:/VEMON Dataset/vemon enhanced/" + video_name + "dehazer_v1.09_1_enhanced.avi"
+    SAVE_PATH = "E:/VEMON Dataset/vemon enhanced/" + video_name + "dehazer_v1.09_2_enhanced.avi"
     
     video_out = cv2.VideoWriter(SAVE_PATH, cv2.VideoWriter_fourcc(*"MJPG"), 8.0, (OUTPUT_SIZE[1],OUTPUT_SIZE[0]))
     with torch.no_grad():

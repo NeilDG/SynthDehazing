@@ -2,6 +2,7 @@
 # Template trainer. Do not use this for actual training.
 
 import os
+import torchvision.transforms as transforms
 from model import vanilla_cycle_gan as cg
 from model import style_transfer_gan as sg
 import constants
@@ -161,6 +162,7 @@ class CorrectionTrainer:
             (y, u, v) = torch.chunk(yuv_tensor.transpose(0, 1), 3)
             input_tensor = torch.cat((gray_tensor.transpose(0, 1), u, v)).transpose(0, 1)
             refined_tensor = tensor_utils.yuv_to_rgb(self.G_A(input_tensor)) #refined color
+            #refined_tensor = tensor_utils.yuv_to_rgb(input_tensor)
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss("colorization_loss", iteration, self.losses_dict, self.caption_dict)

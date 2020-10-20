@@ -16,22 +16,6 @@ import constants
 from utils import tensor_utils
 
 
-class GlobalConfig():
-    def __init__(self):
-        self.i = 0
-        self.j = 0
-        self.h = 0
-        self.w = 0
-    
-    def set_vars(i, j, h, w):
-        self.i = i
-        self.j = j
-        self.h = h
-        self.w = w
-    
-    def get_vars():
-        return self.i, self.j, self.h, self.w
-
 class Div2kDataset(data.Dataset):
     def __init__(self, vemon_list, div2k_list):
         self.vemon_list = vemon_list
@@ -102,12 +86,17 @@ class DarkChannelHazeDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2YUV)
-        hazy_img = tensor_utils.get_y_channel(hazy_img)
+        # hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2YUV)
+        # hazy_img = tensor_utils.get_y_channel(hazy_img)
+
+        hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
+        hazy_img = tensor_utils.get_dark_channel(hazy_img, 8)
         
         img_id = self.clear_list[idx]
-        clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2YUV)
-        clear_img = tensor_utils.get_y_channel(clear_img)
+        clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
+        clear_img = tensor_utils.get_dark_channel(clear_img, 8)
+        # clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2YUV)
+        # clear_img = tensor_utils.get_y_channel(clear_img)
                  
         # hazy_img = self.initial_transform_op(hazy_img)
         # clear_img = self.initial_transform_op(clear_img)
@@ -127,7 +116,43 @@ class DarkChannelHazeDataset(data.Dataset):
     
     def __len__(self):
         return len(self.hazy_list)
-    
+
+
+class DarkChannelTestDataset(data.Dataset):
+    def __init__(self, hazy_list, clear_list):
+        self.hazy_list = hazy_list
+        self.clear_list = clear_list
+
+        self.transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(constants.TEST_IMAGE_SIZE),
+            transforms.CenterCrop(constants.TEST_IMAGE_SIZE),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5), (0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.hazy_list[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        hazy_img = cv2.imread(img_id);
+        hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2LAB)
+        hazy_img = tensor_utils.get_dark_channel(hazy_img, constants.DC_FILTER_SIZE)
+
+        img_id = self.clear_list[idx]
+        clear_img = cv2.imread(img_id);
+        clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2LAB)
+        clear_img = tensor_utils.get_dark_channel(clear_img, constants.DC_FILTER_SIZE)
+
+        if (self.transform_op):
+            hazy_img = self.transform_op(hazy_img)
+            clear_img = self.transform_op(clear_img)
+        return file_name, hazy_img, clear_img
+
+    def __len__(self):
+        return len(self.hazy_list)
+
 class HazeDataset(data.Dataset):
     def __init__(self, hazy_list, clear_list):
         self.hazy_list = hazy_list
@@ -238,7 +263,7 @@ class ColorDataset(data.Dataset):
         file_name = path_segment[len(path_segment) - 1]
         
         img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-        gray_img = tensor_utils.get_y_channel(img)
+        gray_img = tensor_utils.get_dark_channel(img, constants.DC_FILTER_SIZE)
         yuv_img = img
         
         gray_img = self.gray_transform_op(gray_img)
@@ -275,7 +300,7 @@ class ColorTestDataset(data.Dataset):
         file_name = path_segment[len(path_segment) - 1]
         
         img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-        gray_img = tensor_utils.get_y_channel(img)
+        gray_img = tensor_utils.get_dark_channel(img, constants.DC_FILTER_SIZE)
         yuv_img = img
         
         gray_img = self.transform_op(gray_img)
@@ -285,38 +310,3 @@ class ColorTestDataset(data.Dataset):
     
     def __len__(self):
         return len(self.rgb_list)
-    
-class DarkChannelTestDataset(data.Dataset):
-    def __init__(self, vemon_list, gta_list):
-        self.vemon_list = vemon_list
-        self.gta_list = gta_list
-        
-        self.transform_op = transforms.Compose([
-                                    transforms.ToPILImage(),
-                                    transforms.Resize(constants.TEST_IMAGE_SIZE),
-                                    transforms.CenterCrop(constants.TEST_IMAGE_SIZE),
-                                    transforms.ToTensor(),
-                                    transforms.Normalize((0.5), (0.5))
-                                    ])
-        
-        
-    
-    def __getitem__(self, idx):
-        img_id = self.vemon_list[idx]
-        path_segment = img_id.split("/")
-        file_name = path_segment[len(path_segment) - 1]
-        
-        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2LAB)
-        normal_img = tensor_utils.get_y_channel(normal_img)
-        
-        img_id = self.gta_list[idx]
-        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2LAB)
-        topdown_img = tensor_utils.get_y_channel(topdown_img)
-        
-        if(self.transform_op):
-            normal_img = self.transform_op(normal_img)
-            topdown_img = self.transform_op(topdown_img)
-        return file_name, normal_img, topdown_img
-    
-    def __len__(self):
-        return len(self.vemon_list)

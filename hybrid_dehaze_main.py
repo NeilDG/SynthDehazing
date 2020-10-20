@@ -30,11 +30,11 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--clarity_weight', type=float, help="Weight", default="100.0")
+parser.add_option('--clarity_weight', type=float, help="Weight", default="500.0")
 parser.add_option('--color_weight', type=float, help="Weight", default="500.0")
-parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--cycle_weight', type=float, help="Weight", default="100.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="5")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 
 #--img_to_load=-1 --load_previous=0
@@ -152,9 +152,9 @@ def main(argv):
                     if(index == 0):
                       rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
                       synth_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, constants.batch_size, 500)
-              
-            dehazer.save_states(epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
-            colorizer.save_states(epoch, iteration, constants.COLORIZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+                if(i % 1500 == 0):
+                    dehazer.save_states(epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+                    colorizer.save_states(epoch, iteration, constants.COLORIZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:
         for i, (dehaze_data, yuv_data) in enumerate(zip(synth_train_loader, rgb_train_loader)):
                 _, hazy_batch, clean_batch = dehaze_data
