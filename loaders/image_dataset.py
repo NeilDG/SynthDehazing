@@ -16,19 +16,14 @@ import constants
 from utils import tensor_utils
 
 
-class Div2kDataset(data.Dataset):
-    def __init__(self, vemon_list, div2k_list):
-        self.vemon_list = vemon_list
-        self.div2k_list = div2k_list
-        
-        resized = (int(constants.TEST_IMAGE_SIZE[0] * 1.01), int(constants.TEST_IMAGE_SIZE[1] * 1.01))
-        self.initial_transform_op = transforms.Compose([
-                                    transforms.ToPILImage(),
-                                    transforms.RandomCrop(constants.PATCH_IMAGE_SIZE),
-                                    transforms.RandomHorizontalFlip()
-                                    ])
+class ColorTransferDataset(data.Dataset):
+    def __init__(self, image_list_a, image_list_b):
+        self.image_list_a = image_list_a
+        self.image_list_b = image_list_b
         
         self.final_transform_op = transforms.Compose([
+                                    transforms.ToPILImage(),
+                                    transforms.RandomHorizontalFlip(),
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                                     ])
@@ -36,31 +31,64 @@ class Div2kDataset(data.Dataset):
         
     
     def __getitem__(self, idx):
-        img_id = self.vemon_list[idx]
+        img_id = self.image_list_a[idx]
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        normal_img = cv2.imread(img_id); normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB) #because matplot uses RGB, openCV is BGR
+        img_a = cv2.imread(img_id); img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2YUV) #because matplot uses RGB, openCV is BGR
         
-        img_id = self.div2k_list[idx]
-        topdown_img = cv2.imread(img_id); topdown_img = cv2.cvtColor(topdown_img, cv2.COLOR_BGR2RGB)
+        img_id = self.image_list_b[idx]
+        img_b = cv2.imread(img_id); img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2YUV)
                
-        normal_img = self.initial_transform_op(normal_img)
-        topdown_img = self.initial_transform_op(topdown_img)
+        # img_a = self.initial_transform_op(img_a)
+        # img_b = self.initial_transform_op(img_b)
+        #
+        # img_a = transforms.functional.adjust_brightness(img_a, constants.brightness_enhance)
+        # img_b = transforms.functional.adjust_brightness(img_b, constants.brightness_enhance)
+        #
+        # img_a = transforms.functional.adjust_contrast(img_a, constants.contrast_enhance)
+        # img_b = transforms.functional.adjust_contrast(img_b, constants.contrast_enhance)
         
-        normal_img = transforms.functional.adjust_brightness(normal_img, constants.brightness_enhance)
-        topdown_img = transforms.functional.adjust_brightness(topdown_img, constants.brightness_enhance)
-        
-        normal_img = transforms.functional.adjust_contrast(normal_img, constants.contrast_enhance)
-        topdown_img = transforms.functional.adjust_contrast(topdown_img, constants.contrast_enhance)
-        
-        normal_img = self.final_transform_op(normal_img)
-        topdown_img = self.final_transform_op(topdown_img)
+        img_a = self.final_transform_op(img_a)
+        img_b = self.final_transform_op(img_b)
             
-        return file_name, normal_img, topdown_img
+        return file_name, img_a, img_b
     
     def __len__(self):
-        return len(self.vemon_list)
+        return len(self.image_list_a)
+
+
+class ColorTransferTestDataset(data.Dataset):
+    def __init__(self, img_list_a, img_list_b):
+        self.img_list_a = img_list_a
+        self.img_list_b = img_list_b
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(constants.TEST_IMAGE_SIZE),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.img_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id);
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2YUV)  # because matplot uses RGB, openCV is BGR
+
+        img_id = self.img_list_b[idx]
+        img_b = cv2.imread(img_id);
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2YUV)
+
+        img_a = self.final_transform_op(img_a)
+        img_b = self.final_transform_op(img_b)
+
+        return file_name, img_a, img_b
+
+    def __len__(self):
+        return len(self.img_list_a)
 
 class DarkChannelHazeDataset(data.Dataset):
     def __init__(self, hazy_list, clear_list):

@@ -65,7 +65,7 @@ def load_test_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
     print("Length of test images: %d, %d." % (len(a_list), len(b_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.TestDataset(a_list, b_list),
+        image_dataset.ColorTransferTestDataset(a_list, b_list),
         batch_size=batch_size,
         num_workers=2,
         shuffle=False
@@ -162,7 +162,7 @@ def load_rgb_test_dataset(path_a, batch_size=8, num_image_to_load=-1):
     return rgb_data_loader
 
 
-def load_div2k_train_dataset(path_a, path_b, path_c, batch_size=8, num_image_to_load=-1):
+def load_color_train_dataset(path_a, path_b, path_c, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
     b_list = assemble_unpaired_data(path_b, num_image_to_load / 2)
     # specific for Hazy dataset. Combine synth and real data
@@ -172,7 +172,7 @@ def load_div2k_train_dataset(path_a, path_b, path_c, batch_size=8, num_image_to_
     print("Length of images: %d, %d." % (len(a_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.Div2kDataset(a_list, c_list),
+        image_dataset.ColorTransferDataset(a_list, c_list),
         batch_size=batch_size,
         num_workers=10,
         shuffle=True

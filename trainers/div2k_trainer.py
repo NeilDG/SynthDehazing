@@ -84,7 +84,7 @@ class Div2kTrainer:
         #save hyperparameters for bookeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
-            print("Version: ", constants.COLOR_TRANFER_CHECKPATH, file = f)
+            print("Version: ", constants.COLOR_TRANSFER_CHECKPATH, file = f)
             print("Learning rate for G: ", str(self.g_lr), file = f)
             print("Learning rate for D: ", str(self.d_lr), file = f)
             print("====================================", file = f)
@@ -222,13 +222,13 @@ class Div2kTrainer:
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss("color transfer loss", iteration, self.losses_dict, self.caption_dict)
-        self.visdom_reporter.plot_image(dirty_tensor, "Training Dirty images")
-        self.visdom_reporter.plot_image(clean_tensor, "Training Clean images")
-        self.visdom_reporter.plot_image(clean_like, "Training Clean-like images")
-        self.visdom_reporter.plot_image(test_dirty_tensor, "Test Dirty images")
-        self.visdom_reporter.plot_image(test_dirty_like, "Test Dirty-like images")
-        self.visdom_reporter.plot_image(test_clean_tensor, "Test Clean images")
-        self.visdom_reporter.plot_image(test_clean_like, "Test Clean-like images")
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(dirty_tensor), "Training Dirty images")
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(clean_tensor), "Training Clean images")
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(clean_like), "Training Clean-like images")
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_dirty_tensor), "Test Dirty images")
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_dirty_like), "Test Dirty-like images")
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_clean_tensor), "Test Clean images")
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_clean_like), "Test Clean-like images")
     
     def produce_image(self, dirty_tensor):
         with torch.no_grad():
