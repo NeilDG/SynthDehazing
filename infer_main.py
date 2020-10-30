@@ -10,12 +10,14 @@ import torch.utils.data
 import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
+from torch import nn
+
 from loaders import dataset_loader
 from trainers import denoise_net_trainer
 from trainers import div2k_trainer
 from trainers import dehaze_trainer
-from model import vanilla_cycle_gan as cg
-from model import style_transfer_gan as sg
+from model import vanilla_cycle_gan as cycle_gan
+from model import style_transfer_gan as color_gan
 import constants
 from torchvision import transforms
 import cv2
@@ -40,6 +42,25 @@ def get_transform_ops(output_size):
                                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     
     return dark_transform_op, rgb_transform_op
+
+def plot_and_save(item_number, tensor_a, tensor_b):
+    LOCATION = os.getcwd() + "/figures/"
+    fig, ax = plt.subplots(2, 1)
+    fig.set_size_inches((32, 16))
+    fig.tight_layout()
+
+    ims = np.transpose(vutils.make_grid(tensor_a, nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0))
+    ax[0].set_axis_off()
+    ax[0].imshow(ims)
+
+    ims = np.transpose(vutils.make_grid(tensor_b, nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0))
+    ax[1].set_axis_off()
+    ax[1].imshow(ims)
+
+    plt.subplots_adjust(left=0.06, wspace=0.0, hspace=0.15)
+    plt.savefig(LOCATION + "result_" + str(item_number) + ".png")
+    plt.show()
+
 
 def produce_video(video_path):
     DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.09_2.pt"
@@ -237,42 +258,61 @@ def create_figures(checkpath, version, iteration):
         file_name = SAVE_PATH + "fig_"+str(fig_num)+ "_" + version + "_" +str(iteration)+".jpg"
         plt.savefig(file_name)
         plt.show()
-        
-def dehaze_infer(batch_size, checkpath, version, iteration):
+
+
+def dehaze_infer(checkpath, version, iteration):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    
-    denoiser = cg.Generator(n_residual_blocks=3).to(device)
-    denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
-    denoiser.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
-    dehazer = denoise_net_trainer.DenoiseTrainer(version, iteration, device, gen_blocks=3)
-    
-    checkpoint = torch.load(checkpath)
-    dehazer.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
- 
-    print("Loaded results checkpt ",checkpath)
+
+    # load color transfer
+    color_transfer_checkpt = torch.load('checkpoint/dehaze_colortransfer_v1.06_10.pt')
+    color_transfer_gan = color_gan.Generator().to(device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    print("Color transfer GAN model loaded.")
+
+    dehaze_transfer_checkpt = torch.load(checkpath)
+    dehazer_gan = cycle_gan.Generator(n_residual_blocks=8).to(device)
+    dehazer_gan.load_state_dict(dehaze_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    print("Dehazer loaded. ", checkpath)
     print("===================================================")
-    
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, batch_size, -1)
-    
+
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE,
+                                                  constants.DATASET_CLEAN_PATH_COMPLETE, constants.infer_size, -1)
+
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
     plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Training - Dirty Images")
-    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(
+        vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(),
+        (1, 2, 0)))
     plt.show()
-    
+
     plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Training - Clean Images")
-    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(
+        vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(),
+        (1, 2, 0)))
     plt.show()
-    
+
     item_number = 0
-    for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
-        vemon_tensor = vemon_batch.to(device)
-        item_number = item_number + 1
-        dehazer.dehaze_infer(denoiser, vemon_tensor, item_number)
+    for i, (name, vemon_batch, synth_batch) in enumerate(dataloader, 0):
+        with torch.no_grad():
+            item_number = item_number + 1
+
+            vemon_tensor = vemon_batch.to(device)
+            vemon_dehazed = dehazer_gan(vemon_tensor)
+
+            # resize tensors for better viewing
+            resized_vemon = nn.functional.interpolate(vemon_tensor, scale_factor=4.0, mode="bilinear",
+                                                      recompute_scale_factor=True)
+            resized_vemon_dehazed = nn.functional.interpolate(vemon_dehazed, scale_factor=4.0, mode="bilinear",
+                                                              recompute_scale_factor=True)
+
+            print("New shapes: %s %s" % (np.shape(resized_vemon), np.shape(resized_vemon_dehazed)))
+
+            plot_and_save(item_number, resized_vemon, resized_vemon_dehazed)
     
 
 def color_transfer(checkpath, version, iteration):

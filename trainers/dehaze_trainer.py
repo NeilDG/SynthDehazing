@@ -77,7 +77,7 @@ class DehazeTrainer:
     def clarity_loss(self, pred, target):
         #loss = ssim_loss.SSIM()
         #return 1 - loss(pred, target)
-        loss = nn.MSELoss()
+        loss = nn.L1Loss()
         return loss(pred, target)
     
     def train(self, dirty_tensor, clean_tensor):

@@ -7,6 +7,7 @@ cd scratch2/NeuralNets-GenerativeExperiment
 cd scratch2/NeuralNets-GenerativeExperiment-2
 cd scratch2/NeuralNets-GenerativeExperiment-3
 cd scratch2/NeuralNets-GenerativeExperiment-4
+cd scratch2/NeuralNets-GenerativeExperiment-5
 
 //Execute job
 sbatch visdom_run.slurm

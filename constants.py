@@ -13,7 +13,9 @@ DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy/clean/"
 DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
 
-DATASET_HAZY_TEST_PATH_1 = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+DATASET_IHAZE_PATH_PATCH = "E:/Div2k - Patch/"
+DATASET_HAZY_TEST_PATH_1_HAZY = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+DATASET_HAZY_TEST_PATH_1_CLEAN = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
 DATASET_HAZY_TEST_PATH_2 = "E:/Hazy Dataset Benchmark/Unannotated/"
 
 DATASET_PLACES_PATH = "E:/Places Dataset/"
@@ -32,13 +34,13 @@ DISCRIMINATOR_KEY = "discriminator"
 
 DEHAZER_VERSION = "dehazer_v1.09"
 COLORIZER_VERSION = "colorizer_v1.07"
-COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.07"
+COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.09"
 
 ITERATION = "2"
 
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
-COLOR_TRANFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION +'.pt'
+COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys

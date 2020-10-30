@@ -44,7 +44,7 @@ def update_config(opts):
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = 512
+        constants.batch_size = 1024
         
         constants.ITERATION = str(opts.iteration)
         constants.DEHAZER_CHECKPATH = 'checkpoint/' + constants.DEHAZER_VERSION + "_" + constants.ITERATION +'.pt'
@@ -56,7 +56,11 @@ def update_config(opts):
         
         constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
         constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
-        
+
+        constants.DATASET_HAZY_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/hazy/"
+        constants.DATASET_CLEAN_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/clean/"
+        constants.DATASET_VEMON_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/B/"
+
         constants.num_workers = 4
 
 def show_images(img_tensor, caption):

@@ -82,6 +82,41 @@ def create_img_data(dataset_path, save_path, filename_format, img_size, patch_si
             count = count + 1
 
 
+#creates img patches if sufficient connditions are met
+def create_filtered_img_data(dataset_path, save_path, filename_format, img_size, patch_size, repeats):
+    img_list = assemble_img_list(dataset_path)
+    count = 0
+    for k in range(len(img_list)):
+        normal_img = cv2.imread(img_list[k])
+        normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB)
+
+        final_op = transforms.Compose([transforms.ToPILImage(),
+                                       transforms.RandomHorizontalFlip(),
+                                       transforms.Resize(img_size),
+                                       transforms.RandomCrop(patch_size),
+                                       transforms.ToTensor()])
+
+        for i in range(repeats):
+            file_name = save_path + filename_format % count
+
+            new_img = final_op(normal_img).numpy()
+            final_img = unsharp_mask(new_img)
+
+            new_img = np.moveaxis(new_img, -1, 0)
+            new_img = np.moveaxis(new_img, -1, 0)
+            final_img = np.moveaxis(final_img, -1, 0)
+            final_img = np.moveaxis(final_img, -1, 0)
+
+            final_img_dc = tensor_utils.get_dark_channel(final_img, 3)
+            if(np.linalg.norm(final_img_dc) > 10.0): #filter out very hazy images by dark channel prior
+                sobel_x = cv2.Sobel(final_img_dc, cv2.CV_64F, 1, 0, ksize=5)
+                sobel_y = cv2.Sobel(final_img_dc, cv2.CV_64F, 0, 1, ksize=5)
+                sobel_img = sobel_x + sobel_y
+                if(np.linalg.norm(sobel_img) > 150.0): #only consider images with good edges
+                    cv2.imwrite(file_name, cv2.cvtColor(cv2.convertScaleAbs(final_img, alpha=255.0), cv2.COLOR_BGR2RGB))
+                    print("Saved: ", file_name)
+            count = count + 1
+
 def create_paired_img_data(dataset_path_a, dataset_path_b, save_path_a, save_path_b, filename_format, img_size, patch_size, repeats):
     img_list_a = assemble_img_list(dataset_path_a)
     img_list_b = assemble_img_list(dataset_path_b)
@@ -181,12 +216,15 @@ def main():
     #create_div2k_data()
     #create_hazy_data(0)
 
-    PATH_A = "E:/Synth Hazy/hazy/"
-    SAVE_PATH_A = "E:/Synth Hazy - Patch/hazy/"
-
-    PATH_B = "E:/Synth Hazy/clean/"
-    SAVE_PATH_B = "E:/Synth Hazy - Patch/clean/"
-    create_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 10)
+    # PATH_A = "E:/Synth Hazy/hazy/"
+    # SAVE_PATH_A = "E:/Synth Hazy - Patch/hazy/"
+    #
+    # PATH_B = "E:/Synth Hazy/clean/"
+    # SAVE_PATH_B = "E:/Synth Hazy - Patch/clean/"
+    # create_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 10)
+    PATH_A = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+    SAVE_PATH_A = "E:/RESIDE - Patch/"
+    create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", (1024, 1024), constants.PATCH_IMAGE_SIZE, 1000)
 
 if __name__=="__main__": 
     main()   
