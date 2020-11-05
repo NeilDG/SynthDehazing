@@ -35,10 +35,10 @@ class ColorTransferDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        img_a = cv2.imread(img_id); img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2YUV) #because matplot uses RGB, openCV is BGR
+        img_a = cv2.imread(img_id); img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB) #because matplot uses RGB, openCV is BGR
         
         img_id = self.image_list_b[idx]
-        img_b = cv2.imread(img_id); img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2YUV)
+        img_b = cv2.imread(img_id); img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
                
         # img_a = self.initial_transform_op(img_a)
         # img_b = self.initial_transform_op(img_b)
@@ -76,11 +76,11 @@ class ColorTransferTestDataset(data.Dataset):
         file_name = path_segment[len(path_segment) - 1]
 
         img_a = cv2.imread(img_id);
-        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2YUV)  # because matplot uses RGB, openCV is BGR
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
 
         img_id = self.img_list_b[idx]
         img_b = cv2.imread(img_id);
-        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2YUV)
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
 
         img_a = self.final_transform_op(img_a)
         img_b = self.final_transform_op(img_b)

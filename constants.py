@@ -13,10 +13,10 @@ DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy/clean/"
 DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
 
-DATASET_IHAZE_PATH_PATCH = "E:/Div2k - Patch/"
+DATASET_IHAZE_PATH_PATCH = "E:/RESIDE - Patch/"
 DATASET_HAZY_TEST_PATH_1_HAZY = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
 DATASET_HAZY_TEST_PATH_1_CLEAN = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
-DATASET_HAZY_TEST_PATH_2 = "E:/Hazy Dataset Benchmark/Unannotated/"
+DATASET_HAZY_TEST_PATH_2 = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
 DATASET_PLACES_PATH = "E:/Places Dataset/"
 DATASET_DIV2K_PATH = "E:/VEMON_Transfer/train/C/"

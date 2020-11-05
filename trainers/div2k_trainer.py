@@ -63,7 +63,6 @@ class Div2kTrainer:
         self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
         self.caption_dict[constants.IDENTITY_LOSS_KEY] = "Identity loss per iteration"
-        self.caption_dict[constants.CYCLE_LOSS_KEY] = "Cycle loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
         self.caption_dict[constants.COLOR_SHIFT_LOSS_KEY] = "Color shift loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
@@ -71,6 +70,7 @@ class Div2kTrainer:
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
         self.caption_dict[constants.D_B_FAKE_LOSS_KEY] = "D(B) fake loss per iteration"
         self.caption_dict[constants.D_B_REAL_LOSS_KEY] = "D(B) real loss per iteration"
+        self.caption_dict[constants.CYCLE_LOSS_KEY] = "Cycle loss per iteration"
         
     
     def update_penalties(self, adv_weight, id_weight, likeness_weight, cycle_weight, color_shift_weight):
@@ -91,6 +91,7 @@ class Div2kTrainer:
             print("Adv weight: ", str(self.adv_weight), file = f)
             print("Identity weight: ", str(self.id_weight), file = f)
             print("Likeness weight: ", str(self.likeness_weight), file = f)
+            print("Color shift weight: ", str(self.color_shift_weight), file=f)
             print("Cycle weight: ", str(self.cycle_weight), file = f)
             print("====================================", file = f)
             print("Brightness enhance: ", str(constants.brightness_enhance), file = f)
@@ -107,13 +108,13 @@ class Div2kTrainer:
         return loss(pred, target)
     
     def cycle_loss(self, pred, target):
-        loss = nn.MSELoss()
+        loss = nn.L1Loss()
         return loss(pred, target)
         #loss = ssim_loss.SSIM()
         #return 1 - loss(pred, target)
     
     def likeness_loss(self, pred, target):
-        loss = nn.MSELoss()
+        loss = nn.L1Loss()
         return loss(pred, target)
         # loss = vgg.VGGPerceptualLoss().to(self.gpu_device)
         # return loss(pred, target)
@@ -222,13 +223,13 @@ class Div2kTrainer:
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss("color transfer loss", iteration, self.losses_dict, self.caption_dict)
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(dirty_tensor), "Training Dirty images")
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(clean_tensor), "Training Clean images")
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(clean_like), "Training Clean-like images")
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_dirty_tensor), "Test Dirty images")
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_dirty_like), "Test Dirty-like images")
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_clean_tensor), "Test Clean images")
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_clean_like), "Test Clean-like images")
+        self.visdom_reporter.plot_image((dirty_tensor), "Training Dirty images")
+        self.visdom_reporter.plot_image((clean_tensor), "Training Clean images")
+        self.visdom_reporter.plot_image((clean_like), "Training Clean-like images")
+        self.visdom_reporter.plot_image((test_dirty_tensor), "Test Dirty images")
+        self.visdom_reporter.plot_image((test_dirty_like), "Test Dirty-like images")
+        self.visdom_reporter.plot_image((test_clean_tensor), "Test Clean images")
+        self.visdom_reporter.plot_image((test_clean_like), "Test Clean-like images")
     
     def produce_image(self, dirty_tensor):
         with torch.no_grad():
