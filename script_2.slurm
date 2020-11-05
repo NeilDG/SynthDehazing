@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH -J PATCH_2
+#SBATCH -J RESIDE_2
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu
 #SBATCH --cpus-per-task=4
 #SBATCH -G 1
 #SBATCH --ntasks=1
-#SBATCH --output=patch_2.out
+#SBATCH --output=color_2.out
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph
 #SBATCH --mail-type=END
 
@@ -23,12 +23,12 @@ source activate NeilGAN
 
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge scikit-image
-srun python hybrid_dehaze_main.py --iteration=$ITERATION --clarity_weight=500.0 --color_weight=50.0 ----cycle_weight=10.0 --coare=1 --img_to_load=-1 --load_previous=0
-conda deactivate
+srun python div2k_main.py --iteration=$ITERATION --coare=1 --identity_weight=5.0 --likeness_weight=5.0 --cycle_weight=50.0 --img_to_load=-1 --load_previous=0
+source deactivate
 
-for i in {1..500}
+for i in {1..300}
     do
         source activate NeilGAN
-        srun python hybrid_dehaze_main.py --iteration=$ITERATION --clarity_weight=500.0 --color_weight=50.0 ----cycle_weight=10.0 --coare=1 --img_to_load=-1 --load_previous=1
-        conda deactivate
+        srun python div2k_main.py --iteration=$ITERATION --coare=1 --identity_weight=5.0 --likeness_weight=5.0 --cycle_weight=50.0 --img_to_load=-1 --load_previous=1
+        source deactivate
     done
