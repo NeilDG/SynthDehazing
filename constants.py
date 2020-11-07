@@ -32,7 +32,7 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-DEHAZER_VERSION = "dehazer_v1.09"
+DEHAZER_VERSION = "dehazer_v1.10"
 COLORIZER_VERSION = "colorizer_v1.07"
 COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.09"
 
@@ -70,7 +70,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 512
+batch_size = 8
 infer_size = 16
 
 brightness_enhance = 1.0

@@ -27,11 +27,11 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--color_shift_weight', type=float, help="Weight", default="0.0")
-parser.add_option('--cycle_weight', type=float, help="Weight", default="500.0")
+parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00") 
 parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
@@ -131,7 +131,7 @@ def main(argv):
                     iteration = iteration + 1
                     index = (index + 1) % len(test_loader)
                     if(index == 0):
-                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_HAZY_TEST_PATH_1_CLEAN, constants.display_size, 500)
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_HAZY_TEST_PATH_2, constants.display_size, 500)
           
                     gt.save_states(epoch, iteration, constants.COLOR_TRANSFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else: 

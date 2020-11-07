@@ -117,11 +117,11 @@ def create_filtered_img_data(dataset_path, save_path, filename_format, img_size,
                     print("Saved: ", file_name)
             count = count + 1
 
-def create_filtered_paired_img_data(dataset_path_a, dataset_path_b, save_path_a, save_path_b, filename_format, img_size, patch_size, repeats):
+def create_filtered_paired_img_data(dataset_path_a, dataset_path_b, save_path_a, save_path_b, filename_format, img_size, patch_size, repeats, offset = 0):
     img_list_a = assemble_img_list(dataset_path_a)
     img_list_b = assemble_img_list(dataset_path_b)
 
-    count = 0
+    count = offset
     for k in range(len(img_list_a)):
         img_a = cv2.imread(img_list_a[k])
         img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)
@@ -153,10 +153,10 @@ def create_filtered_paired_img_data(dataset_path_a, dataset_path_b, save_path_a,
                 sobel_img = sobel_x + sobel_y
                 sobel_quality = np.linalg.norm(sobel_img)
                 if (sobel_quality > 35000.0):  # only consider images with good edges
-                    # img_a_patch.save(file_name_a)
-                    # img_b_patch.save(file_name_b)
-                    plt.imshow(img_b_patch)
-                    plt.show()
+                    img_a_patch.save(file_name_a)
+                    img_b_patch.save(file_name_b)
+                    #plt.imshow(img_b_patch)
+                    #plt.show()
                     print("Norm value: ", sobel_quality, " Saved: ", file_name_a, file_name_b)
             count = count + 1
 
@@ -261,10 +261,10 @@ def main():
 
     PATH_A = "E:/Synth Hazy/clean/"
     SAVE_PATH_A = "E:/Synth Hazy - Patch/clean/"
-    PATH_B = "E:/Synth Hazy/clean/"
-    SAVE_PATH_B = "E:/Synth Hazy - Patch/clean/"
+    PATH_B = "E:/Synth Hazy/hazy/"
+    SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
 
-    create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 10)
+    create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 50, offset = 7193954)
     # PATH_A = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
     # SAVE_PATH_A = "E:/RESIDE - Patch/"
     #TODO: Synth image data not paired!!! Just for experiment!!!
