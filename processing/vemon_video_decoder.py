@@ -14,11 +14,11 @@ from loaders import dataset_loader
 import ipm
 from utils import tensor_utils
 
-PATH = "E:/VEMON Dataset/videos/"
-SAVE_PATH = "E:/VEMON Dataset/pending/frames/"
-HOMOG_PATH = "E:/VEMON Dataset/pending/homog_frames/"
-HOMOG_CROP_PATH = "E:/VEMON Dataset/pending/homog_crop_frames/"
-TOPDOWN_PATH = "E:/VEMON Dataset/pending/topdown_frames/"
+PATH = "E:/VEMON Dataset/vemon videos/"
+SAVE_PATH = "E:/VEMON Dataset/temp/frames/"
+HOMOG_PATH = "E:/VEMON Dataset/temp/homog_frames/"
+HOMOG_CROP_PATH = "E:/VEMON Dataset/temp/homog_crop_frames/"
+TOPDOWN_PATH = "E:/VEMON Dataset/temp/topdown_frames/"
   
 def perform():
     
@@ -41,8 +41,8 @@ def perform():
               result_img = warp_synth_view(image)
               crop_img = polish_border(result_img)
         
-              #cv2.imwrite(HOMOG_PATH +"frame_%d.png" % count, result_img)
-              #cv2.imwrite(HOMOG_CROP_PATH +"frame_%d.png" % count, crop_img)
+              cv2.imwrite(HOMOG_PATH +"frame_%d.png" % count, result_img)
+              cv2.imwrite(HOMOG_CROP_PATH +"frame_%d.png" % count, crop_img)
               count += 1
 
 def extract_from_gta():
@@ -292,9 +292,9 @@ def polish_synth_border(warp_img):
    return crop 
     
 def main():
-    #perform()
+    perform()
     #perform_synth()
-    extract_from_gta()
+    #extract_from_gta()
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

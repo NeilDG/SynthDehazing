@@ -27,10 +27,10 @@ class DehazeTrainer:
         self.gan_iteration = gan_iteration
         self.visdom_reporter = plot_utils.VisdomReporter()
         
-        self.G_A = cg.Generator(input_nc = 3, output_nc = 3, n_residual_blocks=gen_blocks).to(self.gpu_device)
-        #self.G_B = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks=gen_blocks).to(self.gpu_device)
-        self.D_A = cg.Discriminator(input_nc = 3).to(self.gpu_device)
-        #self.D_B = cg.Discriminator(input_nc = 1).to(self.gpu_device)
+        #self.G_A = cg.Generator(input_nc = 3, output_nc = 3, n_residual_blocks=gen_blocks).to(self.gpu_device)
+        self.G_A = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks=gen_blocks).to(self.gpu_device)
+        #self.D_A = cg.Discriminator(input_nc = 3).to(self.gpu_device)
+        self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)
         
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr = self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters()), lr = self.d_lr)
@@ -67,6 +67,8 @@ class DehazeTrainer:
             print("====================================", file = f)
             print("Adv weight: ", str(self.adv_weight), file = f)
             print("Clarity weight: ", str(self.clarity_weight), file = f)
+            print("Brightness enhance: ", str(constants.brightness_enhance), file = f)
+            print("Contrast enhance: ", str(constants.contrast_enhance), file=f)
     
     def adversarial_loss(self, pred, target):
         loss = nn.L1Loss()
@@ -75,7 +77,7 @@ class DehazeTrainer:
     def clarity_loss(self, pred, target):
         #loss = ssim_loss.SSIM()
         #return 1 - loss(pred, target)
-        loss = nn.MSELoss()
+        loss = nn.L1Loss()
         return loss(pred, target)
     
     def train(self, dirty_tensor, clean_tensor):
@@ -116,7 +118,7 @@ class DehazeTrainer:
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
     
-    def visdom_report(self, iteration,synth_dirty_tensor, synth_clean_tensor, test_tensor_1, test_tensor_2, test_tensor_3):
+    def visdom_report(self, iteration,synth_dirty_tensor, synth_clean_tensor, test_tensor_1):
         with torch.no_grad():
             synth_clean_like = self.G_A(synth_dirty_tensor)
         
@@ -127,10 +129,10 @@ class DehazeTrainer:
             self.visdom_reporter.plot_image(synth_clean_like, "Training Clean-like images")
             self.visdom_reporter.plot_image(test_tensor_1, "Test Hazy images - VEMON")
             self.visdom_reporter.plot_image(self.G_A(test_tensor_1), "Test Clean-like images - VEMON")
-            self.visdom_reporter.plot_image(test_tensor_2, "Test Hazy images - I-Haze")
-            self.visdom_reporter.plot_image(self.G_A(test_tensor_2),"Test Clean-like images - I-Haze")
-            self.visdom_reporter.plot_image(test_tensor_3, "Test Hazy images - Public")
-            self.visdom_reporter.plot_image(self.G_A(test_tensor_3), "Test Clean-like images - Public")
+            # self.visdom_reporter.plot_image(test_tensor_2, "Test Hazy images - I-Haze")
+            # self.visdom_reporter.plot_image(self.G_A(test_tensor_2),"Test Clean-like images - I-Haze")
+            # self.visdom_reporter.plot_image(test_tensor_3, "Test Hazy images - Public")
+            # self.visdom_reporter.plot_image(self.G_A(test_tensor_3), "Test Clean-like images - Public")
     
     def infer_single(self, dark_dirty_tensor):
         with torch.no_grad():

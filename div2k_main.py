@@ -27,12 +27,12 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--color_shift_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--cycle_weight', type=float, help="Weight", default="100.0")
-parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--color_shift_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00") 
 parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
@@ -49,17 +49,30 @@ def update_config(opts):
         constants.batch_size = 1024
         
         constants.ITERATION = str(opts.iteration)
-        constants.COLOR_TRANFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION +'.pt'
+        constants.COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + '.pt'
         
         constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
         constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
-        constants.DATASET_VEMON_PATH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_VEMON_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_DIV2K_PATH = "/scratch1/scratch2/neil.delgallego/Div2k_Patch Dataset Enhanced/"
-        constants.DATASET_HAZY_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
-        constants.DATASET_CLEAN_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
-        
+        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
+        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
+
+        constants.DATASET_IHAZE_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/RESIDE - Patch/"
+        constants.DATASET_HAZY_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/hazy/"
+        constants.DATASET_CLEAN_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/clean/"
+        constants.DATASET_HAZY_TEST_PATH_2 = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
+
         constants.num_workers = 4
-        
+
+def show_images(img_tensor, caption):
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title(caption)
+    plt.imshow(np.transpose(vutils.make_grid(img_tensor.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.show()
+
 def main(argv):
     (opts, args) = parser.parse_args(argv)
     update_config(opts)
@@ -80,34 +93,25 @@ def main(argv):
     iteration = 0
     
     if(opts.load_previous): 
-        checkpoint = torch.load(constants.COLOR_TRANFER_CHECKPATH)
+        checkpoint = torch.load(constants.COLOR_TRANSFER_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1   
         iteration = checkpoint['iteration'] + 1
         gt.load_saved_state(iteration, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
  
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.COLOR_TRANFER_CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.COLOR_TRANSFER_CHECKPATH, start_epoch))
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_div2k_train_dataset(constants.DATASET_HAZY_PATH, constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.display_size, 500)
+    train_loader = dataset_loader.load_color_train_dataset(constants.DATASET_HAZY_PATH_PATCH, constants.DATASET_CLEAN_PATH_PATCH, constants.DATASET_IHAZE_PATH_PATCH, constants.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_HAZY_TEST_PATH_2, constants.display_size, 500)
     index = 0
     
     # Plot some training images
     if(constants.is_coare == 0):
         _, noisy_batch, clean_batch = next(iter(train_loader))
 
-        plt.figure(figsize=constants.FIG_SIZE)
-        plt.axis("off")
-        plt.title("Training - Dirty Images")
-        plt.imshow(np.transpose(vutils.make_grid(noisy_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
-        plt.show()
-        
-        plt.figure(figsize=constants.FIG_SIZE)
-        plt.axis("off")
-        plt.title("Training - Clean Images")
-        plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.batch_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
-        plt.show()
+        show_images(noisy_batch, "Training - Dirty Images")
+        show_images(clean_batch, "Training - Clean Images")
     
     print("Starting Training Loop...")
     if(constants.is_coare == 0):
@@ -127,19 +131,19 @@ def main(argv):
                     iteration = iteration + 1
                     index = (index + 1) % len(test_loader)
                     if(index == 0):
-                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.display_size, 500)
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_HAZY_TEST_PATH_2, constants.display_size, 500)
           
-            gt.save_states(epoch, iteration, constants.COLOR_TRANFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+                    gt.save_states(epoch, iteration, constants.COLOR_TRANSFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else: 
         for i, (name, dirty_batch, clean_batch) in enumerate(train_loader, 0):
             dirty_tensor = dirty_batch.to(device)
             clean_tensor = clean_batch.to(device)
             gt.train(dirty_tensor, clean_tensor)
-            if(i % 20 == 0):
+            if(i % 100 == 0):
                 print("Iterating %d " % i)
             
         #save every X epoch
-        gt.save_states(start_epoch, iteration, constants.COLOR_TRANFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(start_epoch, iteration, constants.COLOR_TRANSFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

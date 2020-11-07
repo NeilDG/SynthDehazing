@@ -10,16 +10,23 @@ import torch.utils.data
 import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
+from torch import nn
+
 from loaders import dataset_loader
 from trainers import denoise_net_trainer
 from trainers import div2k_trainer
 from trainers import dehaze_trainer
-from model import vanilla_cycle_gan as denoise_gan
+from model import vanilla_cycle_gan as cycle_gan
+from model import style_transfer_gan as color_gan
 import constants
 from torchvision import transforms
 import cv2
 from utils import tensor_utils
 import os
+import glob
+from skimage.measure import compare_ssim
+from skimage.measure import compare_mse
+from skimage.measure import compare_nrmse
 
 def get_transform_ops(output_size):
     dark_transform_op = transforms.Compose([transforms.ToPILImage(), 
@@ -36,73 +43,143 @@ def get_transform_ops(output_size):
     
     return dark_transform_op, rgb_transform_op
 
-def produce_video(video_path, checkpath, version, iteration):
+def plot_and_save(item_number, tensor_a, tensor_b):
+    LOCATION = os.getcwd() + "/figures/"
+    fig, ax = plt.subplots(2, 1)
+    fig.set_size_inches((32, 16))
+    fig.tight_layout()
+
+    ims = np.transpose(vutils.make_grid(tensor_a, nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0))
+    ax[0].set_axis_off()
+    ax[0].imshow(ims)
+
+    ims = np.transpose(vutils.make_grid(tensor_b, nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0))
+    ax[1].set_axis_off()
+    ax[1].imshow(ims)
+
+    plt.subplots_adjust(left=0.06, wspace=0.0, hspace=0.15)
+    plt.savefig(LOCATION + "result_" + str(item_number) + ".png")
+    plt.show()
+
+
+def produce_video(video_path):
+    DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.09_2.pt"
+    COLORIZER_CHECKPATH = "checkpoint/colorizer_v1.07_2.pt"
+
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    gt = dehaze_trainer.DehazeTrainer(version, iteration, device, gen_blocks = 8, g_lr = 0.0002, d_lr = 0.0002)
-    checkpoint = torch.load(checkpath)
-    gt.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
-    
-    denoiser = denoise_gan.Generator(n_residual_blocks=3).to(device)
-    denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
-    denoiser.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
+
+    dehazer = cg.Generator(input_nc=1, output_nc=1, n_residual_blocks=5).to(device)
+    dehazer_checkpt = torch.load(DEHAZER_CHECKPATH)
+    dehazer.load_state_dict(dehazer_checkpt[constants.GENERATOR_KEY + "A"])
+
+    colorizer = sg.Generator(input_nc=3, output_nc=3).to(device)
+    colorizer_checkpt = torch.load(COLORIZER_CHECKPATH)
+    colorizer.load_state_dict(colorizer_checkpt[constants.GENERATOR_KEY + "A"])
     
     vidcap = cv2.VideoCapture(video_path)
     success,image = vidcap.read()
     success = True
     
-    OUTPUT_SIZE = (480,704)
-    dark_transform_op, rgb_transform_op = get_transform_ops(OUTPUT_SIZE)
+    #OUTPUT_SIZE = (480,704)
+    OUTPUT_SIZE = (960, 1408)
+    y_transform_op, yuv_transform_op = get_transform_ops(OUTPUT_SIZE)
     
     video_name = video_path.split("/")[3].split(".")[0]
-    SAVE_PATH = "E:/VEMON Dataset/vemon enhanced/" + video_name + "_" + version + "_" +str(iteration)+"_enhanced.avi"
+    SAVE_PATH = "E:/VEMON Dataset/vemon enhanced/" + video_name + "dehazer_v1.09_2_enhanced.avi"
     
     video_out = cv2.VideoWriter(SAVE_PATH, cv2.VideoWriter_fourcc(*"MJPG"), 8.0, (OUTPUT_SIZE[1],OUTPUT_SIZE[0]))
-    
-    alpha = 0.7
-    beta = 0.7
     with torch.no_grad():
         while success:
-            success,rgb_img = vidcap.read()
+            success,yuv_img = vidcap.read()
             if(success):
-                rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
-                #dark_img = tensor_utils.get_dark_channel(rgb_img)
-                #dark_img_tensor = dark_transform_op(dark_img)
-                #dark_img_tensor = torch.unsqueeze(dark_img_tensor, 0).to(device)
+                yuv_img = cv2.cvtColor(yuv_img, cv2.COLOR_BGR2YUV)
+                y_img = tensor_utils.get_y_channel(yuv_img)
+                yuv_tensor = yuv_transform_op(yuv_img)
+                yuv_tensor = torch.unsqueeze(yuv_tensor, 0).to(device)
+                y_tensor = y_transform_op(y_img)
+                y_tensor = torch.unsqueeze(y_tensor, 0).to(device)
+                y_tensor_clean = dehazer(y_tensor)
 
-                rgb_img_tensor = rgb_transform_op(rgb_img).unsqueeze(0).to(device)
-                
-                result_tensor = gt.infer_single(rgb_img_tensor)
-                result_tensor = denoiser(result_tensor).cpu()
-                
-                result_img = tensor_utils.normalize_to_matplotimg(result_tensor, 0, 0.5, 0.5)
+                (y, u, v) = torch.chunk(yuv_tensor.transpose(0, 1), 3)
+                input_tensor = torch.cat((y_tensor_clean.transpose(0, 1), u, v)).transpose(0, 1)
+                input_tensor_clean = colorizer(input_tensor)
 
-                #test - check brightness/contrast
-                # brightness = 1.0
-                # contrast = 1.0
-                # for i in range(10):
-                #     to_pil_op = transforms.ToPILImage()
-                #     display_img = to_pil_op(result_img)
-                #     display_img = transforms.functional.adjust_brightness(display_img, brightness)
-                #     display_img = transforms.functional.adjust_contrast(display_img, contrast)
-                #     #brightness = brightness + 0.1
-                #     contrast = contrast + 0.1
-                #     plt.imshow(display_img)
-                #     plt.show()
-
-
+                input_tensor_clean = tensor_utils.yuv_to_rgb(input_tensor_clean).cpu()
+                result_img = tensor_utils.normalize_to_matplotimg(input_tensor_clean, 0, 0.5, 0.5)
+                #result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
                 result_img = cv2.cvtColor(result_img, cv2.COLOR_RGB2BGR)
                 video_out.write(result_img)
         video_out.release()
-                
-def benchmark(checkpath, version, iteration):
+
+def benchmark():
+    DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.09_1.pt"
+    COLORIZER_CHECKPATH = "checkpoint/colorizer_v1.07_1.pt"
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+    GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
+    SAVE_PATH = "results/"
+    BENCHMARK_PATH = "results/metrics.txt"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    dehazer = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks=5).to(device)
+    dehazer_checkpt = torch.load(DEHAZER_CHECKPATH)
+    dehazer.load_state_dict(dehazer_checkpt[constants.GENERATOR_KEY + "A"])
+
+    colorizer = sg.Generator(input_nc = 3, output_nc = 3).to(device)
+    colorizer_checkpt = torch.load(COLORIZER_CHECKPATH)
+    colorizer.load_state_dict(colorizer_checkpt[constants.GENERATOR_KEY + "A"])
+
+    OUTPUT_SIZE = (512, 512)
+    hazy_list = glob.glob(HAZY_PATH + "*.jpg")
+    gt_list = glob.glob(GT_PATH + "*.jpg")
+    y_transform_op, yuv_transform_op = get_transform_ops(OUTPUT_SIZE)
+
+    print(hazy_list, gt_list)
+    average_SSIM = 0.0
+    with open(BENCHMARK_PATH, "w") as f:
+        for i, (hazy_path, gt_path) in enumerate(zip(hazy_list, gt_list)):
+            with torch.no_grad():
+                img_name = hazy_path.split("\\")[1]
+
+                yuv_img = cv2.imread(hazy_path)
+                yuv_img = cv2.cvtColor(yuv_img, cv2.COLOR_BGR2YUV)
+                y_img = tensor_utils.get_y_channel(yuv_img)
+
+                gt_img = cv2.imread(gt_path)
+                gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2YUV)
+                gt_img = cv2.resize(gt_img, OUTPUT_SIZE, interpolation=cv2.INTER_CUBIC)
+
+                y_tensor = y_transform_op(y_img)
+                gt_tensor = yuv_transform_op(gt_img)
+                y_tensor = torch.unsqueeze(y_tensor, 0).to(device)
+                gt_tensor = torch.unsqueeze(gt_tensor, 0).to(device)
+                y_tensor_clean = dehazer(y_tensor)
+
+                (y, u, v) = torch.chunk(gt_tensor.transpose(0, 1), 3)
+                input_tensor = torch.cat((y_tensor_clean.transpose(0, 1), u, v)).transpose(0, 1)
+                input_tensor_clean = colorizer(input_tensor)
+
+                input_tensor_clean = tensor_utils.yuv_to_rgb(input_tensor_clean).cpu()
+                result_img = tensor_utils.normalize_to_matplotimg(input_tensor_clean, 0, 0.5, 0.5)
+                gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
+                result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
+                cv2.imwrite(SAVE_PATH + img_name, result_img)
+
+                #measure SSIM
+                SSIM = np.round(compare_ssim(result_img, gt_img, multichannel=True), 4)
+                print("SSIM of " + hazy_path + " : ", SSIM, file = f)
+                average_SSIM += SSIM
+
+        average_SSIM = average_SSIM / len(hazy_list) * 1.0
+        print("Average SSIM: ", average_SSIM, file = f)
+
+
+def create_figures(checkpath, version, iteration):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/Unannotated"
     HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy"
-    
     GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT"
-    
-    SAVE_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/results/"
+    SAVE_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
     #SAVE_PATH = "E:/Hazy Dataset Benchmark/Unannotated Results/"
-    
+
     OUTPUT_SIZE = (708, 1164)
     alpha = 1.0
     beta = 1.0
@@ -112,10 +189,11 @@ def benchmark(checkpath, version, iteration):
     checkpoint = torch.load(checkpath)
     gt.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     
-    denoiser = denoise_gan.Generator(n_residual_blocks=3).to(device)
+    denoiser = cg.Generator(n_residual_blocks=3).to(device)
     denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
     denoiser.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
-    
+
+
     hazy_list = []; gt_list = []
     for (root, dirs, files) in os.walk(HAZY_PATH):
         for f in files:
@@ -180,42 +258,61 @@ def benchmark(checkpath, version, iteration):
         file_name = SAVE_PATH + "fig_"+str(fig_num)+ "_" + version + "_" +str(iteration)+".jpg"
         plt.savefig(file_name)
         plt.show()
-        
-def dehaze_infer(batch_size, checkpath, version, iteration):
+
+
+def dehaze_infer(checkpath, version, iteration):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    
-    denoiser = denoise_gan.Generator(n_residual_blocks=3).to(device)
-    denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
-    denoiser.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
-    dehazer = denoise_net_trainer.DenoiseTrainer(version, iteration, device, gen_blocks=3)
-    
-    checkpoint = torch.load(checkpath)
-    dehazer.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
- 
-    print("Loaded results checkpt ",checkpath)
+
+    # load color transfer
+    color_transfer_checkpt = torch.load('checkpoint/dehaze_colortransfer_v1.06_10.pt')
+    color_transfer_gan = color_gan.Generator().to(device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    print("Color transfer GAN model loaded.")
+
+    dehaze_transfer_checkpt = torch.load(checkpath)
+    dehazer_gan = cycle_gan.Generator(n_residual_blocks=8).to(device)
+    dehazer_gan.load_state_dict(dehaze_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    print("Dehazer loaded. ", checkpath)
     print("===================================================")
-    
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH, constants.DATASET_CLEAN_PATH, batch_size, -1)
-    
+
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE,
+                                                  constants.DATASET_CLEAN_PATH_COMPLETE, constants.infer_size, -1)
+
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
     plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Training - Dirty Images")
-    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(
+        vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(),
+        (1, 2, 0)))
     plt.show()
-    
+
     plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Training - Clean Images")
-    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
+    plt.imshow(np.transpose(
+        vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(),
+        (1, 2, 0)))
     plt.show()
-    
+
     item_number = 0
-    for i, (name, vemon_batch, gta_batch) in enumerate(dataloader, 0):
-        vemon_tensor = vemon_batch.to(device)
-        item_number = item_number + 1
-        dehazer.dehaze_infer(denoiser, vemon_tensor, item_number)
+    for i, (name, vemon_batch, synth_batch) in enumerate(dataloader, 0):
+        with torch.no_grad():
+            item_number = item_number + 1
+
+            vemon_tensor = vemon_batch.to(device)
+            vemon_dehazed = dehazer_gan(vemon_tensor)
+
+            # resize tensors for better viewing
+            resized_vemon = nn.functional.interpolate(vemon_tensor, scale_factor=4.0, mode="bilinear",
+                                                      recompute_scale_factor=True)
+            resized_vemon_dehazed = nn.functional.interpolate(vemon_dehazed, scale_factor=4.0, mode="bilinear",
+                                                              recompute_scale_factor=True)
+
+            print("New shapes: %s %s" % (np.shape(resized_vemon), np.shape(resized_vemon_dehazed)))
+
+            plot_and_save(item_number, resized_vemon, resized_vemon_dehazed)
     
 
 def color_transfer(checkpath, version, iteration):
@@ -229,7 +326,7 @@ def color_transfer(checkpath, version, iteration):
     print("Loaded results checkpt ",checkpath)
     print("===================================================")
     
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH, constants.DATASET_VEMON_PATH, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_VEMON_PATH_COMPLETE, constants.infer_size, -1)
     
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -251,14 +348,14 @@ def color_transfer(checkpath, version, iteration):
         item_number = item_number + 1
         colorizer.infer(input_tensor, item_number)
 
-def produce_video_batch(CHECKPATH, VERSION, ITERATION):
+def produce_video_batch():
     VIDEO_FOLDER_PATH = "E:/VEMON Dataset/vemon videos/"
     #VIDEO_FOLDER_PATH = "E:/VEMON Dataset/mmda videos/"
     video_list = os.listdir(VIDEO_FOLDER_PATH)
     for i in range(len(video_list)):
         video_path = VIDEO_FOLDER_PATH + video_list[i]
         print(video_path)
-        produce_video(video_path, CHECKPATH, VERSION, ITERATION)
+        produce_video(video_path)
 
 
 def dark_channel_test():
@@ -290,8 +387,8 @@ def main():
     ITERATION = "1"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
     
-    produce_video_batch(CHECKPATH, VERSION, ITERATION)
-    #benchmark(CHECKPATH, VERSION, ITERATION)
+    produce_video_batch()
+    #benchmark()
     #color_transfer(CHECKPATH, VERSION, ITERATION)
 
 #FIX for broken pipe num_workers issue.
