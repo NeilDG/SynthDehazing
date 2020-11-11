@@ -32,7 +32,7 @@ OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 
-DEHAZER_VERSION = "dehazer_v1.10"
+DEHAZER_VERSION = "dehazer_v1.11"
 COLORIZER_VERSION = "colorizer_v1.07"
 COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.09"
 

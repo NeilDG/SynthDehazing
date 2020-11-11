@@ -20,7 +20,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import ffa_trainer
-from model import style_transfer_gan as color_gan
 import constants
 
 parser = OptionParser()
@@ -96,7 +95,7 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    synth_train_loader = dataset_loader.load_dehaze_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+    synth_train_loader = dataset_loader.load_dehaze_dataset(constants.DATASET_HAZY_PATH_PATCH, constants.DATASET_CLEAN_PATH_PATCH, constants.batch_size, opts.img_to_load)
     synth_test_loader_hazy = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
     synth_test_loader_clean = dataset_loader.load_dehaze_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
     vemon_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
@@ -123,7 +122,7 @@ def main(argv):
                 #train dehazing
                 dehazer.train(hazy_tensor, clean_tensor)
 
-                if((i + 1) % 1000 == 0):
+                if((i + 1) % 500 == 0):
                     _, vemon_batch = next(iter(vemon_test_loader))
                     _, synth_hazy_batch = next(iter(synth_test_loader_hazy))
                     _, synth_clean_batch = next(iter(synth_test_loader_clean))

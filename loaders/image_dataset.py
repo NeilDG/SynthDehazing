@@ -95,7 +95,7 @@ class DarkChannelHazeDataset(data.Dataset):
         self.hazy_list = hazy_list
         self.clear_list = clear_list
         self.transform_op = transforms.Compose([
-            transforms.ToPILImage(mode = 'L'),
+            transforms.ToPILImage(),
             transforms.ToTensor(),
             transforms.Normalize((0.5), (0.5), (0.5))])
 
@@ -118,11 +118,11 @@ class DarkChannelHazeDataset(data.Dataset):
         # hazy_img = tensor_utils.get_y_channel(hazy_img)
 
         hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
-        hazy_img = tensor_utils.get_dark_channel(hazy_img, 8)
+        #hazy_img = tensor_utils.get_dark_channel(hazy_img, 8)
         
         img_id = self.clear_list[idx]
         clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
-        clear_img = tensor_utils.get_dark_channel(clear_img, 8)
+        #clear_img = tensor_utils.get_dark_channel(clear_img, 8)
         # clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2YUV)
         # clear_img = tensor_utils.get_y_channel(clear_img)
                  

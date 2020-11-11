@@ -95,7 +95,7 @@ def load_dehaze_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
     # print("Length of dehazing dataset: %d, %d, %d" % (len(a_list), len(b_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.HazeDataset(a_list, b_list),
+        image_dataset.DarkChannelHazeDataset(a_list, b_list),
         batch_size=batch_size,
         num_workers=6,
         shuffle=True

@@ -264,7 +264,7 @@ def main():
     PATH_B = "E:/Synth Hazy/hazy/"
     SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
 
-    create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 50, offset = 7193954)
+    create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 5, offset = 14387938)
     # PATH_A = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
     # SAVE_PATH_A = "E:/RESIDE - Patch/"
     #TODO: Synth image data not paired!!! Just for experiment!!!

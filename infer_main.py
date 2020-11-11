@@ -18,6 +18,7 @@ from trainers import div2k_trainer
 from trainers import dehaze_trainer
 from model import vanilla_cycle_gan as cycle_gan
 from model import style_transfer_gan as color_gan
+from model import ffa_net as ffa
 import constants
 from torchvision import transforms
 import cv2
@@ -62,6 +63,38 @@ def plot_and_save(item_number, tensor_a, tensor_b):
     plt.show()
 
 
+def produce_ffa_video(video_path):
+    DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.10_2 - stable@12.pt"
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    dehazer = ffa.FFA(gps=3, blocks=19).to(device)
+    dehazer_checkpt = torch.load(DEHAZER_CHECKPATH)
+    dehazer.load_state_dict(dehazer_checkpt[constants.GENERATOR_KEY])
+    OUTPUT_SIZE = (480, 704)
+
+    r_transform_op, rgb_transform_op = get_transform_ops(OUTPUT_SIZE)
+    video_name = video_path.split("/")[3].split(".")[0]
+    SAVE_PATH = "E:/VEMON Dataset/vemon enhanced/" + video_name + "dehazer_v1.10_2_enhanced.avi"
+
+    vidcap = cv2.VideoCapture(video_path)
+    success, image = vidcap.read()
+    success = True
+    video_out = cv2.VideoWriter(SAVE_PATH, cv2.VideoWriter_fourcc(*"MJPG"), 8.0, (OUTPUT_SIZE[1], OUTPUT_SIZE[0]))
+    with torch.no_grad():
+        while success:
+            success, img = vidcap.read()
+            if (success):
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                rgb_tensor = rgb_transform_op(img)
+                rgb_tensor = torch.unsqueeze(rgb_tensor, 0).to(device)
+                rgb_tensor_clean = dehazer(rgb_tensor)
+
+                result_img = tensor_utils.normalize_to_matplotimg(rgb_tensor_clean.cpu(), 0, 0.5, 0.5)
+                # result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
+                result_img = cv2.cvtColor(result_img, cv2.COLOR_RGB2BGR)
+                video_out.write(result_img)
+        video_out.release()
+
+
 def produce_video(video_path):
     DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.09_2.pt"
     COLORIZER_CHECKPATH = "checkpoint/colorizer_v1.07_2.pt"
@@ -75,7 +108,7 @@ def produce_video(video_path):
     colorizer = sg.Generator(input_nc=3, output_nc=3).to(device)
     colorizer_checkpt = torch.load(COLORIZER_CHECKPATH)
     colorizer.load_state_dict(colorizer_checkpt[constants.GENERATOR_KEY + "A"])
-    
+
     vidcap = cv2.VideoCapture(video_path)
     success,image = vidcap.read()
     success = True
@@ -355,7 +388,7 @@ def produce_video_batch():
     for i in range(len(video_list)):
         video_path = VIDEO_FOLDER_PATH + video_list[i]
         print(video_path)
-        produce_video(video_path)
+        produce_ffa_video(video_path)
 
 
 def dark_channel_test():
