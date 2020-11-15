@@ -50,6 +50,6 @@ class TemplateTrainer:
         self.iteration = iteration
         #load model
     
-    def save_states(self, epoch, path, model_key, optimizer_key):
+    def save_states(self, epoch, iteration, path, model_key, optimizer_key):
         print()
         #save model

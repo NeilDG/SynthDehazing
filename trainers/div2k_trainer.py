@@ -265,13 +265,13 @@ class Div2kTrainer:
         plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
         plt.show()
         
-    def load_saved_state(self, iteration, checkpoint, generator_key, disriminator_key, optimizer_key):
+    def load_saved_state(self, iteration, checkpoint, generator_key, discriminator_key, optimizer_key):
         self.G_A.load_state_dict(checkpoint[generator_key + "A"])
         self.G_B.load_state_dict(checkpoint[generator_key + "B"])
-        self.D_A.load_state_dict(checkpoint[disriminator_key + "A"])
-        self.D_B.load_state_dict(checkpoint[disriminator_key + "B"])
+        self.D_A.load_state_dict(checkpoint[discriminator_key + "A"])
+        self.D_B.load_state_dict(checkpoint[discriminator_key + "B"])
         self.optimizerG.load_state_dict(checkpoint[generator_key + optimizer_key])
-        self.optimizerD.load_state_dict(checkpoint[disriminator_key + optimizer_key])
+        self.optimizerD.load_state_dict(checkpoint[discriminator_key + optimizer_key])
     
     def save_states(self, epoch, iteration, path, generator_key, disriminator_key, optimizer_key):
         save_dict = {'epoch': epoch, 'iteration': iteration}

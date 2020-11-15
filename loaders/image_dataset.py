@@ -338,3 +338,30 @@ class ColorTestDataset(data.Dataset):
     
     def __len__(self):
         return len(self.rgb_list)
+
+
+class LatentDataset(data.Dataset):
+    def __init__(self, image_list_a):
+        self.image_list_a = image_list_a
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id);
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+
+        img_a = self.final_transform_op(img_a)
+
+        return file_name, img_a
+
+    def __len__(self):
+        return len(self.image_list_a)

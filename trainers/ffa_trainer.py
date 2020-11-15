@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Template trainer. Do not use this for actual training.
+# FFA Net trainer. used for training.
 
 import os
 from model import ffa_net as ffa
@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import torchvision.utils as vutils
-from utils import logger
+from utils import logger, tensor_utils
 from utils import plot_utils
 
 class FFATrainer:
@@ -23,9 +23,8 @@ class FFATrainer:
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
         self.G = ffa.FFA(gps = 3, blocks = blocks).to(self.gpu_device)
-        self.optimizerG = torch.optim.Adam(itertools.chain(self.G.parameters()), lr=self.lr)
-
         self.LN = latent_network.LatentNetwork().to(self.gpu_device)
+        self.optimizerG = torch.optim.Adam(itertools.chain(self.G.parameters(), self.LN.parameters()), lr=self.lr)
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
         
@@ -46,18 +45,11 @@ class FFATrainer:
         #what penalties to use for losses?
         self.l1_weight = l1_weight
 
-    def compute_z_signal(self, value, batch_size, image_size):
-        z_size = (int(image_size[0] / 16), int(image_size[1] / 16))
-        z_signal = torch.randn((batch_size, 1, z_size[0], z_size[1])).to(self.gpu_device)
-        z_signal = z_signal.new_full((batch_size, 1, z_size[0], z_size[1]), value)
-
-        return z_signal
-
     def train(self, hazy_tensor, clean_tensor):
         self.G.train()
         self.optimizerG.zero_grad()
 
-        z_signal = self.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(hazy_tensor)[0], constants.PATCH_IMAGE_SIZE)
+        z_signal = tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(hazy_tensor)[0], constants.PATCH_IMAGE_SIZE).to(self.gpu_device)
         #print("Z signal shape: ", np.shape(z_signasl))
         latent_vector = self.LN(z_signal)
         #print("Latent vector shape: ", np.shape(latent_vector))
@@ -73,9 +65,9 @@ class FFATrainer:
     def visdom_report(self, iteration, hazy_tensor, clean_tensor, hazy_test, clean_test, vemon_tensor):
         with torch.no_grad():
             # report to visdom
-            clean_like = self.G(hazy_tensor, self.LN(self.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(hazy_tensor)[0], constants.PATCH_IMAGE_SIZE)))
-            test_clean_like = self.G(hazy_test, self.LN(self.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(hazy_test)[0], constants.TEST_IMAGE_SIZE)))
-            vemon_clean = self.G(vemon_tensor, self.LN(self.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(vemon_tensor)[0], constants.TEST_IMAGE_SIZE)))
+            clean_like = self.G(hazy_tensor, self.LN(tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(hazy_tensor)[0], constants.PATCH_IMAGE_SIZE).to(self.gpu_device)))
+            test_clean_like = self.G(hazy_test, self.LN(tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(hazy_test)[0], constants.TEST_IMAGE_SIZE).to(self.gpu_device)))
+            vemon_clean = self.G(vemon_tensor, self.LN(tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(vemon_tensor)[0], constants.TEST_IMAGE_SIZE).to(self.gpu_device)))
 
             self.visdom_reporter.plot_finegrain_loss("dehazing_loss", iteration, self.losses_dict, self.caption_dict)
             self.visdom_reporter.plot_image(hazy_tensor, "Training Hazy images")
@@ -89,16 +81,20 @@ class FFATrainer:
             self.visdom_reporter.plot_image(vemon_tensor, "Vemon Hazy Images")
             self.visdom_reporter.plot_image(vemon_clean, "Vemon Clean Images")
     
-    def load_saved_state(self, iteration, checkpoint, model_key, optimizer_key):
+    def load_saved_state(self, iteration, checkpoint, model_key, latent_key, optimizer_key):
         self.iteration = iteration
         self.G.load_state_dict(checkpoint[model_key])
+        self.LN.load_state_dict(checkpoint[latent_key])
         self.optimizerG.load_state_dict(checkpoint[optimizer_key])
     
-    def save_states(self, epoch, iteration, path, model_key, optimizer_key):
+    def save_states(self, epoch, iteration, path, model_key, latent_key, optimizer_key):
         save_dict = {'epoch': epoch, 'iteration': iteration}
         netGA_state_dict = self.G.state_dict()
         optimizerG_state_dict = self.optimizerG.state_dict()
+        latent_state_dict = self.LN.state_dict()
+
         save_dict[model_key] = netGA_state_dict
+        save_dict[latent_key] = latent_state_dict
         save_dict[optimizer_key] = optimizerG_state_dict
 
         torch.save(save_dict, path)

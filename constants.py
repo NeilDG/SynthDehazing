@@ -14,8 +14,10 @@ DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
 
 DATASET_IHAZE_PATH_PATCH = "E:/RESIDE - Patch/"
-DATASET_HAZY_TEST_PATH_1_HAZY = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
-DATASET_HAZY_TEST_PATH_1_CLEAN = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
+DATASET_OHAZE_PATH_PATCH_HAZY = "E:/I-HAZE - Patch/hazy/"
+DATASET_OHAZE_PATH_PATCH_CLEAN = "E:/I-HAZE - Patch/clean/"
+DATASET_HAZY_TEST_PATH_1_HAZY = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
+DATASET_HAZY_TEST_PATH_1_CLEAN = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
 DATASET_HAZY_TEST_PATH_2 = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
 DATASET_PLACES_PATH = "E:/Places Dataset/"
@@ -31,13 +33,16 @@ TENSORBOARD_PATH = os.getcwd() + "/train_plot/"
 OPTIMIZER_KEY = "optimizer"
 GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
+LATENT_VECTOR_KEY = "latent_vector"
 
-DEHAZER_VERSION = "dehazer_v1.11"
+DEHAZER_VERSION = "dehazer_v1.12"
 COLORIZER_VERSION = "colorizer_v1.07"
 COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.09"
+LATENT_VERSION = "latent_v1.00"
 
 ITERATION = "2"
 
+LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
 COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
@@ -70,7 +75,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 8
+batch_size = 32
 infer_size = 16
 
 brightness_enhance = 1.0

@@ -293,4 +293,11 @@ def imagenet_clamp_batch(batch, low, high):
     batch[:,0,:,:].data.clamp_(low-103.939, high-103.939)
     batch[:,1,:,:].data.clamp_(low-116.779, high-116.779)
     batch[:,2,:,:].data.clamp_(low-123.680, high-123.680)
+
+#computes a z_signal based on image size. Image size must always be a power of 2 and greater than 16x16.
+def compute_z_signal(value, batch_size, image_size):
+    z_size = (int(image_size[0]), int(image_size[1]))
+    z_signal = torch.randn((batch_size, 1, z_size[0], z_size[1]))
+    z_signal = z_signal.new_full((batch_size, 1, z_size[0], z_size[1]), value)
+    return z_signal
     
