@@ -59,7 +59,7 @@ def update_config(opts):
 
         constants.DATASET_HAZY_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/hazy/"
         constants.DATASET_CLEAN_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/clean/"
-        constants.DATASET_VEMON_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/B/"
+        constants.DATASET_VEMON_PATH_PATCH_32 = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/B/"
 
         constants.num_workers = 4
 
@@ -108,7 +108,7 @@ def main(argv):
     # Create the dataloader
     synth_train_loader = dataset_loader.load_dark_channel_dataset(constants.DATASET_HAZY_PATH_PATCH, constants.DATASET_CLEAN_PATH_PATCH, constants.batch_size, opts.img_to_load)
     synth_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, 4, 500)
-    rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_VEMON_PATH_PATCH, constants.batch_size, opts.img_to_load)
+    rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_VEMON_PATH_PATCH_32, constants.batch_size, opts.img_to_load)
     rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
     index = 0
     

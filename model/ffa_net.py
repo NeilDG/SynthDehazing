@@ -97,8 +97,7 @@ class FFA(nn.Module):
         self.pre = nn.Sequential(*pre_process)
         self.post = nn.Sequential(*post_precess)
 
-    def forward(self, x1, z_signal):
-        x1 = x1 + z_signal
+    def forward(self, x1):
         #print("X1 shape: ", np.shape(x1))
         x = self.pre(x1)
         res1 = self.g1(x)

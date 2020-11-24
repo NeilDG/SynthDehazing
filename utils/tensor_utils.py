@@ -296,8 +296,14 @@ def imagenet_clamp_batch(batch, low, high):
 
 #computes a z_signal based on image size. Image size must always be a power of 2 and greater than 16x16.
 def compute_z_signal(value, batch_size, image_size):
-    z_size = (int(image_size[0]), int(image_size[1]))
-    z_signal = torch.randn((batch_size, 1, z_size[0], z_size[1]))
-    z_signal = z_signal.new_full((batch_size, 1, z_size[0], z_size[1]), value)
+    z_size = (int(image_size[0] / 16), int(image_size[1] / 16))
+    torch.manual_seed(value)
+    z_signal = torch.randn((batch_size, 100, z_size[0], z_size[1]))
+    return z_signal
+
+#computes a z signal to be conacated with another image tensor.
+def compute_z_signal_concat(value, batch_size, image_size):
+    torch.manual_seed(value)
+    z_signal = torch.randn((batch_size, 100, image_size[0], image_size[1]))
     return z_signal
     

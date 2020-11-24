@@ -183,7 +183,7 @@ def load_color_train_dataset(path_a, path_b, path_c, batch_size=8, num_image_to_
 
 def load_latent_dataset(path_a, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
-    print("Length of dehazing test dataset: %d" % (len(a_list)))
+    print("Length of dehazing train dataset: %d" % (len(a_list)))
 
     data_loader = torch.utils.data.DataLoader(
         image_dataset.LatentDataset(a_list),

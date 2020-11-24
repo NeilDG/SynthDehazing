@@ -30,9 +30,15 @@ class LatentTrainer:
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
 
+        #load 32
         latent_checkpoint = torch.load(constants.LATENT_CHECKPATH)
         self.LN_32 = latent_network.LatentNetwork().to(self.gpu_device)
         self.LN_32.load_state_dict(latent_checkpoint[constants.GENERATOR_KEY])
+
+        #load 64
+        latent_checkpoint = torch.load(constants.LATENT_CHECKPATH_64)
+        self.LN_64 = latent_network.LatentNetworkScaler().to(self.gpu_device)
+        self.LN_64.load_state_dict(latent_checkpoint[constants.GENERATOR_KEY])
     
     def initialize_dict(self):
         #what to store in visdom?
@@ -76,9 +82,12 @@ class LatentTrainer:
         z_signal = tensor_utils.compute_z_signal(np.random.uniform(-5000.0, 5000.0), np.shape(img_tensor)[0], constants.PATCH_IMAGE_SIZE).to(self.gpu_device)
         img_32 = self.LN_32(z_signal)
 
-        #create new signal and concat with previous generated image
         z_signal = tensor_utils.compute_z_signal_concat(np.random.uniform(-5000.0, 5000.0), np.shape(img_tensor)[0], (32, 32)).to(self.gpu_device)
-        img_like = self.LN(img_32, z_signal)
+        img_64 = self.LN_64(img_32, z_signal)
+
+        #create new signal and concat with previous generated image
+        z_signal = tensor_utils.compute_z_signal_concat(np.random.uniform(-5000.0, 5000.0), np.shape(img_tensor)[0], (64, 64)).to(self.gpu_device)
+        img_like = self.LN(img_64, z_signal)
 
         self.D_A.train()
         self.optimizerD.zero_grad()
@@ -97,7 +106,7 @@ class LatentTrainer:
 
         self.LN.train()
         self.optimizerG.zero_grad()
-        img_like = self.LN(img_32, z_signal)
+        img_like = self.LN(img_64, z_signal)
 
         prediction = self.D_A(img_like)
         real_tensor = torch.ones_like(prediction)
@@ -120,8 +129,11 @@ class LatentTrainer:
             img_32 = self.LN_32(z_signal_32)
 
             #infer
-            z_signal_64 = tensor_utils.compute_z_signal_concat(np.random.uniform(-5000.0, 5000.0), np.shape(train_img_tensor)[0], (32, 32)).to(self.gpu_device)
-            train_img_like = self.LN(img_32, z_signal_64)
+            z_signal_32 = tensor_utils.compute_z_signal_concat(np.random.uniform(-5000.0, 5000.0), np.shape(train_img_tensor)[0], (32, 32)).to(self.gpu_device)
+            img_64 = self.LN_64(img_32, z_signal_32)
+
+            z_signal_64 = tensor_utils.compute_z_signal_concat(np.random.uniform(-5000.0, 5000.0), np.shape(train_img_tensor)[0], (64, 64)).to(self.gpu_device)
+            train_img_like = self.LN(img_64, z_signal_64)
 
             #z_signal_test = tensor_utils.compute_z_signal_concat(np.random.uniform(-5000.0, 5000.0), np.shape(test_img_tensor)[0], (np.shape(test_img_tensor)[2], np.shape(test_img_tensor)[3])).to(self.gpu_device)
             #test_img_like = self.LN(test_img_tensor, z_signal_test)

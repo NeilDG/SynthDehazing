@@ -23,8 +23,7 @@ class FFATrainer:
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
         self.G = ffa.FFA(gps = 3, blocks = blocks).to(self.gpu_device)
-        self.LN = latent_network.LatentNetwork().to(self.gpu_device)
-        self.optimizerG = torch.optim.Adam(itertools.chain(self.G.parameters(), self.LN.parameters()), lr=self.lr)
+        self.optimizerG = torch.optim.Adam(itertools.chain(self.G.parameters()), lr=self.lr)
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
         
@@ -49,12 +48,7 @@ class FFATrainer:
         self.G.train()
         self.optimizerG.zero_grad()
 
-        z_signal = tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(hazy_tensor)[0], constants.PATCH_IMAGE_SIZE).to(self.gpu_device)
-        #print("Z signal shape: ", np.shape(z_signasl))
-        latent_vector = self.LN(z_signal)
-        #print("Latent vector shape: ", np.shape(latent_vector))
-
-        clean_like = self.G(hazy_tensor, latent_vector)
+        clean_like = self.G(hazy_tensor)
         clarity_loss = self.clarity_loss(clean_like, clean_tensor) * self.l1_weight
         clarity_loss.backward()
 
@@ -65,9 +59,9 @@ class FFATrainer:
     def visdom_report(self, iteration, hazy_tensor, clean_tensor, hazy_test, clean_test, vemon_tensor):
         with torch.no_grad():
             # report to visdom
-            clean_like = self.G(hazy_tensor, self.LN(tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(hazy_tensor)[0], constants.PATCH_IMAGE_SIZE).to(self.gpu_device)))
-            test_clean_like = self.G(hazy_test, self.LN(tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(hazy_test)[0], constants.TEST_IMAGE_SIZE).to(self.gpu_device)))
-            vemon_clean = self.G(vemon_tensor, self.LN(tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(vemon_tensor)[0], constants.TEST_IMAGE_SIZE).to(self.gpu_device)))
+            clean_like = self.G(hazy_tensor)
+            test_clean_like = self.G(hazy_test)
+            vemon_clean = self.G(vemon_tensor)
 
             self.visdom_reporter.plot_finegrain_loss("dehazing_loss", iteration, self.losses_dict, self.caption_dict)
             self.visdom_reporter.plot_image(hazy_tensor, "Training Hazy images")
@@ -84,17 +78,14 @@ class FFATrainer:
     def load_saved_state(self, iteration, checkpoint, model_key, latent_key, optimizer_key):
         self.iteration = iteration
         self.G.load_state_dict(checkpoint[model_key])
-        self.LN.load_state_dict(checkpoint[latent_key])
         self.optimizerG.load_state_dict(checkpoint[optimizer_key])
     
     def save_states(self, epoch, iteration, path, model_key, latent_key, optimizer_key):
         save_dict = {'epoch': epoch, 'iteration': iteration}
         netGA_state_dict = self.G.state_dict()
         optimizerG_state_dict = self.optimizerG.state_dict()
-        latent_state_dict = self.LN.state_dict()
 
         save_dict[model_key] = netGA_state_dict
-        save_dict[latent_key] = latent_state_dict
         save_dict[optimizer_key] = optimizerG_state_dict
 
         torch.save(save_dict, path)

@@ -86,7 +86,8 @@ class AppWindow():
             dehazer.load_state_dict(dehazer_checkpt[constants.GENERATOR_KEY])
 
             LN = latent_network.LatentNetwork().to(device)
-            LN.load_state_dict(dehazer_checkpt[constants.LATENT_VECTOR_KEY])
+            latent_checkpoint = torch.load(constants.LATENT_CHECKPATH)
+            LN.load_state_dict(latent_checkpoint[constants.GENERATOR_KEY])
 
             rgb_transform_op = transforms.Compose([transforms.ToPILImage(),
                                                    transforms.Resize(constants.TEST_IMAGE_SIZE),
@@ -97,8 +98,9 @@ class AppWindow():
             with torch.no_grad():
                 rgb_tensor = rgb_transform_op(np.asarray(self.input_img_resource))
                 rgb_tensor = torch.unsqueeze(rgb_tensor, 0).to(device)
-                z_signal = tensor_utils.compute_z_signal(self.z_slider.get(), np.shape(rgb_tensor)[0], constants.TEST_IMAGE_SIZE).to(device)
-                rgb_tensor_clean = dehazer(rgb_tensor, LN(z_signal))
+                z_signal = tensor_utils.compute_z_signal(self.z_slider.get(), 100, constants.TEST_IMAGE_SIZE).to(device)
+                #rgb_tensor_clean = dehazer(rgb_tensor, LN(z_signal))
+                rgb_tensor_clean = LN(z_signal)
                 rgb_tensor_clean = tensor_utils.normalize_to_matplotimg(rgb_tensor_clean.cpu(), 0, 0.5, 0.5)
                 to_pil_op = transforms.ToPILImage()
                 output_img_resource = to_pil_op(rgb_tensor_clean)
