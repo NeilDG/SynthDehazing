@@ -17,7 +17,8 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
-from trainers.latent_trainers import latent_trainer_32
+from model import latent_network
+from trainers.latent_trainers import latent_trainer_64
 import constants
 
 parser = OptionParser()
@@ -79,23 +80,24 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    trainer = latent_trainer_32.LatentTrainer(constants.DEHAZER_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
+
+    trainer = latent_trainer_64.LatentTrainer(constants.DEHAZER_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
     trainer.update_penalties(opts.adv_weight, opts.likeness_weight)
 
     start_epoch = 0
     iteration = 0
 
     if(opts.load_previous):
-        latent_checkpoint = torch.load(constants.LATENT_CHECKPATH)
+        latent_checkpoint = torch.load(constants.LATENT_CHECKPATH_64)
         start_epoch = latent_checkpoint['epoch'] + 1
         iteration = latent_checkpoint['iteration'] + 1
         trainer.load_saved_state(iteration, latent_checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.LATENT_CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.LATENT_CHECKPATH_64, start_epoch))
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_latent_dataset(constants.DATASET_VEMON_PATH_PATCH_32, constants.batch_size, opts.img_to_load)
+    train_loader = dataset_loader.load_latent_dataset(constants.DATASET_VEMON_PATH_PATCH_64, constants.batch_size, opts.img_to_load)
     test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
 
     index = 0
@@ -118,7 +120,7 @@ def main(argv):
                 #train dehazing
                 trainer.train(train_tensor)
 
-                if((i + 1) % 2000 == 0):
+                if((i) % 2000 == 0):
                     _, test_batch = next(iter(test_loader))
 
                     test_batch = test_batch.to(device)
@@ -130,7 +132,7 @@ def main(argv):
                     if(index == 0):
                         test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
 
-                    trainer.save_states(epoch, iteration, constants.LATENT_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+                    trainer.save_states(epoch, iteration, constants.LATENT_CHECKPATH_64, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:
         for i, (_, train_batch) in enumerate(iter(train_loader)):
                 train_tensor = train_batch.to(device)
@@ -139,7 +141,7 @@ def main(argv):
                 trainer.train(train_tensor)
 
         #save every X epoch
-        trainer.save_states(start_epoch, iteration, constants.LATENT_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        trainer.save_states(start_epoch, iteration, constants.LATENT_CHECKPATH_64, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__":

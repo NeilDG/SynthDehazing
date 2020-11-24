@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
 
-DATASET_VEMON_PATH_COMPLETE = "E:/VEMON_Transfer/train/A/"
-DATASET_VEMON_PATH_PATCH = "E:/VEMON_Transfer/train/B/"
+DATASET_VEMON_PATH_COMPLETE = "E:/VEMON_Transfer/train/full/"
+DATASET_VEMON_PATH_PATCH_32 = "E:/VEMON_Transfer/train/32_patch/"
+DATASET_VEMON_PATH_PATCH_64 = "E:/VEMON_Transfer/train/64_patch/"
+DATASET_VEMON_PATH_PATCH_128 = "E:/VEMON_Transfer/train/128_patch/"
 DATASET_GTA_PATH_2= "E:/VEMON Dataset/pending/frames/"
 
 DATASET_NOISY_GTA_PATH = "E:/Noisy GTA/noisy/"
@@ -43,6 +45,8 @@ LATENT_VERSION = "latent_v1.00"
 ITERATION = "2"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
+LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
+
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
 COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
@@ -75,7 +79,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 32
+batch_size = 16
 infer_size = 16
 
 brightness_enhance = 1.0
