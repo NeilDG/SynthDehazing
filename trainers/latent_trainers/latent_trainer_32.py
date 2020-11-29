@@ -111,15 +111,15 @@ class LatentTrainer:
             z_signal = tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(train_img_tensor)[0],constants.PATCH_IMAGE_SIZE).to(self.gpu_device)
             train_img_like = self.LN(z_signal)
 
-            z_signal = tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(test_img_tensor)[0],constants.TEST_IMAGE_SIZE).to(self.gpu_device)
-            test_img_like = self.LN(z_signal)
+            #z_signal = tensor_utils.compute_z_signal(np.random.uniform(-1.0, 1.0), np.shape(test_img_tensor)[0],constants.TEST_IMAGE_SIZE).to(self.gpu_device)
+            #test_img_like = self.LN(z_signal)
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss("Creation loss", iteration, self.losses_dict, self.caption_dict)
         self.visdom_reporter.plot_image((train_img_like), "Generated Training Images")
         self.visdom_reporter.plot_image((train_img_tensor), "Training images")
-        self.visdom_reporter.plot_image((test_img_like), "Generated Test Images")
-        self.visdom_reporter.plot_image((test_img_tensor), "Test Images")
+        #self.visdom_reporter.plot_image((test_img_like), "Generated Test Images")
+        #self.visdom_reporter.plot_image((test_img_tensor), "Test Images")
     
     def load_saved_state(self, iteration, checkpoint, generator_key, discriminator_key, optimizer_key):
         self.iteration = iteration

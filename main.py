@@ -26,7 +26,7 @@ import matplotlib.animation as animation
 from torch.utils.tensorboard import SummaryWriter
 from IPython.display import HTML
 
-from model import sample_gan
+from model import dc_gan
 from loaders import dataset_loader
 from trainers import cyclic_gan_trainer
 import constants
