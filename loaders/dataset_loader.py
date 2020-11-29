@@ -137,7 +137,7 @@ def load_dehaze_dataset_test(path_a, batch_size=8, num_image_to_load=-1):
 
 def load_rgb_dataset(path_a, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
-    print("Length of color dataset: %d." % (len(a_list)))
+    print("Length of color dataset: %d. " % (len(a_list)))
 
     rgb_data_loader = torch.utils.data.DataLoader(
         image_dataset.ColorDataset(a_list),

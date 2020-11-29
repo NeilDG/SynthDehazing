@@ -26,9 +26,9 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="19")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 
 #--img_to_load=-1 --load_previous=0
@@ -118,7 +118,7 @@ def main(argv):
                 #train dehazing
                 trainer.train(train_tensor)
 
-                if((i + 1) % 2000 == 0):
+                if((i) % 2000 == 0):
                     _, test_batch = next(iter(test_loader))
 
                     test_batch = test_batch.to(device)

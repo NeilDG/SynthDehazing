@@ -29,12 +29,20 @@ class CorrectionTrainer:
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
         
-        self.G_A = sg.Generator(input_nc = 3, output_nc = 3).to(self.gpu_device)
-        self.G_B = sg.Generator(input_nc = 3, output_nc = 1).to(self.gpu_device)
+        self.G_A = cg.Generator(input_nc = 3, output_nc = 3, n_residual_blocks = 12).to(self.gpu_device)
         self.D_A = cg.Discriminator(input_nc = 3).to(self.gpu_device) #use CycleGAN's discriminator
-        self.D_B = cg.Discriminator(input_nc = 1).to(self.gpu_device)
-        self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr = self.g_lr)
-        self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters(), self.D_B.parameters()), lr = self.d_lr)
+
+        self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr = self.g_lr)
+        self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters()), lr = self.d_lr)
+
+        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, factor = 0.5, threshold = 1e-7, patience= 1000)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, factor = 0.5, threshold = 1e-7, patience= 1000)
+
+        #load dehazer generator
+        self.dehazer = cg.Generator(input_nc=1, output_nc=1, n_residual_blocks=5).to(self.gpu_device)
+        dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
+        self.dehazer.load_state_dict(dehaze_checkpoint[constants.GENERATOR_KEY + "A"])
+        self.dehazer.eval()
     
     def initialize_dict(self):
         #what to store in visdom?
@@ -44,25 +52,18 @@ class CorrectionTrainer:
         self.losses_dict[constants.LIKENESS_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
-        self.losses_dict[constants.D_B_FAKE_LOSS_KEY] = []
-        self.losses_dict[constants.D_B_REAL_LOSS_KEY] = []
-        self.losses_dict[constants.CYCLE_LOSS_KEY] = []
         
         self.caption_dict = {}
         self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
-        self.caption_dict[constants.CYCLE_LOSS_KEY] = "Cycle loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Color loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
-        self.caption_dict[constants.D_B_FAKE_LOSS_KEY] = "D(B) fake loss per iteration"
-        self.caption_dict[constants.D_B_REAL_LOSS_KEY] = "D(B) real loss per iteration"
     
-    def update_penalties(self, color_weight, cycle_weight, adv_weight):
+    def update_penalties(self, color_weight, adv_weight):
         #what penalties to use for losses?
         self.color_weight = color_weight
         self.adv_weight = adv_weight
-        self.cycle_weight = cycle_weight
         
         #save hyperparameters for bookeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.COLORIZER_VERSION + "_" + constants.ITERATION + ".config"
@@ -73,79 +74,66 @@ class CorrectionTrainer:
             print("====================================", file = f)
             print("Adv weight: ", str(self.adv_weight), file = f)
             print("Color weight: ", str(self.color_weight), file = f)
-            print("Cycle weight: ", str(self.cycle_weight), file = f)
     
     def adversarial_loss(self, pred, target):
         loss = nn.MSELoss()
         return loss(pred, target)
     
     def color_loss(self, pred, target):
-        # loss = ssim_loss.SSIM()
-        # return 1 - loss(pred, target)
+        gauss_op = tensor_utils.GaussianSmoothing(channels=3, kernel_size= 5, sigma = 1.0).to(self.gpu_device)
+        pred_gauss = gauss_op(pred)
+        target_gauss = gauss_op(target)
+
         loss = nn.MSELoss()
-        return loss(pred, target)
+        return loss(pred_gauss, target_gauss)
+
+        #loss = nn.MSELoss()
+        #return loss(pred, target)
     
     def cycle_loss(self, pred, target):
         loss = nn.L1Loss()
         return loss(pred, target)
     
-    def train(self, gray_tensor, yuv_tensor):
-        #replace
-        (y, u, v) = torch.chunk(yuv_tensor.transpose(0,1), 3)
-        input_tensor = torch.cat((gray_tensor.transpose(0,1), u, v)).transpose(0, 1)
-        yuv_tensor_like = self.G_A(input_tensor) #refined color
-        gray_like = self.G_B(yuv_tensor) #reverse color
+    def train(self, gray_tensor_a, colored_tensor_a, colored_tensor_b):
+        #replace Y
+        (y, u, v) = torch.chunk(colored_tensor_a.transpose(0, 1), 3)
+        input_tensor = torch.cat((self.dehazer(gray_tensor_a).transpose(0,1), u, v)).transpose(0, 1)
+        colored_tensor_like = self.G_A(input_tensor) #refined color
         
         self.D_A.train()
-        self.D_B.train()
         self.optimizerD.zero_grad()
         
-        prediction = self.D_A(yuv_tensor)
+        prediction = self.D_A(colored_tensor_b)
         noise_value = random.uniform(0.8, 1.0)
         real_tensor = torch.ones_like(prediction) * noise_value #add noise value to avoid perfect predictions for real
         fake_tensor = torch.zeros_like(prediction)
         
-        D_A_real_loss = self.adversarial_loss(self.D_A(yuv_tensor), real_tensor) * self.adv_weight
-        D_A_fake_loss = self.adversarial_loss(self.D_A(yuv_tensor_like.detach()), fake_tensor) * self.adv_weight
-        
-        prediction = self.D_B(gray_tensor)
-        real_tensor = torch.ones_like(prediction) * noise_value #add noise value to avoid perfect predictions for real
-        fake_tensor = torch.zeros_like(prediction)
-        
-        D_B_real_loss = self.adversarial_loss(self.D_B(gray_tensor), real_tensor) * self.adv_weight
-        D_B_fake_loss = self.adversarial_loss(self.D_B(gray_like.detach()), fake_tensor) * self.adv_weight
-        
-        errD = D_A_real_loss + D_A_fake_loss + D_B_real_loss + D_B_fake_loss
+        D_A_real_loss = self.adversarial_loss(self.D_A(colored_tensor_b), real_tensor) * self.adv_weight
+        D_A_fake_loss = self.adversarial_loss(self.D_A(colored_tensor_like.detach()), fake_tensor) * self.adv_weight
+
+        errD = D_A_real_loss + D_A_fake_loss
         if(errD.item() > 0.1):
             errD.backward()
             self.optimizerD.step()
+            self.schedulerD.step(errD)
         
         self.G_A.train()
-        self.G_B.train()
         self.optimizerG.zero_grad()
 
-        (y, u, v) = torch.chunk(yuv_tensor.transpose(0,1), 3)
-        input_tensor = torch.cat((gray_tensor.transpose(0, 1), u, v)).transpose(0, 1)
-        yuv_tensor_like = self.G_A(input_tensor) #refined color
-        gray_like = self.G_B(yuv_tensor) #reverse color
+        (y, u, v) = torch.chunk(colored_tensor_a.transpose(0, 1), 3)
+        input_tensor = torch.cat((self.dehazer(gray_tensor_a).transpose(0, 1), u, v)).transpose(0, 1)
+        colored_tensor_like = self.G_A(input_tensor) #refined color
         
-        color_loss = self.color_loss(yuv_tensor_like, yuv_tensor) * self.color_weight
-        
-        A_cycle_loss = self.cycle_loss(self.G_B(self.G_A(input_tensor)), gray_tensor) * self.cycle_weight
-        input_tensor = torch.cat((self.G_B(yuv_tensor).transpose(0, 1), u, v)).transpose(0, 1)
-        B_cycle_loss = self.cycle_loss(self.G_A(input_tensor), yuv_tensor) * self.cycle_weight
-        
-        prediction = self.D_B(gray_like)
-        real_tensor = torch.ones_like(prediction)
-        B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
-        
-        prediction = self.D_A(yuv_tensor_like)
+        color_loss = self.color_loss(colored_tensor_like, colored_tensor_b) * self.color_weight
+
+        prediction = self.D_A(colored_tensor_like)
         real_tensor = torch.ones_like(prediction)
         A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
         
-        errG = color_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
+        errG = color_loss + A_adv_loss
         errG.backward()
         self.optimizerG.step()
+        self.schedulerG.step(errG)
         
         #what to put to losses dict for visdom reporting?
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
@@ -153,28 +141,35 @@ class CorrectionTrainer:
         self.losses_dict[constants.LIKENESS_LOSS_KEY].append(color_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
-        self.losses_dict[constants.D_B_FAKE_LOSS_KEY].append(D_B_fake_loss.item())
-        self.losses_dict[constants.D_B_REAL_LOSS_KEY].append(D_B_real_loss.item())
-        self.losses_dict[constants.CYCLE_LOSS_KEY].append(A_cycle_loss.item() + B_cycle_loss.item())
-    
-    def visdom_report(self, iteration, gray_tensor, yuv_tensor):
+
+    def visdom_report_train(self, gray_tensor_a, colored_tensor_a):
         with torch.no_grad():
-            (y, u, v) = torch.chunk(yuv_tensor.transpose(0, 1), 3)
-            input_tensor = torch.cat((gray_tensor.transpose(0, 1), u, v)).transpose(0, 1)
+            (y, u, v) = torch.chunk(colored_tensor_a.transpose(0, 1), 3)
+            input_tensor = torch.cat((self.dehazer(gray_tensor_a).transpose(0, 1), u, v)).transpose(0, 1)
+            refined_tensor = tensor_utils.yuv_to_rgb(self.G_A(input_tensor)) # refined color
+
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(input_tensor), "Train - Y replaced images")
+        self.visdom_reporter.plot_image(refined_tensor, "Train - Refined images")
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(colored_tensor_a), "Train - Original images")
+
+    def visdom_report(self, iteration, gray_tensor_a, colored_tensor_a):
+        with torch.no_grad():
+            (y, u, v) = torch.chunk(colored_tensor_a.transpose(0, 1), 3)
+            input_tensor = torch.cat((self.dehazer(gray_tensor_a).transpose(0, 1), u, v)).transpose(0, 1)
             refined_tensor = tensor_utils.yuv_to_rgb(self.G_A(input_tensor)) #refined color
-            #refined_tensor = tensor_utils.yuv_to_rgb(input_tensor)
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss("colorization_loss", iteration, self.losses_dict, self.caption_dict)
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(input_tensor), "Y replaced images")
         self.visdom_reporter.plot_image(refined_tensor, "Test Refined images")
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(yuv_tensor), "Test Original images")
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(colored_tensor_a), "Test Original images")
     
     def load_saved_state(self, iteration, checkpoint, generator_key, disriminator_key, optimizer_key):
         self.iteration = iteration
         self.G_A.load_state_dict(checkpoint[generator_key + "A"])
         self.D_A.load_state_dict(checkpoint[disriminator_key + "A"])
-        self.G_B.load_state_dict(checkpoint[generator_key + "B"])
-        self.D_B.load_state_dict(checkpoint[disriminator_key + "B"])
+        #self.G_B.load_state_dict(checkpoint[generator_key + "B"])
+        #self.D_B.load_state_dict(checkpoint[disriminator_key + "B"])
         self.optimizerG.load_state_dict(checkpoint[generator_key + optimizer_key])
         self.optimizerD.load_state_dict(checkpoint[disriminator_key + optimizer_key])
     
@@ -182,16 +177,16 @@ class CorrectionTrainer:
         save_dict = {'epoch': epoch, 'iteration': iteration}
         netGA_state_dict = self.G_A.state_dict()
         netDA_state_dict = self.D_A.state_dict()
-        netGB_state_dict = self.G_B.state_dict()
-        netDB_state_dict = self.D_B.state_dict()
+        #netGB_state_dict = self.G_B.state_dict()
+        #netDB_state_dict = self.D_B.state_dict()
         
         optimizerG_state_dict = self.optimizerG.state_dict()
         optimizerD_state_dict = self.optimizerD.state_dict()
         
         save_dict[generator_key + "A"] = netGA_state_dict
         save_dict[disriminator_key + "A"] = netDA_state_dict
-        save_dict[generator_key + "B"] = netGB_state_dict
-        save_dict[disriminator_key + "B"] = netDB_state_dict
+        #save_dict[generator_key + "B"] = netGB_state_dict
+        #save_dict[disriminator_key + "B"] = netDB_state_dict
         
         save_dict[generator_key + optimizer_key] = optimizerG_state_dict
         save_dict[disriminator_key + optimizer_key] = optimizerD_state_dict

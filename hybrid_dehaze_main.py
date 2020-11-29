@@ -34,7 +34,7 @@ parser.add_option('--clarity_weight', type=float, help="Weight", default="500.0"
 parser.add_option('--color_weight', type=float, help="Weight", default="500.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="100.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="5")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 
 #--img_to_load=-1 --load_previous=0
@@ -93,7 +93,11 @@ def main(argv):
 
     start_epoch = 0
     iteration = 0
-    
+
+    #TODO: Temp code loading old dehazer
+    #dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
+    #dehazer.load_saved_state(iteration, dehaze_checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+
     if(opts.load_previous): 
         dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
         color_checkpoint = torch.load(constants.COLORIZER_CHECKPATH)
@@ -108,8 +112,8 @@ def main(argv):
     # Create the dataloader
     synth_train_loader = dataset_loader.load_dark_channel_dataset(constants.DATASET_HAZY_PATH_PATCH, constants.DATASET_CLEAN_PATH_PATCH, constants.batch_size, opts.img_to_load)
     synth_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, 4, 500)
-    rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_VEMON_PATH_PATCH_32, constants.batch_size, opts.img_to_load)
-    rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
+    rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_OHAZE_PATH_PATCH_CLEAN, constants.batch_size, opts.img_to_load)
+    rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_HAZY_TEST_PATH_2, 4, 500)
     index = 0
     
     # Plot some training images
@@ -126,18 +130,18 @@ def main(argv):
     if(constants.is_coare == 0):
         for epoch in range(start_epoch, constants.num_epochs):
             # For each batch in the dataloader
-            for i, (dehaze_data, yuv_data) in enumerate(zip(synth_train_loader, rgb_train_loader)):
+            for i, (dehaze_data, colored_data) in enumerate(zip(synth_train_loader, rgb_train_loader)):
                 _, hazy_batch, clean_batch = dehaze_data
-                _, y_batch, yuv_batch = yuv_data
+                _, y_batch, yuv_batch = colored_data
                 hazy_tensor = hazy_batch.to(device)
                 clean_tensor = clean_batch.to(device)
                 gray_tensor = y_batch.to(device)
-                yuv_tensor = yuv_batch.to(device)
+                colored_tensor = yuv_batch.to(device)
                 
                 #train dehazing
                 dehazer.train(hazy_tensor, clean_tensor)
                 #train colorization
-                colorizer.train(dehazer.infer_single(gray_tensor), yuv_tensor)
+                colorizer.train(dehazer.infer_single(gray_tensor), colored_tensor)
                 
                 if(i % 500 == 0):
                     _, synth_dark_dirty_batch, synth_dark_clean_batch = next(iter(synth_test_loader))
@@ -160,9 +164,9 @@ def main(argv):
                     dehazer.save_states(epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
                     colorizer.save_states(epoch, iteration, constants.COLORIZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:
-        for i, (dehaze_data, yuv_data) in enumerate(zip(synth_train_loader, rgb_train_loader)):
+        for i, (dehaze_data, colored_data) in enumerate(zip(synth_train_loader, rgb_train_loader)):
                 _, hazy_batch, clean_batch = dehaze_data
-                _, y_batch, yuv_batch = yuv_data
+                _, y_batch, yuv_batch = colored_data
                 hazy_tensor = hazy_batch.to(device)
                 clean_tensor = clean_batch.to(device)
                 gray_tensor = y_batch.to(device)

@@ -57,7 +57,8 @@ def visualize_color_distribution(batch_size):
     plt.scatter(np.random.normal(0, 1.0, count), rgb_count[:,1], color=(0,1,0))
     plt.scatter(np.random.normal(0, 1.0, count), rgb_count[:,2], color=(0,0,1))
     plt.show()
-    
+
+
 def main():
     visualize_color_distribution(constants.infer_size)
     

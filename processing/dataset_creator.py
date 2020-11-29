@@ -262,9 +262,9 @@ def main():
     # SAVE_PATH_B = "E:/I-HAZE - Patch/clean/"
     # create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 10000, 3000, offset = 471319)
 
-    PATH_A = constants.DATASET_VEMON_PATH_COMPLETE
-    SAVE_PATH_A = constants.DATASET_VEMON_PATH_PATCH_128
-    create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", (436, 704), (128,128), 500, 20, offset = 0)
+    PATH_A = constants.DATASET_DIV2K_PATH
+    SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
+    create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 300, offset = 2378849)
 
 if __name__=="__main__": 
     main()   
