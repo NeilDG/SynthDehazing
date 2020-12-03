@@ -95,7 +95,7 @@ class DarkChannelHazeDataset(data.Dataset):
         self.hazy_list = hazy_list
         self.clear_list = clear_list
         self.transform_op = transforms.Compose([
-            transforms.ToPILImage(mode = 'L'),
+            transforms.ToPILImage(),
             transforms.ToTensor(),
             transforms.Normalize((0.5), (0.5), (0.5))])
 
@@ -114,17 +114,17 @@ class DarkChannelHazeDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        # hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2YUV)
-        # hazy_img = tensor_utils.get_y_channel(hazy_img)
+        hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2YUV)
+        hazy_img = tensor_utils.get_y_channel(hazy_img)
 
-        hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
-        hazy_img = tensor_utils.get_dark_channel(hazy_img, 8)
+        #hazy_img = cv2.imread(img_id); hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
+        #hazy_img = tensor_utils.get_dark_channel(hazy_img, 8)
         
         img_id = self.clear_list[idx]
-        clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
-        clear_img = tensor_utils.get_dark_channel(clear_img, 8)
-        # clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2YUV)
-        # clear_img = tensor_utils.get_y_channel(clear_img)
+        #clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
+        #clear_img = tensor_utils.get_dark_channel(clear_img, 8)
+        clear_img = cv2.imread(img_id); clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2YUV)
+        clear_img = tensor_utils.get_y_channel(clear_img)
                  
         # hazy_img = self.initial_transform_op(hazy_img)
         # clear_img = self.initial_transform_op(clear_img)
@@ -165,13 +165,15 @@ class DarkChannelTestDataset(data.Dataset):
         file_name = path_segment[len(path_segment) - 1]
 
         hazy_img = cv2.imread(img_id);
-        hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2LAB)
-        hazy_img = tensor_utils.get_dark_channel(hazy_img, constants.DC_FILTER_SIZE)
+        hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2YUV)
+        hazy_img = tensor_utils.get_y_channel(hazy_img)
+        #hazy_img = tensor_utils.get_dark_channel(hazy_img, constants.DC_FILTER_SIZE)
 
         img_id = self.clear_list[idx]
         clear_img = cv2.imread(img_id);
-        clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2LAB)
-        clear_img = tensor_utils.get_dark_channel(clear_img, constants.DC_FILTER_SIZE)
+        clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2YUV)
+        clear_img = tensor_utils.get_y_channel(clear_img)
+        #clear_img = tensor_utils.get_dark_channel(clear_img, constants.DC_FILTER_SIZE)
 
         if (self.transform_op):
             hazy_img = self.transform_op(hazy_img)
@@ -266,8 +268,8 @@ class HazeTestDataset(data.Dataset):
         return len(self.rgb_list)
     
 class ColorDataset(data.Dataset):
-    def __init__(self, rgb_list):
-        self.rgb_list = rgb_list
+    def __init__(self, rgb_list_a):
+        self.rgb_list = rgb_list_a
         
         self.rgb_transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
@@ -290,30 +292,19 @@ class ColorDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
         
-        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-        gray_img = tensor_utils.get_dark_channel(img, constants.DC_FILTER_SIZE)
-        yuv_img = img
+        img_a = cv2.imread(img_id); img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2YUV)
+        gray_img_a = tensor_utils.get_y_channel(img_a)
+        gray_img_a = self.gray_transform_op(gray_img_a)
+        colored_img_a = self.rgb_transform_op(img_a)
         
-        gray_img = self.gray_transform_op(gray_img)
-        yuv_img = self.rgb_transform_op(yuv_img)
-
-        # crop_indices = transforms.RandomCrop.get_params(yuv_img, output_size=constants.PATCH_IMAGE_SIZE)
-        # i, j, h, w = crop_indices
-        #
-        # gray_img = transforms.functional.crop(gray_img, i, j, h, w)
-        # yuv_img = transforms.functional.crop(yuv_img, i, j, h, w)
-        #
-        # gray_img = self.final_transform_op(gray_img)
-        # yuv_img = self.final_transform_op(yuv_img)
-        
-        return file_name, gray_img, yuv_img
+        return file_name, gray_img_a, colored_img_a
     
     def __len__(self):
         return len(self.rgb_list)
 
 class ColorTestDataset(data.Dataset):
-    def __init__(self, rgb_list):
-        self.rgb_list = rgb_list
+    def __init__(self, rgb_list_a):
+        self.rgb_list = rgb_list_a
         
         self.transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
@@ -326,15 +317,40 @@ class ColorTestDataset(data.Dataset):
         img_id = self.rgb_list[idx]
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id); img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2YUV)
+        gray_img_a = tensor_utils.get_y_channel(img_a)
+        gray_img_a = self.transform_op(gray_img_a)
+        colored_img_a = self.transform_op(img_a)
         
-        img = cv2.imread(img_id); img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-        gray_img = tensor_utils.get_dark_channel(img, constants.DC_FILTER_SIZE)
-        yuv_img = img
-        
-        gray_img = self.transform_op(gray_img)
-        yuv_img = self.transform_op(yuv_img)
-        
-        return file_name, gray_img, yuv_img
+        return file_name, gray_img_a, colored_img_a
     
     def __len__(self):
         return len(self.rgb_list)
+
+
+class LatentDataset(data.Dataset):
+    def __init__(self, image_list_a):
+        self.image_list_a = image_list_a
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id);
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+
+        img_a = self.final_transform_op(img_a)
+
+        return file_name, img_a
+
+    def __len__(self):
+        return len(self.image_list_a)

@@ -83,9 +83,9 @@ def create_img_data(dataset_path, save_path, filename_format, img_size, patch_si
 
 
 #creates img patches if sufficient connditions are met
-def create_filtered_img_data(dataset_path, save_path, filename_format, img_size, patch_size, repeats):
+def create_filtered_img_data(dataset_path, save_path, filename_format, img_size, patch_size, threshold, repeats, offset = 0):
     img_list = assemble_img_list(dataset_path)
-    count = 0
+    count = offset
     for k in range(len(img_list)):
         normal_img = cv2.imread(img_list[k])
         normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB)
@@ -112,12 +112,13 @@ def create_filtered_img_data(dataset_path, save_path, filename_format, img_size,
                 sobel_x = cv2.Sobel(final_img_dc, cv2.CV_64F, 1, 0, ksize=5)
                 sobel_y = cv2.Sobel(final_img_dc, cv2.CV_64F, 0, 1, ksize=5)
                 sobel_img = sobel_x + sobel_y
-                if(np.linalg.norm(sobel_img) > 150.0): #only consider images with good edges
+                sobel_quality = np.linalg.norm(sobel_img)
+                if(sobel_quality > threshold): #only consider images with good edges
                     cv2.imwrite(file_name, cv2.cvtColor(cv2.convertScaleAbs(final_img, alpha=255.0), cv2.COLOR_BGR2RGB))
-                    print("Saved: ", file_name)
+                    print("Norm value: ", sobel_quality, " Saved: ", file_name)
             count = count + 1
 
-def create_filtered_paired_img_data(dataset_path_a, dataset_path_b, save_path_a, save_path_b, filename_format, img_size, patch_size, repeats, offset = 0):
+def create_filtered_paired_img_data(dataset_path_a, dataset_path_b, save_path_a, save_path_b, filename_format, img_size, patch_size, threshold, repeats, offset = 0):
     img_list_a = assemble_img_list(dataset_path_a)
     img_list_b = assemble_img_list(dataset_path_b)
 
@@ -152,7 +153,7 @@ def create_filtered_paired_img_data(dataset_path_a, dataset_path_b, save_path_a,
                 sobel_y = cv2.Sobel(img_b_dc, cv2.CV_64F, 0, 1, ksize=5)
                 sobel_img = sobel_x + sobel_y
                 sobel_quality = np.linalg.norm(sobel_img)
-                if (sobel_quality > 35000.0):  # only consider images with good edges
+                if (sobel_quality > threshold):  # only consider images with good edges
                     img_a_patch.save(file_name_a)
                     img_b_patch.save(file_name_b)
                     #plt.imshow(img_b_patch)
@@ -255,20 +256,15 @@ def create_hazy_data(offset):
             count += 1
     
 def main():
-    #create_gta_noisy_data()
-    #create_div2k_data()
-    #create_hazy_data(0)
+    # PATH_A = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
+    # SAVE_PATH_A = "E:/I-HAZE - Patch/hazy/"
+    # PATH_B = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
+    # SAVE_PATH_B = "E:/I-HAZE - Patch/clean/"
+    # create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 10000, 3000, offset = 471319)
 
-    PATH_A = "E:/Synth Hazy/clean/"
-    SAVE_PATH_A = "E:/Synth Hazy - Patch/clean/"
-    PATH_B = "E:/Synth Hazy/hazy/"
-    SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
-
-    create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 50, offset = 7193954)
-    # PATH_A = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
-    # SAVE_PATH_A = "E:/RESIDE - Patch/"
-    #TODO: Synth image data not paired!!! Just for experiment!!!
-    #create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", (1024, 1024), constants.PATCH_IMAGE_SIZE, 20)
+    PATH_A = constants.DATASET_DIV2K_PATH
+    SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
+    create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 100, offset = 3743814)
 
 if __name__=="__main__": 
     main()   

@@ -95,7 +95,7 @@ def load_dehaze_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
     # print("Length of dehazing dataset: %d, %d, %d" % (len(a_list), len(b_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.HazeDataset(a_list, b_list),
+        image_dataset.DarkChannelHazeDataset(a_list, b_list),
         batch_size=batch_size,
         num_workers=6,
         shuffle=True
@@ -120,6 +120,7 @@ def load_dark_channel_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1
     return data_loader
 
 
+
 def load_dehaze_dataset_test(path_a, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
     print("Length of dehazing test dataset: %d" % (len(a_list)))
@@ -128,7 +129,7 @@ def load_dehaze_dataset_test(path_a, batch_size=8, num_image_to_load=-1):
         image_dataset.HazeTestDataset(a_list),
         batch_size=batch_size,
         num_workers=2,
-        shuffle=True
+        shuffle=False
     )
 
     return data_loader
@@ -136,7 +137,7 @@ def load_dehaze_dataset_test(path_a, batch_size=8, num_image_to_load=-1):
 
 def load_rgb_dataset(path_a, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
-    print("Length of color dataset: %d." % (len(a_list)))
+    print("Length of color dataset: %d. " % (len(a_list)))
 
     rgb_data_loader = torch.utils.data.DataLoader(
         image_dataset.ColorDataset(a_list),
@@ -176,6 +177,19 @@ def load_color_train_dataset(path_a, path_b, path_c, batch_size=8, num_image_to_
         batch_size=batch_size,
         num_workers=10,
         shuffle=True
+    )
+
+    return data_loader
+
+def load_latent_dataset(path_a, batch_size=8, num_image_to_load=-1):
+    a_list = assemble_unpaired_data(path_a, num_image_to_load)
+    print("Length of dehazing train dataset: %d" % (len(a_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.LatentDataset(a_list),
+        batch_size=batch_size,
+        num_workers=6,
+        shuffle=False
     )
 
     return data_loader

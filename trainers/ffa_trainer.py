@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-# Template trainer. Do not use this for actual training.
+# FFA Net trainer. used for training.
 
 import os
 from model import ffa_net as ffa
+from model import latent_network
 import constants
 import torch
 import random
@@ -11,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import torchvision.utils as vutils
-from utils import logger
+from utils import logger, tensor_utils
 from utils import plot_utils
 
 class FFATrainer:
@@ -74,15 +75,16 @@ class FFATrainer:
             self.visdom_reporter.plot_image(vemon_tensor, "Vemon Hazy Images")
             self.visdom_reporter.plot_image(vemon_clean, "Vemon Clean Images")
     
-    def load_saved_state(self, iteration, checkpoint, model_key, optimizer_key):
+    def load_saved_state(self, iteration, checkpoint, model_key, latent_key, optimizer_key):
         self.iteration = iteration
         self.G.load_state_dict(checkpoint[model_key])
         self.optimizerG.load_state_dict(checkpoint[optimizer_key])
     
-    def save_states(self, epoch, iteration, path, model_key, optimizer_key):
+    def save_states(self, epoch, iteration, path, model_key, latent_key, optimizer_key):
         save_dict = {'epoch': epoch, 'iteration': iteration}
         netGA_state_dict = self.G.state_dict()
         optimizerG_state_dict = self.optimizerG.state_dict()
+
         save_dict[model_key] = netGA_state_dict
         save_dict[optimizer_key] = optimizerG_state_dict
 

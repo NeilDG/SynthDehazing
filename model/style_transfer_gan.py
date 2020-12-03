@@ -52,7 +52,7 @@ class Generator(nn.Module):
         self.conv2 = nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
                                    nn.BatchNorm2d(out_size),
                                    nn.ReLU(True),
-                                   nn.Dropout(0.5))
+                                   nn.Dropout2d(0.5))
         
         in_size = out_size
         out_size = in_size * 2
@@ -60,7 +60,7 @@ class Generator(nn.Module):
         self.conv3 = nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
                                    nn.BatchNorm2d(out_size),
                                    nn.ReLU(True),
-                                   nn.Dropout(0.5))
+                                   nn.Dropout2d(0.5))
         
         in_size = out_size
         out_size = in_size * 2
@@ -68,7 +68,7 @@ class Generator(nn.Module):
         self.conv4 = nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
                                    nn.BatchNorm2d(out_size),
                                    nn.ReLU(True),
-                                   nn.Dropout(0.5))
+                                   nn.Dropout2d(0.5))
         
         
         #4 residual blocks
@@ -85,21 +85,24 @@ class Generator(nn.Module):
         
         self.upconv1 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(out_size),
-            nn.ReLU(True))
+            nn.ReLU(True),
+            nn.Dropout2d(0.5))
     
         in_size = out_size
         out_size = int(in_size / 2)
         
         self.upconv2 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(out_size),
-            nn.ReLU(True))
+            nn.ReLU(True),
+            nn.Dropout2d(0.5))
         
         in_size = out_size
         out_size = int(in_size / 2)
         
         self.upconv3 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(out_size),
-            nn.ReLU(True))
+            nn.ReLU(True),
+            nn.Dropout2d(0.5))
         
         in_size = out_size
         
@@ -127,7 +130,7 @@ class Generator(nn.Module):
        y2 = self.upconv2(y1 + x3)
        y3 = self.upconv3(y2 + x2)
        y4 = self.upconv4(y3 + x1)
-       
+
        #print("\tIn Model: input size: %s", input.size())
        
        return y4

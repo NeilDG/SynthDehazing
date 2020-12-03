@@ -7,7 +7,6 @@ Created on Sun Apr 19 13:22:06 2020
 """
 
 from __future__ import print_function
-import os
 import sys
 from optparse import OptionParser
 import random
@@ -15,11 +14,10 @@ import torch
 import torch.nn.parallel
 import torch.utils.data
 import torchvision.utils as vutils
-from utils import tensor_utils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
-from trainers import ffa_trainer
+from trainers.latent_trainers import latent_trainer_32
 import constants
 
 parser = OptionParser()
@@ -27,9 +25,11 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--clarity_weight', type=float, help="Weight", default="50.0")
+parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--gen_blocks', type=int, help="Weight", default="19")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 
 #--img_to_load=-1 --load_previous=0
 #Update config if on COARE
@@ -79,82 +79,67 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    dehazer = ffa_trainer.FFATrainer(constants.DEHAZER_VERSION, constants.ITERATION, device, blocks = opts.gen_blocks, lr = opts.g_lr)
-    dehazer.update_penalties(opts.clarity_weight)
+    trainer = latent_trainer_32.LatentTrainer(constants.DEHAZER_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
+    trainer.update_penalties(opts.adv_weight, opts.likeness_weight)
 
     start_epoch = 0
     iteration = 0
 
     if(opts.load_previous):
-        dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
-        start_epoch = dehaze_checkpoint['epoch'] + 1
-        iteration = dehaze_checkpoint['iteration'] + 1
-        dehazer.load_saved_state(iteration, dehaze_checkpoint, constants.GENERATOR_KEY, constants.LATENT_VECTOR_KEY, constants.OPTIMIZER_KEY)
+        latent_checkpoint = torch.load(constants.LATENT_CHECKPATH)
+        start_epoch = latent_checkpoint['epoch'] + 1
+        iteration = latent_checkpoint['iteration'] + 1
+        trainer.load_saved_state(iteration, latent_checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
-        print("Loaded checkpt: %s %s Current epoch: %d" % (constants.DEHAZER_CHECKPATH, constants.COLORIZER_CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.LATENT_CHECKPATH, start_epoch))
         print("===================================================")
 
     # Create the dataloader
-    synth_train_loader = dataset_loader.load_dehaze_dataset(constants.DATASET_OHAZE_PATH_PATCH_HAZY, constants.DATASET_OHAZE_PATH_PATCH_CLEAN, constants.batch_size, opts.img_to_load)
-    synth_test_loader_hazy = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_1_HAZY, constants.batch_size, opts.img_to_load)
-    synth_test_loader_clean = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_1_CLEAN, constants.batch_size, opts.img_to_load)
-    vemon_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+    train_loader = dataset_loader.load_latent_dataset(constants.DATASET_VEMON_PATH_PATCH_32, constants.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
 
     index = 0
 
     # Plot some training images
     if(constants.is_coare == 0):
-        _, synth_hazy_batch, synth_clean_batch = next(iter(synth_train_loader))
-        _, rgb_batch = next(iter(vemon_test_loader))
+        _, train_batch = next(iter(train_loader))
+        _, test_batch = next(iter(test_loader))
 
-        show_images(synth_hazy_batch, "Training - Hazy Images")
-        show_images(synth_clean_batch, "Training - Clean Images")
-        show_images(rgb_batch, "Test - Vemon Images")
+        show_images(train_batch, "Training Images")
+        show_images(test_batch, "Test Images")
 
     print("Starting Training Loop...")
     if(constants.is_coare == 0):
         for epoch in range(start_epoch, constants.num_epochs):
             # For each batch in the dataloader
-            for i, (_, hazy_batch, clean_batch) in enumerate(iter(synth_train_loader)):
-                hazy_tensor = hazy_batch.to(device)
-                clean_tensor = clean_batch.to(device)
+            for i, (_, train_batch) in enumerate(iter(train_loader)):
+                train_tensor = train_batch.to(device)
 
                 #train dehazing
-                dehazer.train(hazy_tensor, clean_tensor)
+                trainer.train(train_tensor)
 
-                if((i + 1) % 500 == 0):
-                    _, vemon_batch = next(iter(vemon_test_loader))
-                    _, synth_hazy_batch = next(iter(synth_test_loader_hazy))
-                    _, synth_clean_batch = next(iter(synth_test_loader_clean))
+                if((i) % 2000 == 0):
+                    _, test_batch = next(iter(test_loader))
 
-                    vemon_batch = vemon_batch.to(device)
-                    synth_hazy_batch = synth_hazy_batch.to(device)
-                    synth_clean_batch = synth_clean_batch.to(device)
-
-                    dehazer.visdom_report(iteration, hazy_tensor, clean_tensor, synth_hazy_batch, synth_clean_batch, vemon_batch)
+                    test_batch = test_batch.to(device)
+                    trainer.visdom_report(iteration, train_tensor, test_batch)
 
                     iteration = iteration + 1
-                    index = (index + 1) % len(vemon_test_loader)
+                    index = (index + 1) % len(test_loader)
 
                     if(index == 0):
-                        synth_test_loader_hazy = dataset_loader.load_dehaze_dataset_test(
-                            constants.DATASET_HAZY_TEST_PATH_1_HAZY, constants.batch_size, opts.img_to_load)
-                        synth_test_loader_clean = dataset_loader.load_dehaze_dataset_test(
-                            constants.DATASET_HAZY_TEST_PATH_1_CLEAN, constants.batch_size, opts.img_to_load)
-                        vemon_test_loader = dataset_loader.load_dehaze_dataset_test(
-                            constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+                        test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
 
-                    dehazer.save_states(epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.LATENT_VECTOR_KEY, constants.OPTIMIZER_KEY)
+                    trainer.save_states(epoch, iteration, constants.LATENT_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:
-        for i, (_, hazy_batch, clean_batch) in enumerate(iter(synth_train_loader)):
-                hazy_tensor = hazy_batch.to(device)
-                clean_tensor = clean_batch.to(device)
+        for i, (_, train_batch) in enumerate(iter(train_loader)):
+                train_tensor = train_batch.to(device)
 
                 #train dehazing
-                dehazer.train(hazy_tensor, clean_tensor)
+                trainer.train(train_tensor)
 
         #save every X epoch
-        dehazer.save_states(start_epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.LATENT_VECTOR_KEY, constants.OPTIMIZER_KEY)
+        trainer.save_states(start_epoch, iteration, constants.LATENT_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__":

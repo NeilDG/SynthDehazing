@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-
+import numpy as np
 
 def default_conv(in_channels, out_channels, kernel_size, bias=True):
     return nn.Conv2d(in_channels, out_channels, kernel_size, padding=(kernel_size // 2), bias=bias)
@@ -98,6 +98,7 @@ class FFA(nn.Module):
         self.post = nn.Sequential(*post_precess)
 
     def forward(self, x1):
+        #print("X1 shape: ", np.shape(x1))
         x = self.pre(x1)
         res1 = self.g1(x)
         res2 = self.g2(res1)
