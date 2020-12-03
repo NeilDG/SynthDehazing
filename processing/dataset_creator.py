@@ -264,7 +264,7 @@ def main():
 
     PATH_A = constants.DATASET_DIV2K_PATH
     SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
-    create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 300, offset = 2378849)
+    create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 100, offset = 3743814)
 
 if __name__=="__main__": 
     main()   

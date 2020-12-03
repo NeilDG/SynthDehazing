@@ -5,6 +5,7 @@ import os
 import torchvision.transforms as transforms
 from model import vanilla_cycle_gan as cg
 from model import style_transfer_gan as sg
+from model import ffa_net as ffa
 import constants
 import torch
 import random
@@ -29,7 +30,7 @@ class CorrectionTrainer:
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
         
-        self.G_A = cg.Generator(input_nc = 3, output_nc = 3, n_residual_blocks = 12).to(self.gpu_device)
+        self.G_A = ffa.FFA(gps = 3, blocks = 12).to(self.gpu_device)
         self.D_A = cg.Discriminator(input_nc = 3).to(self.gpu_device) #use CycleGAN's discriminator
 
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr = self.g_lr)
@@ -80,15 +81,15 @@ class CorrectionTrainer:
         return loss(pred, target)
     
     def color_loss(self, pred, target):
-        gauss_op = tensor_utils.GaussianSmoothing(channels=3, kernel_size= 5, sigma = 1.0).to(self.gpu_device)
-        pred_gauss = gauss_op(pred)
-        target_gauss = gauss_op(target)
+        # gauss_op = tensor_utils.GaussianSmoothing(channels=3, kernel_size= 5, sigma = 1.0).to(self.gpu_device)
+        # pred_gauss = gauss_op(pred)
+        # target_gauss = gauss_op(target)
+        #
+        # loss = nn.L1Loss()
+        # return loss(pred_gauss, target_gauss)
 
         loss = nn.MSELoss()
-        return loss(pred_gauss, target_gauss)
-
-        #loss = nn.MSELoss()
-        #return loss(pred, target)
+        return loss(pred, target)
     
     def cycle_loss(self, pred, target):
         loss = nn.L1Loss()
@@ -98,7 +99,10 @@ class CorrectionTrainer:
         #replace Y
         (y, u, v) = torch.chunk(colored_tensor_a.transpose(0, 1), 3)
         input_tensor = torch.cat((self.dehazer(gray_tensor_a).transpose(0,1), u, v)).transpose(0, 1)
-        colored_tensor_like = self.G_A(input_tensor) #refined color
+        input_tensor = tensor_utils.yuv_to_rgb(input_tensor.detach())
+        colored_tensor_b = tensor_utils.yuv_to_rgb(colored_tensor_b.detach())
+        with torch.no_grad():
+            colored_tensor_like = self.G_A(input_tensor) #refined color
         
         self.D_A.train()
         self.optimizerD.zero_grad()
@@ -109,7 +113,7 @@ class CorrectionTrainer:
         fake_tensor = torch.zeros_like(prediction)
         
         D_A_real_loss = self.adversarial_loss(self.D_A(colored_tensor_b), real_tensor) * self.adv_weight
-        D_A_fake_loss = self.adversarial_loss(self.D_A(colored_tensor_like.detach()), fake_tensor) * self.adv_weight
+        D_A_fake_loss = self.adversarial_loss(self.D_A(colored_tensor_like), fake_tensor) * self.adv_weight
 
         errD = D_A_real_loss + D_A_fake_loss
         if(errD.item() > 0.1):
@@ -122,6 +126,7 @@ class CorrectionTrainer:
 
         (y, u, v) = torch.chunk(colored_tensor_a.transpose(0, 1), 3)
         input_tensor = torch.cat((self.dehazer(gray_tensor_a).transpose(0, 1), u, v)).transpose(0, 1)
+        input_tensor = tensor_utils.yuv_to_rgb(input_tensor.detach())
         colored_tensor_like = self.G_A(input_tensor) #refined color
         
         color_loss = self.color_loss(colored_tensor_like, colored_tensor_b) * self.color_weight
@@ -146,9 +151,10 @@ class CorrectionTrainer:
         with torch.no_grad():
             (y, u, v) = torch.chunk(colored_tensor_a.transpose(0, 1), 3)
             input_tensor = torch.cat((self.dehazer(gray_tensor_a).transpose(0, 1), u, v)).transpose(0, 1)
-            refined_tensor = tensor_utils.yuv_to_rgb(self.G_A(input_tensor)) # refined color
+            input_tensor = tensor_utils.yuv_to_rgb(input_tensor)
+            refined_tensor = self.G_A(input_tensor) # refined color
 
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(input_tensor), "Train - Y replaced images")
+        self.visdom_reporter.plot_image(input_tensor, "Train - Y replaced images")
         self.visdom_reporter.plot_image(refined_tensor, "Train - Refined images")
         self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(colored_tensor_a), "Train - Original images")
 
@@ -156,11 +162,12 @@ class CorrectionTrainer:
         with torch.no_grad():
             (y, u, v) = torch.chunk(colored_tensor_a.transpose(0, 1), 3)
             input_tensor = torch.cat((self.dehazer(gray_tensor_a).transpose(0, 1), u, v)).transpose(0, 1)
-            refined_tensor = tensor_utils.yuv_to_rgb(self.G_A(input_tensor)) #refined color
+            input_tensor = tensor_utils.yuv_to_rgb(input_tensor)
+            refined_tensor = self.G_A(input_tensor) #refined color
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss("colorization_loss", iteration, self.losses_dict, self.caption_dict)
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(input_tensor), "Y replaced images")
+        self.visdom_reporter.plot_image(input_tensor, "Y replaced images")
         self.visdom_reporter.plot_image(refined_tensor, "Test Refined images")
         self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(colored_tensor_a), "Test Original images")
     
