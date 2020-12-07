@@ -79,8 +79,7 @@ def main(argv):
     start_epoch = 0
     iteration = 0
 
-    if(opts.load_previous): 
-        dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
+    if(opts.load_previous):
         color_checkpoint = torch.load(constants.COLORIZER_CHECKPATH)
         start_epoch = color_checkpoint['epoch'] + 1
         iteration = color_checkpoint['iteration'] + 1
@@ -91,12 +90,14 @@ def main(argv):
     
     # Create the dataloader
     rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_DIV2K_PATH_PATCH, constants.batch_size, opts.img_to_load)
-    rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_DIV2K_PATH, 4, 500)
+    rgb_test_loader_1 = dataset_loader.load_rgb_test_dataset(constants.DATASET_DIV2K_PATH, 4, 500)
+    rgb_test_loader_2 = dataset_loader.load_rgb_test_dataset(constants.DATASET_HAZY_TEST_PATH_1_HAZY, 4, 500)
+    rgb_test_loader_3 = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
     index = 0
     
     # Plot some training images
     if(constants.is_coare == 0):
-        _, gray_batch_a, colored_batch_a = next(iter(rgb_test_loader))
+        _, gray_batch_a, colored_batch_a = next(iter(rgb_test_loader_1))
         show_images(gray_batch_a, "Test - Gray Images A")
         show_images(tensor_utils.yuv_to_rgb(colored_batch_a), "Test - Colored Images A")
 
@@ -112,16 +113,28 @@ def main(argv):
                 colorizer.train(gray_tensor, colored_tensor_a, colored_tensor_a)
 
                 if(i % 500 == 0):
-                    _, gray_batch_a, colored_batch_a = next(iter(rgb_test_loader))
+                    _, gray_batch_a, colored_batch_a = next(iter(rgb_test_loader_1))
+                    _, gray_batch_b, colored_batch_b = next(iter(rgb_test_loader_2))
+                    _, gray_batch_c, colored_batch_c = next(iter(rgb_test_loader_3))
                     gray_batch_a = gray_batch_a.to(device)
                     colored_batch_a = colored_batch_a.to(device)
+                    gray_batch_b = gray_batch_b.to(device)
+                    colored_batch_b = colored_batch_b.to(device)
+                    gray_batch_c = gray_batch_c.to(device)
+                    colored_batch_c = colored_batch_c.to(device)
+
                     colorizer.visdom_report_train(gray_tensor, colored_tensor_a)
-                    colorizer.visdom_report(iteration, gray_batch_a, colored_batch_a)
+                    colorizer.visdom_report(iteration, gray_batch_a, colored_batch_a, 1)
+                    colorizer.visdom_report(iteration, gray_batch_b, colored_batch_b, 2)
+                    colorizer.visdom_report(iteration, gray_batch_c, colored_batch_c, 3)
                     iteration = iteration + 1
 
-                    index = (index + 1) % len(rgb_test_loader)
+                    index = (index + 1) % len(rgb_test_loader_1)
                     if(index == 0):
-                      rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
+                      rgb_test_loader_1 = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
+                      rgb_test_loader_2 = dataset_loader.load_rgb_test_dataset(constants.DATASET_HAZY_TEST_PATH_1_HAZY, 4, 500)
+                      rgb_test_loader_3 = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
+
             colorizer.save_states(epoch, iteration, constants.COLORIZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:
         for i, (_, gray_batch_a, colored_batch_a, colored_batch_b) in enumerate(rgb_train_loader):
