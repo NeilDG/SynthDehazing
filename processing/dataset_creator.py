@@ -328,7 +328,7 @@ def main():
     SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
     PATH_C = "E:/Synth Hazy/depth/"
     SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
-    create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", constants.TEST_IMAGE_SIZE,constants.PATCH_IMAGE_SIZE,1000, 7620664)
+    create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", constants.TEST_IMAGE_SIZE,constants.PATCH_IMAGE_SIZE, 10, 7620664)
     #create_hazy_data(50996)
 
 if __name__=="__main__": 

@@ -119,6 +119,30 @@ def load_dark_channel_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1
 
     return data_loader
 
+def load_depth_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
+    a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
+    print("Length of training depth dataset: %d, %d" % (len(a_list), len(b_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.DepthDataset(a_list, b_list),
+        batch_size=batch_size,
+        num_workers=6,
+        shuffle=True
+    )
+    return data_loader
+
+def load_depth_test_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
+    a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
+    print("Length of test depth dataset: %d, %d" % (len(a_list), len(b_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.DepthTestDataset(a_list, b_list),
+        batch_size=batch_size,
+        num_workers=2,
+        shuffle=True
+    )
+    return data_loader
+
 
 
 def load_dehaze_dataset_test(path_a, batch_size=8, num_image_to_load=-1):
