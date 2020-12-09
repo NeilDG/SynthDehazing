@@ -252,6 +252,34 @@ def estimate_atmosphere(im,dark):
     A = atmsum / numpx;
     return A
 
+# Estimates transmission map given a depth image
+def estimate_transmission_depth(hazy_img, depth_map):
+    plt.imshow(hazy_img)
+    plt.show()
+
+    depth_map = np.ones_like(depth_map)
+    T = np.exp(-5.0 * depth_map) #10.0 seems okay for synth hazy data. but real-world has 0.1 - 1.8 range only.
+    #plt.imshow(T)
+    #plt.show()
+
+    A = 1 - T
+    #plt.imshow(A)
+    #plt.show()
+
+    # clear_img = np.zeros_like(hazy_img)
+    # clear_img[:,:,0] = (hazy_img[:,:,0] - A)/ T
+    # clear_img[:, :, 1] = (hazy_img[:,:,1] - A)/ T
+    # clear_img[:, :, 2] = (hazy_img[:,:, 2] - A)/ T
+
+    #compute clear image with radiance term
+    clear_img = np.zeros_like(hazy_img)
+    clear_img[:, :, 0] = ((hazy_img[:, :, 0] - A) / np.maximum(T, 0.75)) + A
+    clear_img[:, :, 1] = ((hazy_img[:, :, 1] - A) / np.maximum(T, 0.75)) + A
+    clear_img[:, :, 2] = ((hazy_img[:, :, 2] - A) / np.maximum(T, 0.75)) + A
+
+    plt.imshow(clear_img)
+    plt.show()
+
 def estimate_transmission(im, A, dark_channel):
     im = im.cpu().numpy()
     
