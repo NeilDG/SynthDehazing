@@ -90,9 +90,9 @@ def main(argv):
     
     # Create the dataloader
     rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_DIV2K_PATH_PATCH, constants.batch_size, opts.img_to_load)
-    rgb_test_loader_1 = dataset_loader.load_rgb_test_dataset(constants.DATASET_DIV2K_PATH, 4, 500)
-    rgb_test_loader_2 = dataset_loader.load_rgb_test_dataset(constants.DATASET_HAZY_TEST_PATH_1_HAZY, 4, 500)
-    rgb_test_loader_3 = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
+    rgb_test_loader_1 = dataset_loader.load_color_test_dataset(constants.DATASET_DIV2K_PATH, 4, 500)
+    rgb_test_loader_2 = dataset_loader.load_color_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, 4, 500)
+    rgb_test_loader_3 = dataset_loader.load_color_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
     index = 0
     
     # Plot some training images
@@ -131,9 +131,9 @@ def main(argv):
 
                     index = (index + 1) % len(rgb_test_loader_1)
                     if(index == 0):
-                      rgb_test_loader_1 = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
-                      rgb_test_loader_2 = dataset_loader.load_rgb_test_dataset(constants.DATASET_HAZY_TEST_PATH_1_HAZY, 4, 500)
-                      rgb_test_loader_3 = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
+                      rgb_test_loader_1 = dataset_loader.load_color_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
+                      rgb_test_loader_2 = dataset_loader.load_color_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, 4, 500)
+                      rgb_test_loader_3 = dataset_loader.load_color_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, 4, 500)
 
             colorizer.save_states(epoch, iteration, constants.COLORIZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:

@@ -51,7 +51,7 @@ def update_config(opts):
         constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
         constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
 
-        constants.DATASET_HAZY_TEST_PATH_1_HAZY = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_HAZY_TEST_PATH_2 = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
 
         constants.num_workers = 4

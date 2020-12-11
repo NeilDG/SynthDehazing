@@ -113,7 +113,7 @@ def main(argv):
     synth_train_loader = dataset_loader.load_dark_channel_dataset(constants.DATASET_HAZY_PATH_PATCH, constants.DATASET_CLEAN_PATH_PATCH, constants.batch_size, opts.img_to_load)
     synth_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, 4, 500)
     rgb_train_loader = dataset_loader.load_rgb_dataset(constants.DATASET_OHAZE_PATH_PATCH_CLEAN, constants.batch_size, opts.img_to_load)
-    rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_HAZY_TEST_PATH_2, 4, 500)
+    rgb_test_loader = dataset_loader.load_color_test_dataset(constants.DATASET_HAZY_TEST_PATH_2, 4, 500)
     index = 0
     
     # Plot some training images
@@ -158,7 +158,7 @@ def main(argv):
                     
                     index = (index + 1) % len(synth_test_loader)
                     if(index == 0):
-                      rgb_test_loader = dataset_loader.load_rgb_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
+                      rgb_test_loader = dataset_loader.load_color_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
                       synth_test_loader = dataset_loader.load_dark_channel_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, constants.batch_size, 500)
                 if(i % 1500 == 0):
                     dehazer.save_states(epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)

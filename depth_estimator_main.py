@@ -106,8 +106,8 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_depth_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_depth_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.display_size, 500)
+    train_loader = dataset_loader.load_transmission_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.display_size, 500)
     index = 0
 
     # Plot some training images
@@ -125,19 +125,19 @@ def main(argv):
             # For each batch in the dataloader
             for i, train_data in enumerate(train_loader, 0):
                 _, rgb_batch, depth_batch = train_data
-                rgb_tensor = rgb_batch.to(device)
-                depth_tensor = depth_batch.to(device)
+                rgb_tensor = rgb_batch.to(device).float()
+                depth_tensor = depth_batch.to(device).float()
 
                 gt.train(rgb_tensor, depth_tensor)
                 if (i % 500 == 0 and constants.is_coare == 0):
                     view_batch, view_rgb_batch, view_depth_batch = next(iter(test_loader))
-                    view_rgb_batch = view_rgb_batch.to(device)
-                    view_depth_batch = view_depth_batch.to(device)
+                    view_rgb_batch = view_rgb_batch.to(device).float()
+                    view_depth_batch = view_depth_batch.to(device).float()
                     gt.visdom_report(iteration, rgb_tensor, depth_tensor, view_rgb_batch, view_depth_batch)
                     iteration = iteration + 1
                     index = (index + 1) % len(test_loader)
                     if (index == 0):
-                        test_loader = dataset_loader.load_depth_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.display_size, 500)
+                        test_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.display_size, 500)
 
                     gt.save_states(epoch, iteration, constants.DEPTH_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:

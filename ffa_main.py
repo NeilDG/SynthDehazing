@@ -51,7 +51,7 @@ def update_config(opts):
         constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
         constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
 
-        constants.DATASET_HAZY_TEST_PATH_1_HAZY = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_HAZY_TEST_PATH_2 = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
 
         constants.num_workers = 4
@@ -96,8 +96,8 @@ def main(argv):
 
     # Create the dataloader
     synth_train_loader = dataset_loader.load_dehaze_dataset(constants.DATASET_OHAZE_PATH_PATCH_HAZY, constants.DATASET_OHAZE_PATH_PATCH_CLEAN, constants.batch_size, opts.img_to_load)
-    synth_test_loader_hazy = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_1_HAZY, constants.batch_size, opts.img_to_load)
-    synth_test_loader_clean = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_1_CLEAN, constants.batch_size, opts.img_to_load)
+    synth_test_loader_hazy = dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+    synth_test_loader_clean = dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
     vemon_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
 
     index = 0
@@ -138,9 +138,9 @@ def main(argv):
 
                     if(index == 0):
                         synth_test_loader_hazy = dataset_loader.load_dehaze_dataset_test(
-                            constants.DATASET_HAZY_TEST_PATH_1_HAZY, constants.batch_size, opts.img_to_load)
+                            constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
                         synth_test_loader_clean = dataset_loader.load_dehaze_dataset_test(
-                            constants.DATASET_HAZY_TEST_PATH_1_CLEAN, constants.batch_size, opts.img_to_load)
+                            constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
                         vemon_test_loader = dataset_loader.load_dehaze_dataset_test(
                             constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
 
