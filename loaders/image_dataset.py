@@ -15,6 +15,85 @@ import torchvision.transforms as transforms
 import constants
 from utils import tensor_utils
 
+class TransmissionDataset(data.Dataset):
+    def __init__(self, image_list_a, image_list_b):
+        self.image_list_a = image_list_a
+        self.image_list_b = image_list_b
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+        self.depth_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5), (0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id);
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+
+        img_id = self.image_list_b[idx]
+        img_b = cv2.imread(img_id);
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
+        img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        img_b = tensor_utils.generate_transmission(img_b, 0.5)
+        img_b = cv2.resize(img_b, (256, 256))
+
+        img_a = self.final_transform_op(img_a)
+        img_b = self.depth_transform_op(img_b)
+
+        return file_name, img_a, img_b
+
+    def __len__(self):
+        return len(self.image_list_a)
+
+class TransmissionTestDataset(data.Dataset):
+    def __init__(self, img_list_a, img_list_b):
+        self.img_list_a = img_list_a
+        self.img_list_b = img_list_b
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(constants.TEST_IMAGE_SIZE),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+        self.depth_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5), (0.5)),
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.img_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id);
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+
+        img_id = self.img_list_b[idx]
+        img_b = cv2.imread(img_id);
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
+        img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        img_b = tensor_utils.generate_transmission(img_b, 0.5)
+        img_b = cv2.resize(img_b, constants.TEST_IMAGE_SIZE)
+
+        img_a = self.final_transform_op(img_a)
+        img_b = self.depth_transform_op(img_b)
+
+        return file_name, img_a, img_b
+
+    def __len__(self):
+        return len(self.img_list_a)
 
 class DepthDataset(data.Dataset):
     def __init__(self, image_list_a, image_list_b):
@@ -54,6 +133,8 @@ class DepthDataset(data.Dataset):
 
     def __len__(self):
         return len(self.image_list_a)
+
+
 
 class DepthTestDataset(data.Dataset):
     def __init__(self, img_list_a, img_list_b):
@@ -117,15 +198,6 @@ class ColorTransferDataset(data.Dataset):
         
         img_id = self.image_list_b[idx]
         img_b = cv2.imread(img_id); img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
-               
-        # img_a = self.initial_transform_op(img_a)
-        # img_b = self.initial_transform_op(img_b)
-        #
-        # img_a = transforms.functional.adjust_brightness(img_a, constants.brightness_enhance)
-        # img_b = transforms.functional.adjust_brightness(img_b, constants.brightness_enhance)
-        #
-        # img_a = transforms.functional.adjust_contrast(img_a, constants.contrast_enhance)
-        # img_b = transforms.functional.adjust_contrast(img_b, constants.contrast_enhance)
         
         img_a = self.final_transform_op(img_a)
         img_b = self.final_transform_op(img_b)
@@ -397,7 +469,7 @@ class ColorTestDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
 
-        img_a = cv2.imread(img_id); img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2YUV)
+        img_a = cv2.imread(img_id); #img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2YUV)
         gray_img_a = tensor_utils.get_y_channel(img_a)
         gray_img_a = self.transform_op(gray_img_a)
         colored_img_a = self.transform_op(img_a)

@@ -252,13 +252,16 @@ def estimate_atmosphere(im,dark):
     A = atmsum / numpx;
     return A
 
+def generate_transmission(depth_map, beta):
+    return np.exp(-beta * depth_map).astype(float)
+
 # Estimates transmission map given a depth image
 def estimate_transmission_depth(hazy_img, depth_map):
     plt.imshow(hazy_img)
     plt.show()
 
     depth_map = np.ones_like(depth_map)
-    T = np.exp(-5.0 * depth_map) #10.0 seems okay for synth hazy data. but real-world has 0.1 - 1.8 range only.
+    T = estimate_transmission(depth_map, 5.0) #5.0 seems okay for synth hazy data. but real-world has 0.1 - 1.8 range only.
     #plt.imshow(T)
     #plt.show()
 

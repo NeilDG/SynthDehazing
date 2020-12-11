@@ -279,7 +279,7 @@ def create_hazy_data(offset):
         success,image = vidcap.read()
         if(success):
             w,h,c = np.shape(image)
-            image = cv2.resize(image, (int(h/2), int(w/2)), interpolation = cv2.INTER_CUBIC)
+            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation = cv2.INTER_CUBIC)
             cv2.imwrite(CLEAN_SAVE_PATH + "synth_%d.png" % count, image)
             print("Saved clean: synth_%d.png" % count)
             count += 1
@@ -293,7 +293,7 @@ def create_hazy_data(offset):
         success,image = vidcap.read()
         if(success):
             w,h,c = np.shape(image)
-            image = cv2.resize(image, (int(h/4), int(w/4)), interpolation = cv2.INTER_CUBIC)
+            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation = cv2.INTER_CUBIC)
             cv2.imwrite(HAZY_SAVE_PATH + "synth_%d.png" % count, image)
             print("Saved hazy: synth_%d.png" % count)
             count += 1
@@ -322,14 +322,15 @@ def main():
     # SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
     # create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 100, offset = 3743814)
 
-    PATH_A = "E:/Synth Hazy/clean/"
-    SAVE_PATH_A = "E:/Synth Hazy - Patch/clean/"
-    PATH_B = "E:/Synth Hazy/hazy/"
-    SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
-    PATH_C = "E:/Synth Hazy/depth/"
-    SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
-    create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", constants.TEST_IMAGE_SIZE,constants.PATCH_IMAGE_SIZE, 10, 7620664)
-    #create_hazy_data(50996)
+    # PATH_A = "E:/Synth Hazy/clean/"
+    # SAVE_PATH_A = "E:/Synth Hazy - Patch/clean/"
+    # PATH_B = "E:/Synth Hazy/hazy/"
+    # SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
+    # PATH_C = "E:/Synth Hazy/depth/"
+    # SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
+    # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", constants.TEST_IMAGE_SIZE,constants.PATCH_IMAGE_SIZE, 10, 7620664)
+
+    create_hazy_data(99992)
 
 if __name__=="__main__": 
     main()   
