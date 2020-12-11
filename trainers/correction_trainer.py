@@ -30,7 +30,7 @@ class CorrectionTrainer:
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
         
-        self.G_A = ffa.FFA(gps = 3, blocks = 12).to(self.gpu_device)
+        self.G_A = cg.Generator(input_nc= 3, output_nc = 3).to(self.gpu_device)
         self.D_A = cg.Discriminator(input_nc = 3).to(self.gpu_device) #use CycleGAN's discriminator
 
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr = self.g_lr)
@@ -41,7 +41,7 @@ class CorrectionTrainer:
 
         #load dehazer generator
         self.dehazer = cg.Generator(input_nc=1, output_nc=1, n_residual_blocks=5).to(self.gpu_device)
-        dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
+        dehaze_checkpoint = torch.load('checkpoint/dehazer_v1.13_2.pt')
         self.dehazer.load_state_dict(dehaze_checkpoint[constants.GENERATOR_KEY + "A"])
         self.dehazer.eval()
     
@@ -158,7 +158,7 @@ class CorrectionTrainer:
         self.visdom_reporter.plot_image(refined_tensor, "Train - Refined images")
         self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(colored_tensor_a), "Train - Original images")
 
-    def visdom_report(self, iteration, gray_tensor_a, colored_tensor_a):
+    def visdom_report(self, iteration, gray_tensor_a, colored_tensor_a, number):
         with torch.no_grad():
             (y, u, v) = torch.chunk(colored_tensor_a.transpose(0, 1), 3)
             input_tensor = torch.cat((self.dehazer(gray_tensor_a).transpose(0, 1), u, v)).transpose(0, 1)
@@ -166,10 +166,10 @@ class CorrectionTrainer:
             refined_tensor = self.G_A(input_tensor) #refined color
         
         #report to visdom
-        self.visdom_reporter.plot_finegrain_loss("colorization_loss", iteration, self.losses_dict, self.caption_dict)
-        self.visdom_reporter.plot_image(input_tensor, "Y replaced images")
-        self.visdom_reporter.plot_image(refined_tensor, "Test Refined images")
-        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(colored_tensor_a), "Test Original images")
+        self.visdom_reporter.plot_finegrain_loss("colorization_loss " +str(number), iteration, self.losses_dict, self.caption_dict)
+        self.visdom_reporter.plot_image(input_tensor, "Y replaced images " +str(number))
+        self.visdom_reporter.plot_image(refined_tensor, "Test Refined images " +str(number))
+        self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(colored_tensor_a), "Test Original images " +str(number))
     
     def load_saved_state(self, iteration, checkpoint, generator_key, disriminator_key, optimizer_key):
         self.iteration = iteration

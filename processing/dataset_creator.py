@@ -194,6 +194,49 @@ def create_paired_img_data(dataset_path_a, dataset_path_b, save_path_a, save_pat
             img_b_patch.save(file_name_b)
             print("Saved: ", file_name_a, file_name_b)
             count = count + 1
+
+def create_tri_img_data(dataset_path_a, dataset_path_b, dataset_path_c, save_path_a, save_path_b, save_path_c,
+                        filename_format, img_size, patch_size, repeats, offset = 0):
+    img_list_a = assemble_img_list(dataset_path_a)
+    img_list_b = assemble_img_list(dataset_path_b)
+    img_list_c = assemble_img_list(dataset_path_c)
+
+    count = offset
+    for k in range(len(img_list_a)):
+        img_a = cv2.imread(img_list_a[k])
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)
+        img_b = cv2.imread(img_list_b[k])
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
+        img_c = cv2.imread(img_list_c[k])
+        img_c = cv2.cvtColor(img_c, cv2.COLOR_BGR2RGB)
+
+        initial_transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(img_size),
+        ])
+
+        for i in range(repeats):
+            file_name_a = save_path_a + filename_format % count
+            file_name_b = save_path_b + filename_format % count
+            file_name_c = save_path_c + filename_format % count
+
+            img_a_patch = initial_transform_op(img_a)
+            img_b_patch = initial_transform_op(img_b)
+            img_c_patch = initial_transform_op(img_c)
+
+            crop_indices = transforms.RandomCrop.get_params(img_a_patch, output_size=patch_size)
+            i, j, h, w = crop_indices
+
+            img_a_patch = transforms.functional.crop(img_a_patch, i, j, h, w)
+            img_b_patch = transforms.functional.crop(img_b_patch, i, j, h, w)
+            img_c_patch = transforms.functional.crop(img_c_patch, i, j, h, w)
+
+            img_a_patch.save(file_name_a)
+            img_b_patch.save(file_name_b)
+            img_c_patch.save(file_name_c)
+
+            print("Saved: ", file_name_a, file_name_b, file_name_c)
+            count = count + 1
   
 def create_gta_noisy_data():
     NOISY_SAVE_PATH = "E:/Noisy GTA/noisy/"
@@ -220,22 +263,23 @@ def create_gta_noisy_data():
         count = count + 1
 
 def create_hazy_data(offset):
-    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_5_clean.mp4"
-    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_5_haze.mp4"
-    
-    CLEAN_SAVE_PATH = "E:/Synth Hazy - B/clean/"
-    HAZY_SAVE_PATH = "E:/Synth Hazy - B/hazy/"
+    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_7_clean.mp4"
+    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_7_haze.mp4"
+    depth_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_7_depth.mp4"
+
+    CLEAN_SAVE_PATH = "E:/Synth Hazy/clean/"
+    HAZY_SAVE_PATH = "E:/Synth Hazy/hazy/"
+    DEPTH_SAVE_PATH = "E:/Synth Hazy/depth/"
     
     vidcap = cv2.VideoCapture(clean_video_path)
     count = offset
-    success,image = vidcap.read()
-    
+
     success = True
     while success:
         success,image = vidcap.read()
         if(success):
             w,h,c = np.shape(image)
-            image = cv2.resize(image, (int(h/2), int(w/2)), interpolation = cv2.INTER_CUBIC)
+            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation = cv2.INTER_CUBIC)
             cv2.imwrite(CLEAN_SAVE_PATH + "synth_%d.png" % count, image)
             print("Saved clean: synth_%d.png" % count)
             count += 1
@@ -243,16 +287,28 @@ def create_hazy_data(offset):
     #for noisy
     vidcap = cv2.VideoCapture(hazy_video_path)
     count = offset
-    success,image = vidcap.read()
     
     success = True
     while success:
         success,image = vidcap.read()
         if(success):
             w,h,c = np.shape(image)
-            image = cv2.resize(image, (int(h/4), int(w/4)), interpolation = cv2.INTER_CUBIC)
+            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation = cv2.INTER_CUBIC)
             cv2.imwrite(HAZY_SAVE_PATH + "synth_%d.png" % count, image)
             print("Saved hazy: synth_%d.png" % count)
+            count += 1
+
+    #for depth
+    vidcap = cv2.VideoCapture(depth_video_path)
+    count = offset
+    success = True
+    while success:
+        success, image = vidcap.read()
+        if (success):
+            w, h, c = np.shape(image)
+            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation=cv2.INTER_CUBIC)
+            cv2.imwrite(DEPTH_SAVE_PATH + "synth_%d.png" % count, image)
+            print("Saved depth: synth_%d.png" % count)
             count += 1
     
 def main():
@@ -262,9 +318,19 @@ def main():
     # SAVE_PATH_B = "E:/I-HAZE - Patch/clean/"
     # create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", constants.TEST_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 10000, 3000, offset = 471319)
 
-    PATH_A = constants.DATASET_DIV2K_PATH
-    SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
-    create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 100, offset = 3743814)
+    # PATH_A = constants.DATASET_DIV2K_PATH
+    # SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
+    # create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 100, offset = 3743814)
+
+    # PATH_A = "E:/Synth Hazy/clean/"
+    # SAVE_PATH_A = "E:/Synth Hazy - Patch/clean/"
+    # PATH_B = "E:/Synth Hazy/hazy/"
+    # SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
+    # PATH_C = "E:/Synth Hazy/depth/"
+    # SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
+    # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", constants.TEST_IMAGE_SIZE,constants.PATCH_IMAGE_SIZE, 10, 7620664)
+
+    create_hazy_data(99992)
 
 if __name__=="__main__": 
     main()   

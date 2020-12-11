@@ -12,14 +12,18 @@ DATASET_CLEAN_GTA_PATH = "E:/Noisy GTA/clean/"
 
 DATASET_HAZY_PATH_COMPLETE = "E:/Synth Hazy/hazy/"
 DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy/clean/"
+DATASET_DEPTH_PATH_COMPLETE = "E:/Synth Hazy/depth/"
+
 DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
+DATASET_DEPTH_PATH_PATCH = "E:/Synth Hazy - Patch/depth/"
 
-DATASET_IHAZE_PATH_PATCH = "E:/RESIDE - Patch/"
 DATASET_OHAZE_PATH_PATCH_HAZY = "E:/I-HAZE - Patch/hazy/"
 DATASET_OHAZE_PATH_PATCH_CLEAN = "E:/I-HAZE - Patch/clean/"
-DATASET_HAZY_TEST_PATH_1_HAZY = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
-DATASET_HAZY_TEST_PATH_1_CLEAN = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
+DATASET_OHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
+DATASET_OHAZE_CLEAN_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
+DATASET_IHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+DATASET_IHAZE_CLEAN_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
 DATASET_HAZY_TEST_PATH_2 = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
 DATASET_PLACES_PATH = "E:/Places Dataset/"
@@ -42,9 +46,10 @@ LATENT_VECTOR_KEY = "latent_vector"
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.09"
+DEPTH_VERSION = "depth_estimator_v1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "2"
+ITERATION = "3"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -53,6 +58,7 @@ LATENT_CHECKPATH_128 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_128.p
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
 COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
+DEPTH_ESTIMATOR_CHECKPATH = 'checkpoint/' + DEPTH_VERSION + "_" + ITERATION + '.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys
@@ -82,7 +88,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 64
+batch_size = 4
 infer_size = 16
 
 brightness_enhance = 1.0

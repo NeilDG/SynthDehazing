@@ -58,7 +58,7 @@ def update_config(opts):
         constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
         constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
 
-        constants.DATASET_HAZY_TEST_PATH_1_HAZY = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
         constants.DATASET_HAZY_TEST_PATH_2 = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
 
         constants.num_workers = 4
@@ -93,10 +93,10 @@ def main(argv):
     iteration = 0
 
     #load color transfer
-    color_transfer_checkpt = torch.load('checkpoint/dehaze_colortransfer_v1.06_10.pt')
-    color_transfer_gan = color_gan.Generator().to(device)
-    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
-    print("Color transfer GAN model loaded.")
+    # color_transfer_checkpt = torch.load('checkpoint/dehaze_colortransfer_v1.06_10.pt')
+    # color_transfer_gan = color_gan.Generator().to(device)
+    # color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    # print("Color transfer GAN model loaded.")
 
     if(opts.load_previous):
         dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
@@ -110,8 +110,8 @@ def main(argv):
     # Create the dataloader
     synth_train_loader = dataset_loader.load_dehaze_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
     vemon_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
-    hazy_1_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
-    hazy_2_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+    hazy_1_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+    #hazy_2_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
 
     index = 0
 
@@ -120,13 +120,13 @@ def main(argv):
         _, synth_hazy_batch, synth_clean_batch = next(iter(synth_train_loader))
         _, rgb_batch = next(iter(vemon_test_loader))
         _, hazy_1_batch = next(iter(hazy_1_loader))
-        _, hazy_2_batch = next(iter(hazy_2_loader))
+        #_, hazy_2_batch = next(iter(hazy_2_loader))
 
         show_images(synth_hazy_batch, "Training - Hazy Images")
         show_images(synth_clean_batch, "Training - Clean Images")
         show_images(rgb_batch, "Test - Vemon Images")
         show_images(hazy_1_batch, "Test - Hazy 1 Images")
-        show_images(hazy_2_batch, "Test - Hazy 2 Images")
+        #show_images(hazy_2_batch, "Test - Hazy 2 Images")
 
     print("Starting Training Loop...")
     if(constants.is_coare == 0):
@@ -137,9 +137,9 @@ def main(argv):
                 clean_tensor = clean_batch.to(device)
 
                 #color transfer
-                with torch.no_grad():
-                    hazy_tensor = color_transfer_gan(hazy_tensor)
-                    clean_tensor = color_transfer_gan(clean_tensor)
+                # with torch.no_grad():
+                #     hazy_tensor = color_transfer_gan(hazy_tensor)
+                #     clean_tensor = color_transfer_gan(clean_tensor)
 
                 #train dehazing
                 dehazer.train(hazy_tensor, clean_tensor)
@@ -147,13 +147,14 @@ def main(argv):
                 if(i % 100 == 0):
                     _, rgb_batch = next(iter(vemon_test_loader))
                     _, hazy_1_batch = next(iter(hazy_1_loader))
-                    _, hazy_2_batch = next(iter(hazy_2_loader))
+                    #_, hazy_2_batch = next(iter(hazy_2_loader))
 
                     rgb_batch = rgb_batch.to(device)
                     hazy_1_batch = hazy_1_batch.to(device)
-                    hazy_2_batch = hazy_2_batch.to(device)
+                    #hazy_2_batch = hazy_2_batch.to(device)
 
-                    dehazer.visdom_report(iteration, hazy_tensor, clean_tensor, rgb_batch, hazy_1_batch, hazy_2_batch)
+                    #dehazer.visdom_report(iteration, hazy_tensor, clean_tensor, rgb_batch, hazy_1_batch, hazy_2_batch)
+                    dehazer.visdom_report(iteration, hazy_tensor, clean_tensor, rgb_batch, hazy_1_batch)
 
                     iteration = iteration + 1
 
@@ -161,8 +162,8 @@ def main(argv):
 
                     if(index == 0):
                       vemon_test_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
-                      hazy_1_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_1_HAZY, constants.batch_size, opts.img_to_load)
-                      hazy_2_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_2, constants.batch_size, opts.img_to_load)
+                      #hazy_1_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_1_HAZY, constants.batch_size, opts.img_to_load)
+                      #hazy_2_loader = dataset_loader.load_dehaze_dataset_test(constants.DATASET_HAZY_TEST_PATH_2, constants.batch_size, opts.img_to_load)
             dehazer.save_states(epoch, iteration, constants.DEHAZER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:
         for i, (_, hazy_batch, clean_batch) in enumerate(iter(synth_train_loader)):

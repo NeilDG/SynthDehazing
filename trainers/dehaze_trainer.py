@@ -118,9 +118,17 @@ class DehazeTrainer:
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
     
-    def visdom_report(self, iteration,synth_dirty_tensor, synth_clean_tensor, test_tensor_1):
+    def visdom_report(self, iteration,synth_dirty_tensor, synth_clean_tensor, test_tensor_1, test_tensor_2):
         with torch.no_grad():
             synth_clean_like = self.G_A(synth_dirty_tensor)
+
+            test_tensor_yuv = tensor_utils.rgb_to_yuv(test_tensor_1)
+            (y, u, v) = torch.chunk(test_tensor_yuv.transpose(0, 1), 3)
+            test_clean_like_1 = torch.cat((self.G_A(y.transpose(0, 1)).transpose(0, 1), u, v)).transpose(0, 1)
+
+            test_tensor_yuv = tensor_utils.rgb_to_yuv(test_tensor_2)
+            (y, u, v) = torch.chunk(test_tensor_yuv.transpose(0, 1), 3)
+            test_clean_like_2 = torch.cat((self.G_A(y.transpose(0, 1)).transpose(0, 1), u, v)).transpose(0, 1)
         
             #report to visdom
             self.visdom_reporter.plot_finegrain_loss("dehazing_loss", iteration, self.losses_dict, self.caption_dict)
@@ -128,9 +136,9 @@ class DehazeTrainer:
             self.visdom_reporter.plot_image(synth_clean_tensor, "Training Clean images")
             self.visdom_reporter.plot_image(synth_clean_like, "Training Clean-like images")
             self.visdom_reporter.plot_image(test_tensor_1, "Test Hazy images - VEMON")
-            self.visdom_reporter.plot_image(self.G_A(test_tensor_1), "Test Clean-like images - VEMON")
-            # self.visdom_reporter.plot_image(test_tensor_2, "Test Hazy images - I-Haze")
-            # self.visdom_reporter.plot_image(self.G_A(test_tensor_2),"Test Clean-like images - I-Haze")
+            self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_clean_like_1), "Test Clean-like images - VEMON")
+            self.visdom_reporter.plot_image(test_tensor_2, "Test Hazy images - I-Haze")
+            self.visdom_reporter.plot_image(tensor_utils.yuv_to_rgb(test_clean_like_2), "Test Clean-like images - I-Haze")
             # self.visdom_reporter.plot_image(test_tensor_3, "Test Hazy images - Public")
             # self.visdom_reporter.plot_image(self.G_A(test_tensor_3), "Test Clean-like images - Public")
     
