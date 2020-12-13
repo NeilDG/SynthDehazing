@@ -180,7 +180,7 @@ def visualize_feature_distribution(path_a, path_b):
 
             norm_result_a.append(np.linalg.norm(activation_a))
             norm_result_b.append(np.linalg.norm(activation_b))
-            
+
             print(norm_result_a[len(norm_result_a) - 1], norm_result_b[len(norm_result_b) - 1])
             plt.scatter(x=np.arange(0, len(norm_result_a)), y=norm_result_a, color=(0.5, 0, 0))
             plt.scatter(x=np.arange(0, len(norm_result_b)), y=norm_result_b, color=(0, 0.5, 0))
@@ -198,7 +198,7 @@ def main():
     # plt.show()
 
     #visualize_haze_equation(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE)
-    visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_OHAZE_HAZY_PATH_COMPLETE)
+    visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
     
 if __name__=="__main__": 
     main()   

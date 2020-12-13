@@ -156,12 +156,12 @@ def load_transmission_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1
     )
     return data_loader
 
-def load_transmision_test_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
-    a_list, b_list = assemble_train_data(path_a, path_b, num_image_to_load)
-    print("Length of test transmission dataset: %d, %d" % (len(a_list), len(b_list)))
+def load_transmision_test_dataset(path_a, batch_size=8, num_image_to_load=-1):
+    a_list = assemble_unpaired_data(path_a, num_image_to_load)
+    print("Length of test transmission dataset: %d" % (len(a_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.TransmissionTestDataset(a_list, b_list),
+        image_dataset.TransmissionTestDataset(a_list),
         batch_size=batch_size,
         num_workers=2,
         shuffle=True

@@ -413,7 +413,8 @@ def dark_channel_test():
         rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
         dark_img = tensor_utils.get_dark_channel_and_mask(rgb_img)
         break
-        
+
+
     
 def main():
     VERSION = "dehazer_v1.08"
