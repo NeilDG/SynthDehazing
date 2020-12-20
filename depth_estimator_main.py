@@ -29,12 +29,11 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="100.0")
 parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00")
 parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
-parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
-
+parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE
@@ -108,7 +107,7 @@ def main(argv):
 
     # Create the dataloader
     train_loader = dataset_loader.load_transmission_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
-    vemon_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
+    vemon_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.display_size, 500)
     ohaze_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
     reside_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
     index = 0

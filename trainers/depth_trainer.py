@@ -33,6 +33,8 @@ class DepthTrainer:
 
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr=self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters()), lr=self.d_lr)
+        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 1000, threshold = 0.00005)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience=1000, threshold=0.00005)
         
     
     def initialize_dict(self):
@@ -65,9 +67,9 @@ class DepthTrainer:
         self.likeness_weight = likeness_weight
 
         # save hyperparameters for bookeeping
-        HYPERPARAMS_PATH = "checkpoint/" + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + ".config"
+        HYPERPARAMS_PATH = "checkpoint/" + constants.DEPTH_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
-            print("Version: ", constants.COLOR_TRANSFER_CHECKPATH, file=f)
+            print("Version: ", constants.DEPTH_ESTIMATOR_CHECKPATH, file=f)
             print("Learning rate for G: ", str(self.g_lr), file=f)
             print("Learning rate for D: ", str(self.d_lr), file=f)
             print("====================================", file=f)
@@ -108,6 +110,7 @@ class DepthTrainer:
         if (errD.item() > 0.1):
             errD.backward()
             self.optimizerD.step()
+            self.schedulerD.step(errD)
 
         self.G_A.train()
         #self.G_B.train()
@@ -128,6 +131,7 @@ class DepthTrainer:
         errG = A_likeness_loss + A_adv_loss
         errG.backward()
         self.optimizerG.step()
+        self.schedulerG.step(errG)
 
         # what to put to losses dict for visdom reporting?
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
@@ -165,6 +169,9 @@ class DepthTrainer:
         #self.D_B.load_state_dict(checkpoint[discriminator_key + "B"])
         self.optimizerG.load_state_dict(checkpoint[generator_key + optimizer_key])
         self.optimizerD.load_state_dict(checkpoint[discriminator_key + optimizer_key])
+
+        self.schedulerG.load_state_dict(checkpoint[generator_key + "scheduler"])
+        self.schedulerD.load_state_dict(checkpoint[discriminator_key + "scheduler"])
     
     def save_states(self, epoch, iteration, path, generator_key, discriminator_key, optimizer_key):
         save_dict = {'epoch': epoch, 'iteration': iteration}
@@ -176,6 +183,9 @@ class DepthTrainer:
         optimizerG_state_dict = self.optimizerG.state_dict()
         optimizerD_state_dict = self.optimizerD.state_dict()
 
+        schedulerG_state_dict = self.schedulerG.state_dict()
+        schedulerD_state_dict = self.schedulerD.state_dict()
+
         save_dict[generator_key + "A"] = netGA_state_dict
         #save_dict[generator_key + "B"] = netGB_state_dict
         save_dict[discriminator_key + "A"] = netDA_state_dict
@@ -183,6 +193,9 @@ class DepthTrainer:
 
         save_dict[generator_key + optimizer_key] = optimizerG_state_dict
         save_dict[discriminator_key + optimizer_key] = optimizerD_state_dict
+
+        save_dict[generator_key + "scheduler"] = schedulerG_state_dict
+        save_dict[discriminator_key + "scheduler"] = schedulerD_state_dict
 
         torch.save(save_dict, path)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))

@@ -15,6 +15,7 @@ from torch.autograd import Variable
 import torch
 from utils import pytorch_colors
 import matplotlib.pyplot as plt
+import torchvision.transforms as transforms
 
 #for attaching hooks on pretrained models
 class SaveFeatures(nn.Module):
@@ -234,10 +235,11 @@ def get_uv_channel(I):
     y,u,v = cv2.split(I)
     return cv2.merge((u,v))
 
-def estimate_atmosphere(im,dark):
-    im = im.cpu().numpy()
-    [h,w] = [128, 128]
-    imsz = h*w
+def estimate_atmosphere(im, dark):
+    #im = im.cpu().numpy()
+    [h,w] = [np.shape(im)[0], np.shape(im)[1]]
+
+    imsz = h * w
     numpx = int(max(math.floor(imsz/1000),1))
     darkvec = dark.reshape(imsz,1);
     imvec = im.reshape(imsz,3)
@@ -250,38 +252,123 @@ def estimate_atmosphere(im,dark):
        atmsum = atmsum + imvec[indices[ind]]
 
     A = atmsum / numpx;
+
     return A
+    #return np.max(A)
 
 def generate_transmission(depth_map, beta):
     return np.exp(-beta * depth_map).astype(float)
+    #return np.power(np.e, -beta * depth_map)
 
 # Estimates transmission map given a depth image
-def estimate_transmission_depth(hazy_img, depth_map):
-    plt.imshow(hazy_img)
-    plt.show()
 
-    depth_map = np.ones_like(depth_map)
-    T = estimate_transmission(depth_map, 5.0) #5.0 seems okay for synth hazy data. but real-world has 0.1 - 1.8 range only.
+def perform_dehazing_equation_with_transmission(hazy_img, T, filter_strength = 0.1):
+    hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+    #plt.imshow(hazy_img)
+    #plt.show()
+
     #plt.imshow(T)
     #plt.show()
 
-    A = 1 - T
+    atmosphere = estimate_atmosphere(hazy_img, get_dark_channel(hazy_img, w = 3))
+    atmosphere = np.squeeze(atmosphere)
+    #Z = (1 - T) * np.max(atmosphere)
+
+    print("Min of input: ", np.min(hazy_img), " Max of input: ", np.max(hazy_img),
+          "Min of T: ", np.min(T), " Max of T: ", np.max(T))
     #plt.imshow(A)
     #plt.show()
 
-    # clear_img = np.zeros_like(hazy_img)
-    # clear_img[:,:,0] = (hazy_img[:,:,0] - A)/ T
-    # clear_img[:, :, 1] = (hazy_img[:,:,1] - A)/ T
-    # clear_img[:, :, 2] = (hazy_img[:,:, 2] - A)/ T
+    # compute clear image with radiance term
+    clear_img = np.ones_like(hazy_img)
+    T = np.resize(T, np.shape(clear_img[:,:,0]))
+    print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
+    clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])
+    clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])
+    clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])
 
-    #compute clear image with radiance term
+    # clear_img = np.ones_like(hazy_img)
+    # T = np.resize(T, np.shape(clear_img[:,:, 0]))
+    # clear_img[:, :, 0] = (hazy_img[:, :, 0] - (np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
+    # clear_img[:, :, 1] = (hazy_img[:, :, 1] - (np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
+    # clear_img[:, :, 2] = (hazy_img[:, :, 2] - (np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+    return np.clip(clear_img, 0.0, 1.0)
+
+def Recover(im,t,A,tx = 0.1):
+    res = np.empty(im.shape,im.dtype);
+    t = cv2.max(t,tx);
+
+    for ind in range(0,3):
+        res[:,:,ind] = (im[:,:,ind]-A[0,ind])/t + A[0,ind]
+
+    return res
+
+def perform_dehazing_equation(hazy_img, depth_map):
+    #normalize
+
+    T = generate_transmission(depth_map, 0.4)  # 5.0 seems okay for synth hazy data. but real-world has 0.1 - 1.8 range only.
+
+    atmosphere = estimate_atmosphere(hazy_img, get_dark_channel(hazy_img, w=1))
+    atmosphere = np.squeeze(atmosphere)
+    # Z = np.multiply((1 - T), np.max(atmosphere))
+
+    print("Min of input: ", np.min(hazy_img), " Max of input: ", np.max(hazy_img),
+          "Min of depth: ", np.min(depth_map), " Max of depth: ", np.max(depth_map),
+          "Min of T: ", np.min(T), " Max of T: ", np.max(T))
+
+    # print("Min of A: ", np.min(Z), " Max of A:", np.max(Z),
+    #     " Mean of A: ", np.mean(Z), " Mean of T: ", np.mean(T))
+
+    # compute clear image with radiance term
+    clear_img = np.ones_like(hazy_img)
+    clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])) / np.maximum(T,
+                                                                                                                 0.5)) + np.full(
+        np.shape(hazy_img[:, :, 0]), atmosphere[0])
+    clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])) / np.maximum(T,
+                                                                                                                 0.5)) + np.full(
+        np.shape(hazy_img[:, :, 1]), atmosphere[1])
+    clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])) / np.maximum(T,
+                                                                                                                 0.5)) + np.full(
+        np.shape(hazy_img[:, :, 2]), atmosphere[2])
+
+    print("Min of hazy img: ", np.min(hazy_img), " Max of hazy img: ", np.max(hazy_img))
+    print("Min of clear img: ", np.min(clear_img), " Max of clear img: ", np.max(clear_img))
+
+    old_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    clear_img = np.clip(clear_img, 0.0, 1.0)
+
+    fig, ax = plt.subplots(1, 2)
+    fig.tight_layout()
+    ax[0].imshow(old_img)
+    ax[1].imshow(clear_img)
+    plt.show(block=True)
+
+
+def perform_dehazing_equation_batch(hazy_img, T, filter_strength = 0.75, normalize_input = True, normalize_T = True):
+    T = np.squeeze(T)
+
+    # normalize data to 0-1 range
+    if(normalize_input):
+        hazy_img = ((hazy_img * 0.5) + 0.5)
+
+    if(normalize_T):
+        T = ((T * 0.5) + 0.5)
+
+    A = np.ones_like(T) - T
+
+    print("Min of input: ", np.min(hazy_img[0]), " Max of input: ", np.max(hazy_img[0]),
+          "Min of T: ", np.min(T[0]), " Max of T: ", np.max(T[0]),
+          " Mean of A: ", np.mean(A[0]), " Mean of T: ", np.mean(T[0]))
+
     clear_img = np.zeros_like(hazy_img)
-    clear_img[:, :, 0] = ((hazy_img[:, :, 0] - A) / np.maximum(T, 0.75)) + A
-    clear_img[:, :, 1] = ((hazy_img[:, :, 1] - A) / np.maximum(T, 0.75)) + A
-    clear_img[:, :, 2] = ((hazy_img[:, :, 2] - A) / np.maximum(T, 0.75)) + A
+    print("Shapes:", np.shape(clear_img), np.shape(A), np.shape(T))
+    clear_img[:, 0, :, :] = ((hazy_img[:, 0, :, :] - A) / np.maximum(T, filter_strength)) + A
+    clear_img[:, 1, :, :] = ((hazy_img[:, 1, :, :] - A) / np.maximum(T, filter_strength)) + A
+    clear_img[:, 2, :, :] = ((hazy_img[:, 2, :, :] - A) / np.maximum(T, filter_strength)) + A
 
-    plt.imshow(clear_img)
-    plt.show()
+    return clear_img
+
 
 def estimate_transmission(im, A, dark_channel):
     im = im.cpu().numpy()

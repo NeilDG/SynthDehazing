@@ -132,14 +132,15 @@ def visualize_haze_equation(path_a, depth_path):
     for i in range(len(img_list)):
         img = cv2.imread(img_list[i])
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, (300, 300))
+        img = cv2.resize(img, (256, 256))
         img = cv2.normalize(img, dst = None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         depth_img = cv2.imread(depth_list[i])
         depth_img = cv2.cvtColor(depth_img, cv2.COLOR_BGR2GRAY)
+        depth_img = cv2.resize(depth_img, (256, 256))
         depth_img = cv2.normalize(depth_img, dst = None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
-        tensor_utils.estimate_transmission_depth(img, depth_img)
+        tensor_utils.perform_dehazing_equation(img, depth_img)
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -197,8 +198,8 @@ def main():
     # visualize_edge_distribution(constants.DATASET_CLEAN_PATH_PATCH)
     # plt.show()
 
-    #visualize_haze_equation(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE)
-    visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
+    visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE)
+    #visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
     
 if __name__=="__main__": 
     main()   

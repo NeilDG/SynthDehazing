@@ -164,7 +164,7 @@ def load_transmision_test_dataset(path_a, batch_size=8, num_image_to_load=-1):
         image_dataset.TransmissionTestDataset(a_list),
         batch_size=batch_size,
         num_workers=2,
-        shuffle=True
+        shuffle=False
     )
     return data_loader
 
