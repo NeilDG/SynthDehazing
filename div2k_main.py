@@ -31,11 +31,11 @@ parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--color_shift_weight', type=float, help="Weight", default="0.0")
-parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--cycle_weight', type=float, help="Weight", default="50.0")
 parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00") 
 parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
-parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--g_lr', type=float, help="LR", default="0.00005")
+parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
 
 #--img_to_load=-1 --load_previous=1
 #Update config if on COARE
@@ -46,22 +46,14 @@ def update_config(opts):
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = 1024
+        constants.batch_size = constants.batch_size * 2
         
         constants.ITERATION = str(opts.iteration)
         constants.COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + '.pt'
-        
-        constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
-        constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
-        constants.DATASET_VEMON_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
-        constants.DATASET_DIV2K_PATH = "/scratch1/scratch2/neil.delgallego/Div2k_Patch Dataset Enhanced/"
-        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
-        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
 
-        constants.DATASET_IHAZE_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/RESIDE - Patch/"
-        constants.DATASET_HAZY_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/hazy/"
-        constants.DATASET_CLEAN_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/clean/"
-        constants.DATASET_HAZY_TEST_PATH_2 = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
+        constants.DATASET_VEMON_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth/hazy/"
+        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth/clean/"
 
         constants.num_workers = 4
 
@@ -102,8 +94,8 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_color_train_dataset(constants.DATASET_HAZY_PATH_PATCH, constants.DATASET_CLEAN_PATH_PATCH, constants.DATASET_IHAZE_PATH_PATCH, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_HAZY_TEST_PATH_2, constants.display_size, 500)
+    train_loader = dataset_loader.load_color_train_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_VEMON_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
     index = 0
     
     # Plot some training images
@@ -131,7 +123,7 @@ def main(argv):
                     iteration = iteration + 1
                     index = (index + 1) % len(test_loader)
                     if(index == 0):
-                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_HAZY_TEST_PATH_2, constants.display_size, 500)
+                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
           
                     gt.save_states(epoch, iteration, constants.COLOR_TRANSFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else: 

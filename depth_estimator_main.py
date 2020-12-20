@@ -20,6 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import depth_trainer
+from model import style_transfer_gan as color_gan
 import constants
 
 parser = OptionParser()
@@ -28,12 +29,11 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="100.0")
 parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00")
 parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
-parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
-
+parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE
@@ -66,7 +66,7 @@ def update_config(opts):
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    plt.figure(figsize=constants.FIG_SIZE)
+    plt.figure(figsize=(16, 4))
     plt.axis("off")
     plt.title(caption)
     plt.imshow(np.transpose(
@@ -107,17 +107,25 @@ def main(argv):
 
     # Create the dataloader
     train_loader = dataset_loader.load_transmission_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.display_size, 500)
+    vemon_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.display_size, 500)
+    ohaze_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
+    reside_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
     index = 0
+
+    # load color transfer
+    # color_transfer_checkpt = torch.load('checkpoint/dehaze_colortransfer_v1.06_9.pt')
+    # color_transfer_gan = color_gan.Generator().to(device)
+    # color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    # print("Color transfer GAN model loaded.")
 
     # Plot some training images
     if (constants.is_coare == 0):
         _, a, b = next(iter(train_loader))
-        _, c, d = next(iter(test_loader))
+        _, c, gray = next(iter(vemon_loader))
         show_images(a, "Training - RGB Images")
         show_images(b, "Training - Depth Images")
         show_images(c, "Test - RGB Images")
-        show_images(d, "Test - Depth Images")
+        show_images(gray, "Test - Gray Images")
 
     print("Starting Training Loop...")
     if (constants.is_coare == 0):
@@ -129,15 +137,34 @@ def main(argv):
                 depth_tensor = depth_batch.to(device).float()
 
                 gt.train(rgb_tensor, depth_tensor)
-                if (i % 500 == 0 and constants.is_coare == 0):
-                    view_batch, view_rgb_batch, view_depth_batch = next(iter(test_loader))
+                if (i % 500 == 0):
+                    gt.visdom_report(iteration, rgb_tensor, depth_tensor)
+
+                    _, view_rgb_batch, view_gray_batch = next(iter(vemon_loader))
+                    __, view_rgb_batch_1, view_gray_batch_1 = next(iter(ohaze_loader))
+                    ___, view_rgb_batch_2, view_gray_batch_2 = next(iter(reside_loader))
+
                     view_rgb_batch = view_rgb_batch.to(device).float()
-                    view_depth_batch = view_depth_batch.to(device).float()
-                    gt.visdom_report(iteration, rgb_tensor, depth_tensor, view_rgb_batch, view_depth_batch)
+                    view_gray_batch = view_gray_batch.to(device).float()
+                    gt.visdom_plot_test_image(view_rgb_batch, view_gray_batch, 1)
+
+                    view_rgb_batch_1 = view_rgb_batch_1.to(device).float()
+                    view_gray_batch_1 = view_gray_batch_1.to(device).float()
+                    gt.visdom_plot_test_image(view_rgb_batch_1, view_gray_batch_1, 2)
+
+                    view_rgb_batch_2 = view_rgb_batch_2.to(device).float()
+                    view_gray_batch_2 = view_gray_batch_2.to(device).float()
+                    gt.visdom_plot_test_image(view_rgb_batch_2, view_gray_batch_2, 3)
+
                     iteration = iteration + 1
-                    index = (index + 1) % len(test_loader)
+                    index = (index + 1) % len(vemon_loader)
                     if (index == 0):
-                        test_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_VEMON_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.display_size, 500)
+                        vemon_loader = dataset_loader.load_transmision_test_dataset(
+                            constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
+                        ohaze_loader = dataset_loader.load_transmision_test_dataset(
+                            constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
+                        reside_loader = dataset_loader.load_transmision_test_dataset(
+                            constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
 
                     gt.save_states(epoch, iteration, constants.DEPTH_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:

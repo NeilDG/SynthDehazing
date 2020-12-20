@@ -5,10 +5,6 @@ DATASET_VEMON_PATH_COMPLETE = "E:/VEMON_Transfer/train/full/"
 DATASET_VEMON_PATH_PATCH_32 = "E:/VEMON_Transfer/train/32_patch/"
 DATASET_VEMON_PATH_PATCH_64 = "E:/VEMON_Transfer/train/64_patch/"
 DATASET_VEMON_PATH_PATCH_128 = "E:/VEMON_Transfer/train/128_patch/"
-DATASET_GTA_PATH_2= "E:/VEMON Dataset/pending/frames/"
-
-DATASET_NOISY_GTA_PATH = "E:/Noisy GTA/noisy/"
-DATASET_CLEAN_GTA_PATH = "E:/Noisy GTA/clean/"
 
 DATASET_HAZY_PATH_COMPLETE = "E:/Synth Hazy/hazy/"
 DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy/clean/"
@@ -24,7 +20,7 @@ DATASET_OHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
 DATASET_OHAZE_CLEAN_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
 DATASET_IHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
 DATASET_IHAZE_CLEAN_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
-DATASET_HAZY_TEST_PATH_2 = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+DATASET_RESIDE_TEST_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
 DATASET_PLACES_PATH = "E:/Places Dataset/"
 
@@ -45,11 +41,11 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
-COLOR_TRANSFER_VERSION = "dehaze_colortransfer_v1.09"
+COLOR_TRANSFER_VERSION = "color_transfer_v1.10"
 DEPTH_VERSION = "depth_estimator_v1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "3"
+ITERATION = "5"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -88,7 +84,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 4
+batch_size = 8
 infer_size = 16
 
 brightness_enhance = 1.0

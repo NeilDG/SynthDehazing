@@ -27,16 +27,10 @@ class Div2kTrainer:
         self.d_lr = d_lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
-        self.G_A = transfer_gan.Generator().to(self.gpu_device)
-        self.G_B = transfer_gan.Generator().to(self.gpu_device)
+        self.G_A = discrim_gan.Generator(n_residual_blocks=10).to(self.gpu_device)
+        self.G_B = discrim_gan.Generator(n_residual_blocks=10).to(self.gpu_device)
         self.D_A = discrim_gan.Discriminator().to(self.gpu_device) #use CycleGAN's discriminator
         self.D_B = discrim_gan.Discriminator().to(self.gpu_device)
-        
-        #self.denoise_model = transfer_gan.Generator(n_residual_blocks=3).to(self.gpu_device)
-        # denoise_checkpt = torch.load(constants.DENOISE_CHECKPATH)
-        # self.denoise_model.load_state_dict(denoise_checkpt[constants.GENERATOR_KEY + "A"])
-        # print(self.denoise_model.model[10])
-        # print("Loaded ", constants.DENOISE_CHECKPATH)
         
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr = self.g_lr)
@@ -143,8 +137,6 @@ class Div2kTrainer:
         return loss(pred, target)
 
     def train(self, dirty_tensor, clean_tensor):
-        #self.denoise_model.eval()
-        #clean_like = self.G_A(dirty_tensor, self.denoise_model(dirty_tensor))
         clean_like = self.G_A(dirty_tensor)
         dirty_like = self.G_B(clean_tensor)
         
@@ -153,15 +145,14 @@ class Div2kTrainer:
         self.optimizerD.zero_grad()
         
         prediction = self.D_A(clean_tensor)
-        noise_value = random.uniform(0.8, 1.0)
-        real_tensor = torch.ones_like(prediction) * noise_value #add noise value to avoid perfect predictions for real
+        real_tensor = torch.ones_like(prediction)
         fake_tensor = torch.zeros_like(prediction)
         
         D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor), real_tensor) * self.adv_weight
         D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach()), fake_tensor) * self.adv_weight
         
         prediction = self.D_B(dirty_tensor)
-        real_tensor = torch.ones_like(prediction) * noise_value #add noise value to avoid perfect predictions for real
+        real_tensor = torch.ones_like(prediction)
         fake_tensor = torch.zeros_like(prediction)
         
         D_B_real_loss = self.adversarial_loss(self.D_B(dirty_tensor), real_tensor) * self.adv_weight
@@ -181,7 +172,7 @@ class Div2kTrainer:
         dirty_like = self.G_B(clean_like)
         
         identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
-        A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
+        #A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
         A_color_shift_loss = self.color_shift_loss(clean_like, clean_tensor) * self.color_shift_weight
         A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
     
@@ -198,7 +189,7 @@ class Div2kTrainer:
         real_tensor = torch.ones_like(prediction)
         B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
         
-        errG = identity_loss + A_likeness_loss + B_likeness_loss + A_color_shift_loss + B_color_shift_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
+        errG = identity_loss + B_likeness_loss + A_color_shift_loss + B_color_shift_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
         errG.backward()
         self.optimizerG.step()
         
@@ -206,7 +197,7 @@ class Div2kTrainer:
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
         self.losses_dict[constants.IDENTITY_LOSS_KEY].append(identity_loss.item())
-        self.losses_dict[constants.LIKENESS_LOSS_KEY].append(A_likeness_loss.item() + B_likeness_loss.item())
+        self.losses_dict[constants.LIKENESS_LOSS_KEY].append(B_likeness_loss.item())
         self.losses_dict[constants.COLOR_SHIFT_LOSS_KEY].append(A_color_shift_loss.item() + B_color_shift_loss.item())
         self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item() + B_adv_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
