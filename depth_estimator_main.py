@@ -137,7 +137,7 @@ def main(argv):
                 depth_tensor = depth_batch.to(device).float()
 
                 gt.train(rgb_tensor, depth_tensor)
-                if (i % 500 == 0):
+                if ((i + 1) % 500 == 0):
                     gt.visdom_report(iteration, rgb_tensor, depth_tensor)
 
                     _, view_rgb_batch, view_gray_batch = next(iter(vemon_loader))

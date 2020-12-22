@@ -177,25 +177,6 @@ def get_dark_channel(I, w = 1):
     dark = cv2.erode(dc,kernel)
     return dark
 
-# def replace_dark_channel(rgb_tensor, dark_channel_new):
-#     rgb_img = normalize_to_matplotimg(rgb_tensor.cpu(), 0, 0.5, 0.5)
-#     dark_channel_new_img = normalize_to_matplotimg(dark_channel_new.cpu(), 0, 0.5, 0.5)
-#     b, g, r = cv2.split(rgb_img)
-    
-#     dc, mask_r, mask_g, mask_b = get_dark_channel_and_mask(r, g, b)
-    
-#     #print(np.shape(r), np.shape(dc), np.shape(dark_channel_new_img), np.shape(mask_r))
-#     r = cv2.subtract(r, dc, mask = mask_r)
-#     g = cv2.subtract(g, dc, mask = mask_g)
-#     b = cv2.subtract(b, dc, mask = mask_b)
-    
-#     r = cv2.add(r, dark_channel_new_img, mask = mask_r)
-#     g = cv2.add(g, dark_channel_new_img, mask = mask_g)
-#     b = cv2.add(b, dark_channel_new_img, mask = mask_b)
-    
-#     rgb_img = cv2.merge((b,g,r))
-#     return rgb_img
-
 def get_dark_channel_and_mask(r, g, b):
     min_1 = cv2.min(r,g)
 
@@ -281,28 +262,21 @@ def perform_dehazing_equation_with_transmission(hazy_img, T, filter_strength = 0
     #plt.show()
 
     # compute clear image with radiance term
-    clear_img = np.ones_like(hazy_img)
-    T = np.resize(T, np.shape(clear_img[:,:,0]))
-    print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
-    clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])
-    clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])
-    clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])
-
     # clear_img = np.ones_like(hazy_img)
-    # T = np.resize(T, np.shape(clear_img[:,:, 0]))
-    # clear_img[:, :, 0] = (hazy_img[:, :, 0] - (np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
-    # clear_img[:, :, 1] = (hazy_img[:, :, 1] - (np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
-    # clear_img[:, :, 2] = (hazy_img[:, :, 2] - (np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+    # T = np.resize(T, np.shape(clear_img[:,:,0]))
+    #print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
+    # clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])
+    # clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])
+    # clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])
+
+    clear_img = np.ones_like(hazy_img)
+    T = np.resize(T, np.shape(clear_img[:,:, 0]))
+    print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
+    clear_img[:, :, 0] = (hazy_img[:, :, 0] - (np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
+    clear_img[:, :, 1] = (hazy_img[:, :, 1] - (np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
+    clear_img[:, :, 2] = (hazy_img[:, :, 2] - (np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
     return np.clip(clear_img, 0.0, 1.0)
 
-def Recover(im,t,A,tx = 0.1):
-    res = np.empty(im.shape,im.dtype);
-    t = cv2.max(t,tx);
-
-    for ind in range(0,3):
-        res[:,:,ind] = (im[:,:,ind]-A[0,ind])/t + A[0,ind]
-
-    return res
 
 def perform_dehazing_equation(hazy_img, depth_map):
     #normalize
