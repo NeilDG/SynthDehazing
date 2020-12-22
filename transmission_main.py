@@ -30,8 +30,8 @@ parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="100.0")
-parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00")
-parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
+parser.add_option('--image_size', type=int, help="Weight", default="64")
+parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
 
@@ -39,27 +39,20 @@ parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
 # Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
-    constants.brightness_enhance = opts.brightness_enhance
-    constants.contrast_enhance = opts.contrast_enhance
 
     if (constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.batch_size = 1024
+        constants.TEST_IMAGE_SIZE = (opts.image_size, opts.image_size)
+        constants.batch_size = opts.batch_size
 
         constants.ITERATION = str(opts.iteration)
         constants.COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.DATASET_NOISY_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/noisy/"
-        constants.DATASET_CLEAN_GTA_PATH = "/scratch1/scratch2/neil.delgallego/Noisy GTA/clean/"
-        constants.DATASET_VEMON_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
-        constants.DATASET_DIV2K_PATH = "/scratch1/scratch2/neil.delgallego/Div2k_Patch Dataset Enhanced/"
-        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/hazy/"
-        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
+        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/hazy/"
+        constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/depth/"
 
-        constants.DATASET_IHAZE_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/RESIDE - Patch/"
-        constants.DATASET_HAZY_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/hazy/"
-        constants.DATASET_CLEAN_PATH_PATCH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Patch/clean/"
-        constants.DATASET_HAZY_TEST_PATH_2 = "/scratch1/scratch2/neil.delgallego/Synth Hazy/clean/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/hazy/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/depth/"
 
         constants.num_workers = 4
 
@@ -90,7 +83,7 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    gt = depth_trainer.DepthTrainer(constants.DEPTH_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
+    gt = depth_trainer.DepthTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
     gt.update_penalties(opts.adv_weight, opts.likeness_weight)
     start_epoch = 0
     iteration = 0
@@ -111,12 +104,6 @@ def main(argv):
     ohaze_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
     reside_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
     index = 0
-
-    # load color transfer
-    # color_transfer_checkpt = torch.load('checkpoint/dehaze_colortransfer_v1.06_9.pt')
-    # color_transfer_gan = color_gan.Generator().to(device)
-    # color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
-    # print("Color transfer GAN model loaded.")
 
     # Plot some training images
     if (constants.is_coare == 0):
@@ -170,8 +157,9 @@ def main(argv):
     else:
         for i, train_data in enumerate(train_loader, 0):
             _, rgb_batch, depth_batch = train_data
-            rgb_tensor = rgb_batch.to(device)
-            depth_tensor = depth_batch.to(device)
+            rgb_tensor = rgb_batch.to(device).float()
+            depth_tensor = depth_batch.to(device).float()
+
             gt.train(rgb_tensor, depth_tensor)
             if (i % 100 == 0):
                 print("Iterating %d " % i)

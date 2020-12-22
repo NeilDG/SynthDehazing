@@ -67,7 +67,7 @@ class DepthTrainer:
         self.likeness_weight = likeness_weight
 
         # save hyperparameters for bookeeping
-        HYPERPARAMS_PATH = "checkpoint/" + constants.DEPTH_VERSION + "_" + constants.ITERATION + ".config"
+        HYPERPARAMS_PATH = "checkpoint/" + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
             print("Version: ", constants.DEPTH_ESTIMATOR_CHECKPATH, file=f)
             print("Learning rate for G: ", str(self.g_lr), file=f)

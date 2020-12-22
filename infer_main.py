@@ -164,6 +164,9 @@ def produce_video(video_path):
 def benchmark():
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
+    #HAZY_PATH = constants.DATASET_HAZY_PATH_COMPLETE
+    #GT_PATH = constants.DATASET_CLEAN_PATH_COMPLETE
+
     FFA_RESULTS_PATH = "results/FFA Net - Results - OHaze/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
 
@@ -178,7 +181,7 @@ def benchmark():
     ffa_list = glob.glob(FFA_RESULTS_PATH + "*.png")
     grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
 
-    print(ffa_list)
+    print(hazy_list)
 
     gray_img_op = transforms.Compose([transforms.ToPILImage(),
                                        transforms.ToTensor(),
@@ -208,10 +211,15 @@ def benchmark():
                 count = count + 1
                 img_name = hazy_path.split("\\")[1]
                 hazy_img = cv2.imread(hazy_path)
-                hazy_img = cv2.resize(hazy_img, (int(np.shape(hazy_img)[1] / 4), int(np.shape(hazy_img)[0] / 4)))
+                #hazy_img = cv2.resize(hazy_img, (int(np.shape(hazy_img)[1] / 4), int(np.shape(hazy_img)[0] / 4)))
+                hazy_img = cv2.resize(hazy_img, (512, 512))
                 gt_img = cv2.imread(gt_path)
-                gt_img = cv2.resize(gt_img, (int(np.shape(gt_img)[1] / 4), int(np.shape(gt_img)[0] / 4)))
+                #gt_img = cv2.resize(gt_img, (int(np.shape(gt_img)[1] / 4), int(np.shape(gt_img)[0] / 4)))
+                gt_img = cv2.resize(gt_img, (512, 512))
+
                 ffa_img = cv2.imread(ffa_path)
+                ffa_img = cv2.resize(ffa_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
+
                 grid_img = cv2.imread(grid_path)
                 grid_img = cv2.resize(grid_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
@@ -221,7 +229,7 @@ def benchmark():
 
                 # remove 0.5 normalization for dehazing equation
                 transmission_img = ((transmission_img * 0.5) + 0.5)
-                transmission_img = transmission_img + 0.5 #TODO: temporary experiment.
+                transmission_img = transmission_img + 0.75 #TODO: temporary experiment.
                 hazy_img = ((hazy_img * 0.5) + 0.5)
 
                 dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img)

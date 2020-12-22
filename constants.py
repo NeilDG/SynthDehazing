@@ -42,7 +42,7 @@ LATENT_VECTOR_KEY = "latent_vector"
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "color_transfer_v1.10"
-DEPTH_VERSION = "depth_estimator_v1.00"
+TRANSMISSION_VERSION = "transmission_estimator_v1.00"
 LATENT_VERSION = "latent_v1.00"
 
 ITERATION = "7"
@@ -54,7 +54,7 @@ LATENT_CHECKPATH_128 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_128.p
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
 COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
-DEPTH_ESTIMATOR_CHECKPATH = 'checkpoint/' + DEPTH_VERSION + "_" + ITERATION + '.pt'
+DEPTH_ESTIMATOR_CHECKPATH = 'checkpoint/' + TRANSMISSION_VERSION + "_" + ITERATION + '.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys

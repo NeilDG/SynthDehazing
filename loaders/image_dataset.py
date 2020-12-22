@@ -22,7 +22,7 @@ class TransmissionDataset(data.Dataset):
 
         self.initial_img_op = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((512, 512))
+            transforms.Resize(constants.TEST_IMAGE_SIZE)
         ])
 
         self.final_transform_op = transforms.Compose([
