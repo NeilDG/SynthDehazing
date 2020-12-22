@@ -28,10 +28,6 @@ sbatch -w saliksik-gpu-06 script_4.slurm
 sbatch -w saliksik-gpu-05 script_5.slurm
 sbatch -w saliksik-gpu-06 script_6.slurm
 
-sbatch --export=c=100.0,s=100.0,iteration=2 multistyle.slurm
-sbatch --export=c=10.0,s=100.0,iteration=3 multistyle.slurm
-sbatch --export=c=100.0,s=50.0,iteration=4 multistyle.slurm
-
 //Check status of job
 squeue -u neil.delgallego
 
