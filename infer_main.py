@@ -24,6 +24,7 @@ import constants
 from torchvision import transforms
 import cv2
 from utils import tensor_utils
+from utils import dark_channel_prior
 import os
 import glob
 from skimage.measure import compare_ssim
@@ -163,12 +164,15 @@ def produce_video(video_path):
 def benchmark():
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
+    #HAZY_PATH = constants.DATASET_HAZY_PATH_COMPLETE
+    #GT_PATH = constants.DATASET_CLEAN_PATH_COMPLETE
+
     FFA_RESULTS_PATH = "results/FFA Net - Results - OHaze/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
 
     SAVE_PATH = "results/"
     BENCHMARK_PATH = "results/metrics.txt"
-    MODEL_CHECKPOINT = "depth_estimator_v1.00_2"
+    MODEL_CHECKPOINT = "depth_estimator_v1.00_6"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
@@ -177,7 +181,7 @@ def benchmark():
     ffa_list = glob.glob(FFA_RESULTS_PATH + "*.png")
     grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
 
-    print(ffa_list)
+    print(hazy_list)
 
     gray_img_op = transforms.Compose([transforms.ToPILImage(),
                                        transforms.ToTensor(),
@@ -192,13 +196,13 @@ def benchmark():
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
 
-    FIG_ROWS = 5;
+    FIG_ROWS = 6;
     FIG_COLS = 6
     fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
-    fig.set_size_inches(30, 30)
+    fig.set_size_inches(60, 30)
     column = 0
     fig_num = 0
-    average_SSIM = [0.0, 0.0, 0.0]
+    average_SSIM = [0.0, 0.0, 0.0, 0.0]
     count = 0
 
     with open(BENCHMARK_PATH, "w") as f:
@@ -207,10 +211,15 @@ def benchmark():
                 count = count + 1
                 img_name = hazy_path.split("\\")[1]
                 hazy_img = cv2.imread(hazy_path)
-                hazy_img = cv2.resize(hazy_img, (int(np.shape(hazy_img)[1] / 4), int(np.shape(hazy_img)[0] / 4)))
+                #hazy_img = cv2.resize(hazy_img, (int(np.shape(hazy_img)[1] / 4), int(np.shape(hazy_img)[0] / 4)))
+                hazy_img = cv2.resize(hazy_img, (512, 512))
                 gt_img = cv2.imread(gt_path)
-                gt_img = cv2.resize(gt_img, (int(np.shape(gt_img)[1] / 4), int(np.shape(gt_img)[0] / 4)))
+                #gt_img = cv2.resize(gt_img, (int(np.shape(gt_img)[1] / 4), int(np.shape(gt_img)[0] / 4)))
+                gt_img = cv2.resize(gt_img, (512, 512))
+
                 ffa_img = cv2.imread(ffa_path)
+                ffa_img = cv2.resize(ffa_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
+
                 grid_img = cv2.imread(grid_path)
                 grid_img = cv2.resize(grid_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
@@ -220,13 +229,19 @@ def benchmark():
 
                 # remove 0.5 normalization for dehazing equation
                 transmission_img = ((transmission_img * 0.5) + 0.5)
+                transmission_img = transmission_img + 0.75 #TODO: temporary experiment.
                 hazy_img = ((hazy_img * 0.5) + 0.5)
 
-                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_img, 0.8)
+                dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img)
+                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_img, 0.1)
+
+                # plt.imshow(transmission_img)
+                # plt.show()
 
                 #normalize images
                 hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,dtype=cv2.CV_8U)
+                dcp_clear_img = cv2.normalize(dcp_clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 ffa_img = cv2.normalize(ffa_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 grid_img = cv2.normalize(grid_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 gt_img = cv2.normalize(gt_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
@@ -234,35 +249,42 @@ def benchmark():
                 #make images compatible with matplotlib
                 hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
                 clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
+                dcp_clear_img = cv2.cvtColor(dcp_clear_img, cv2.COLOR_BGR2RGB)
                 ffa_img = cv2.cvtColor(ffa_img, cv2.COLOR_BGR2RGB)
                 grid_img = cv2.cvtColor(grid_img, cv2.COLOR_BGR2RGB)
                 gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
 
                 # measure SSIM
+                SSIM = np.round(compare_ssim(dcp_clear_img, gt_img, multichannel=True), 4)
+                print("[DCP] SSIM of ", img_name, " : ", SSIM, file=f)
+                average_SSIM[0] += SSIM
+
                 SSIM = np.round(compare_ssim(ffa_img, gt_img, multichannel=True), 4)
                 print("[FFA-Net] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[0] += SSIM
+                average_SSIM[1] += SSIM
 
                 SSIM = np.round(compare_ssim(grid_img, gt_img, multichannel=True), 4)
                 print("[GridDehazeNet] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[1] += SSIM
+                average_SSIM[2] += SSIM
 
                 SSIM = np.round(compare_ssim(clear_img, gt_img, multichannel=True), 4)
                 print("[Ours] SSIM of " ,img_name," : ", SSIM, file = f)
-                average_SSIM[2] += SSIM
+                average_SSIM[3] += SSIM
 
                 print(file = f)
 
                 ax[0, column].imshow(hazy_img)
                 ax[0, column].axis('off')
-                ax[1, column].imshow(ffa_img)
+                ax[1, column].imshow(dcp_clear_img)
                 ax[1, column].axis('off')
-                ax[2, column].imshow(grid_img)
+                ax[2, column].imshow(ffa_img)
                 ax[2, column].axis('off')
-                ax[3, column].imshow(clear_img)
+                ax[3, column].imshow(grid_img)
                 ax[3, column].axis('off')
-                ax[4, column].imshow(gt_img)
+                ax[4, column].imshow(clear_img)
                 ax[4, column].axis('off')
+                ax[5, column].imshow(gt_img)
+                ax[5, column].axis('off')
                 column = column + 1
 
                 if (column == FIG_COLS):
@@ -276,14 +298,14 @@ def benchmark():
                     fig.set_size_inches(24, 7)
                     column = 0
 
-        average_SSIM[0] = average_SSIM[0] / count * 1.0
-        average_SSIM[1] = average_SSIM[1] / count * 1.0
-        average_SSIM[2] = average_SSIM[2] / count * 1.0
+        for i in range(len(average_SSIM)):
+            average_SSIM[i] = average_SSIM[i] / count * 1.0
 
         print(file = f)
-        print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[0], 5), file = f)
-        print("[GridDehazeNet] Average SSIM: ", np.round(average_SSIM[1], 5), file=f)
-        print("[Ours] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
+        print("[DCP] Average SSIM: ", np.round(average_SSIM[0], 5), file=f)
+        print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[1], 5), file = f)
+        print("[GridDehazeNet] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
+        print("[Ours] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
 
 
 def create_figures(checkpath, version, iteration):
