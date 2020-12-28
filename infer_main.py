@@ -27,9 +27,8 @@ from utils import tensor_utils
 from utils import dark_channel_prior
 import os
 import glob
+from skimage.metrics import peak_signal_noise_ratio
 from skimage.measure import compare_ssim
-from skimage.measure import compare_mse
-from skimage.measure import compare_nrmse
 
 def show_images(img_tensor, caption):
     plt.figure(figsize=(16, 4))
@@ -172,7 +171,7 @@ def benchmark():
 
     SAVE_PATH = "results/"
     BENCHMARK_PATH = "results/metrics.txt"
-    MODEL_CHECKPOINT = "depth_estimator_v1.00_6"
+    MODEL_CHECKPOINT = "transmission_estimator_v1.00_3"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
@@ -182,6 +181,7 @@ def benchmark():
     grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
 
     print(hazy_list)
+    print(gt_list)
 
     gray_img_op = transforms.Compose([transforms.ToPILImage(),
                                        transforms.ToTensor(),
@@ -203,6 +203,7 @@ def benchmark():
     column = 0
     fig_num = 0
     average_SSIM = [0.0, 0.0, 0.0, 0.0]
+    average_PSNR = [0.0, 0.0, 0.0, 0.0]
     count = 0
 
     with open(BENCHMARK_PATH, "w") as f:
@@ -229,11 +230,12 @@ def benchmark():
 
                 # remove 0.5 normalization for dehazing equation
                 transmission_img = ((transmission_img * 0.5) + 0.5)
-                transmission_img = transmission_img + 0.75 #TODO: temporary experiment.
+                #transmission_img = transmission_img + 0.6 #TODO: temporary experiment.
                 hazy_img = ((hazy_img * 0.5) + 0.5)
 
                 dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img)
                 clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_img, 0.1)
+                clear_img = tensor_utils.refine_dehaze_img(hazy_img, clear_img, transmission_img)
 
                 # plt.imshow(transmission_img)
                 # plt.show()
@@ -253,6 +255,23 @@ def benchmark():
                 ffa_img = cv2.cvtColor(ffa_img, cv2.COLOR_BGR2RGB)
                 grid_img = cv2.cvtColor(grid_img, cv2.COLOR_BGR2RGB)
                 gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
+
+                # measure PSNR
+                PSNR = np.round(peak_signal_noise_ratio(gt_img, dcp_clear_img), 4)
+                print("[DCP] PSNR of ", img_name, " : ", PSNR, file=f)
+                average_PSNR[0] += PSNR
+
+                PSNR = np.round(peak_signal_noise_ratio(gt_img, ffa_img), 4)
+                print("[FFA-Net] PSNR of ", img_name, " : ", PSNR, file=f)
+                average_PSNR[1] += PSNR
+
+                PSNR = np.round(peak_signal_noise_ratio(gt_img, grid_img), 4)
+                print("[GridDehazeNet] PSNR of ", img_name, " : ", PSNR, file=f)
+                average_PSNR[2] += PSNR
+
+                PSNR = np.round(peak_signal_noise_ratio(gt_img, clear_img), 4)
+                print("[Ours] PSNR of ", img_name, " : ", PSNR, file=f)
+                average_PSNR[3] += PSNR
 
                 # measure SSIM
                 SSIM = np.round(compare_ssim(dcp_clear_img, gt_img, multichannel=True), 4)
@@ -300,7 +319,13 @@ def benchmark():
 
         for i in range(len(average_SSIM)):
             average_SSIM[i] = average_SSIM[i] / count * 1.0
+            average_PSNR[i] = average_PSNR[i] / count * 1.0
 
+        print(file = f)
+        print("[DCP] Average PSNR: ", np.round(average_PSNR[0], 5), file=f)
+        print("[FFA-Net] Average PSNR: ", np.round(average_PSNR[1], 5), file=f)
+        print("[GridDehazeNet] Average PSNR: ", np.round(average_PSNR[2], 5), file=f)
+        print("[Ours] Average PSNR: ", np.round(average_PSNR[3], 5), file=f)
         print(file = f)
         print("[DCP] Average SSIM: ", np.round(average_SSIM[0], 5), file=f)
         print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[1], 5), file = f)

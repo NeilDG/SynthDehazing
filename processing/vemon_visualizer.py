@@ -125,8 +125,9 @@ def visualize_edge_distribution(path_a):
     plt.hist(edge_list)
 
 
-def visualize_haze_equation(path_a, depth_path):
+def visualize_haze_equation(path_a, depth_path, path_b):
     img_list, depth_list = dataset_loader.assemble_train_data(path_a, depth_path, num_image_to_load = 10)
+    clear_list = dataset_loader.assemble_unpaired_data(path_b, num_image_to_load = 10)
     print("Reading images in ", path_a, depth_path)
 
     for i in range(len(img_list)):
@@ -140,7 +141,15 @@ def visualize_haze_equation(path_a, depth_path):
         depth_img = cv2.resize(depth_img, (256, 256))
         depth_img = cv2.normalize(depth_img, dst = None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
-        tensor_utils.perform_dehazing_equation(img, depth_img)
+        clear_img = cv2.imread(clear_list[i])
+        clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
+        clear_img = cv2.resize(clear_img, (256, 256))
+        clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        #tensor_utils.perform_dehazing_equation(img, depth_img)
+        #tensor_utils.perform_custom_dehazing_equation(img, clear_img)
+        #tensor_utils.introduce_haze(img, clear_img, depth_img)
+        tensor_utils.mask_haze(img, clear_img, depth_img)
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -198,7 +207,7 @@ def main():
     # visualize_edge_distribution(constants.DATASET_CLEAN_PATH_PATCH)
     # plt.show()
 
-    visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE)
+    visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
     #visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
     
 if __name__=="__main__": 
