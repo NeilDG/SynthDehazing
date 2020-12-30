@@ -1,18 +1,18 @@
 #!/bin/bash
-#SBATCH -J DEHAZE_3
+#SBATCH -J PLACES_4
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu
 #SBATCH --cpus-per-task=4
 #SBATCH -G 1
 #SBATCH --ntasks=1
-#SBATCH --output=script_3.out
+#SBATCH --output=color_1.out
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph
 #SBATCH --mail-type=END
 
-ITERATION=10
+ITERATION=4
 
-# About this script:
-# For training a transmission map estimator network using Synth data.
+#About this script:
+# CycleGAN using new dataset between synth hazy and places dataset
 echo "CUDA_DEVICE=/dev/nvidia/$CUDA_VISIBLE_DEVICES"
 nvidia-smi
 
@@ -24,12 +24,12 @@ source activate NeilGAN
 
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge scikit-image
-srun python transmission_main.py --iteration=$ITERATION --coare=1 --image_size=256 --batch_size=32 --img_to_load=-1 --load_previous=0
+srun python div2k_main.py --iteration=$ITERATION --coare=1 --identity_weight=0.0 --cycle_weight=50.0 --img_to_load=-1 --load_previous=0
 source deactivate
 
 for i in {1..300}
     do
         source activate NeilGAN
-        srun python transmission_main.py --iteration=$ITERATION --coare=1 --image_size=256 --batch_size=32 --img_to_load=-1 --load_previous=1
+        srun python div2k_main.py --iteration=$ITERATION --coare=1 --identity_weight=0.0  --cycle_weight=50.0 --img_to_load=-1 --load_previous=1
         source deactivate
     done
