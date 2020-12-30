@@ -41,13 +41,14 @@ class TransmissionDataset(data.Dataset):
         file_name = path_segment[len(path_segment) - 1]
 
         img_a = cv2.imread(img_id);
-        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2GRAY)  # because matplot uses RGB, openCV is BGR
+        #img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2GRAY)  # because matplot uses RGB, openCV is BGR
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
 
         img_id = self.image_list_b[idx]
         img_b = cv2.imread(img_id);
         img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
         img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        img_b = tensor_utils.generate_transmission(1 - img_b, np.random.uniform(0.4, 1.8))
+        img_b = tensor_utils.generate_transmission(img_b, np.random.uniform(0.4, 1.8))
         img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         #img_b = cv2.resize(img_b, (256, 256))
 

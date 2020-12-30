@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import depth_trainer
 from model import style_transfer_gan as color_gan
+from model import vanilla_cycle_gan as cycle_gan
 import constants
 
 parser = OptionParser()
@@ -83,6 +84,13 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
+    # load color transfer
+    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_1 - stable.pt')
+    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    print("Color transfer GAN model loaded.")
+    print("===================================================")
+
     gt = depth_trainer.DepthTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
     gt.update_penalties(opts.adv_weight, opts.likeness_weight)
     start_epoch = 0
@@ -123,6 +131,8 @@ def main(argv):
                 rgb_tensor = rgb_batch.to(device).float()
                 depth_tensor = depth_batch.to(device).float()
 
+                #perform color transfer first
+                rgb_tensor = color_transfer_gan(rgb_tensor)
                 gt.train(rgb_tensor, depth_tensor)
                 if ((i + 1) % 500 == 0):
                     gt.visdom_report(iteration, rgb_tensor, depth_tensor)

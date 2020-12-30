@@ -161,6 +161,8 @@ def produce_video(video_path):
         video_out.release()
 
 def benchmark():
+    #HAZY_PATH = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+    #GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
     #HAZY_PATH = constants.DATASET_HAZY_PATH_COMPLETE
@@ -169,9 +171,11 @@ def benchmark():
     FFA_RESULTS_PATH = "results/FFA Net - Results - OHaze/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
 
+    MODEL_CHECKPOINT = "transmission_estimator_v1.01_1"
+
     SAVE_PATH = "results/"
-    BENCHMARK_PATH = "results/metrics.txt"
-    MODEL_CHECKPOINT = "transmission_estimator_v1.00_3"
+    BENCHMARK_PATH = "results/metrics - " + str(MODEL_CHECKPOINT) + ".txt"
+
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
@@ -187,19 +191,19 @@ def benchmark():
                                        transforms.ToTensor(),
                                        transforms.Normalize((0.5), (0.5))])
 
-    rgb_image_op = transforms.Compose([transforms.ToPILImage(),
+    rgb_img_op = transforms.Compose([transforms.ToPILImage(),
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    transmission_G = cycle_gan.Generator(input_nc=1, output_nc=1, n_residual_blocks=6).to(device)
+    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=6).to(device)
     checkpt = torch.load('checkpoint/' + MODEL_CHECKPOINT + ".pt")
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
 
     FIG_ROWS = 6;
-    FIG_COLS = 6
+    FIG_COLS = 4
     fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
-    fig.set_size_inches(60, 30)
+    fig.set_size_inches(30, 80)
     column = 0
     fig_num = 0
     average_SSIM = [0.0, 0.0, 0.0, 0.0]
@@ -224,7 +228,8 @@ def benchmark():
                 grid_img = cv2.imread(grid_path)
                 grid_img = cv2.resize(grid_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
-                input_tensor = gray_img_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2GRAY)).to(device)
+                #input_tensor = gray_img_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2GRAY)).to(device)
+                input_tensor = rgb_img_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(device)
                 transmission_img = transmission_G(torch.unsqueeze(input_tensor, 0))
                 transmission_img = torch.squeeze(transmission_img).cpu().numpy()
 
@@ -475,18 +480,17 @@ def dehaze_infer(checkpath, version, iteration):
             plot_and_save(item_number, resized_vemon, resized_vemon_dehazed)
     
 
-def color_transfer(checkpath, version, iteration):
+def color_transfer():
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    
-    colorizer = div2k_trainer.Div2kTrainer(version, iteration, device, g_lr = 0.0002, d_lr = 0.0002)
-    
-    checkpoint = torch.load(checkpath)
-    colorizer.load_saved_state(0, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
- 
-    print("Loaded results checkpt ",checkpath)
+
+    # load color transfer
+    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_1 - stable.pt')
+    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    print("Color transfer GAN model loaded.")
     print("===================================================")
     
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_VEMON_PATH_COMPLETE, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
     
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -504,9 +508,12 @@ def color_transfer(checkpath, version, iteration):
     
     item_number = 0
     for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
-        input_tensor = dirty_batch.to(device)
-        item_number = item_number + 1
-        colorizer.infer(input_tensor, item_number)
+        with torch.no_grad():
+            input_tensor = dirty_batch.to(device)
+            item_number = item_number + 1
+            result = color_transfer_gan(input_tensor)
+            show_images(input_tensor, "Input images: " +str(item_number))
+            show_images(result, "Color transfer: " + str(item_number))
 
 def produce_video_batch():
     VIDEO_FOLDER_PATH = "E:/VEMON Dataset/vemon videos/"
@@ -598,7 +605,7 @@ def main():
     
     #produce_video_batch()
     benchmark()
-    #color_transfer(CHECKPATH, VERSION, ITERATION)
+    #color_transfer()
     #remove_haze_by_transmission(constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
 
 #FIX for broken pipe num_workers issue.

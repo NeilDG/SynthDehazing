@@ -23,7 +23,7 @@ class DepthTrainer:
         self.d_lr = d_lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
-        self.G_A = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks = 6).to(self.gpu_device)
+        self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 6).to(self.gpu_device)
         #self.G_B = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks = 6).to(self.gpu_device)
         self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)  # use CycleGAN's discriminator
         #self.D_B = cg.Discriminator(input_nc = 3).to(self.gpu_device)
@@ -157,7 +157,8 @@ class DepthTrainer:
 
     def visdom_plot_test_image(self, test_rgb_tensor, test_gray_tensor, id):
         with torch.no_grad():
-            test_depth_like = self.G_A(test_gray_tensor)
+            #test_depth_like = self.G_A(test_gray_tensor)
+            test_depth_like = self.G_A(test_rgb_tensor)
 
         self.visdom_reporter.plot_image(test_rgb_tensor, "Test RGB images - " + str(id))
         self.visdom_reporter.plot_image(test_depth_like, "Test Depth-like images - " + str(id))
