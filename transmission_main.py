@@ -49,11 +49,11 @@ def update_config(opts):
         constants.ITERATION = str(opts.iteration)
         constants.COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/hazy/"
-        constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/depth/"
+        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
+        constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
 
-        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/hazy/"
-        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/depth/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
 
         constants.num_workers = 4
 
@@ -85,7 +85,7 @@ def main(argv):
     print("Device: %s" % device)
 
     # load color transfer
-    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_1 - stable.pt')
+    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_2.pt')
     color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
     color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
     print("Color transfer GAN model loaded.")

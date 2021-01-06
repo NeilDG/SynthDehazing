@@ -48,7 +48,7 @@ COLOR_TRANSFER_VERSION = "color_transfer_v1.11"
 TRANSMISSION_VERSION = "transmission_estimator_v1.01"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "1"
+ITERATION = "2"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
