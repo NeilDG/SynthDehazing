@@ -222,7 +222,7 @@ def load_color_train_dataset(path_a, path_b, path_c, batch_size=8, num_image_to_
     data_loader = torch.utils.data.DataLoader(
         image_dataset.ColorTransferDataset(a_list, c_list),
         batch_size=batch_size,
-        num_workers=10,
+        num_workers=6,
         shuffle=True
     )
 
@@ -235,7 +235,7 @@ def load_latent_dataset(path_a, batch_size=8, num_image_to_load=-1):
     data_loader = torch.utils.data.DataLoader(
         image_dataset.LatentDataset(a_list),
         batch_size=batch_size,
-        num_workers=6,
+        num_workers=3,
         shuffle=False
     )
 

@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import depth_trainer
 from model import style_transfer_gan as color_gan
+from model import vanilla_cycle_gan as cycle_gan
 import constants
 
 parser = OptionParser()
@@ -29,7 +30,7 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="100.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="500.0")
 parser.add_option('--image_size', type=int, help="Weight", default="64")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
@@ -48,11 +49,11 @@ def update_config(opts):
         constants.ITERATION = str(opts.iteration)
         constants.COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/hazy/"
-        constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/depth/"
+        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
+        constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
 
-        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/hazy/"
-        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallegoSynth Hazy - Depth 2/depth/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
 
         constants.num_workers = 4
 
@@ -82,6 +83,13 @@ def main(argv):
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
+
+    # load color transfer
+    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_2.pt')
+    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    print("Color transfer GAN model loaded.")
+    print("===================================================")
 
     gt = depth_trainer.DepthTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
     gt.update_penalties(opts.adv_weight, opts.likeness_weight)
@@ -123,6 +131,8 @@ def main(argv):
                 rgb_tensor = rgb_batch.to(device).float()
                 depth_tensor = depth_batch.to(device).float()
 
+                #perform color transfer first
+                rgb_tensor = color_transfer_gan(rgb_tensor)
                 gt.train(rgb_tensor, depth_tensor)
                 if ((i + 1) % 500 == 0):
                     gt.visdom_report(iteration, rgb_tensor, depth_tensor)

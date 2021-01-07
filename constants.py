@@ -14,8 +14,11 @@ DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
 DATASET_DEPTH_PATH_PATCH = "E:/Synth Hazy - Patch/depth/"
 
-DATASET_OHAZE_PATH_PATCH_HAZY = "E:/I-HAZE - Patch/hazy/"
-DATASET_OHAZE_PATH_PATCH_CLEAN = "E:/I-HAZE - Patch/clean/"
+DATASET_OHAZE_PATH_PATCH_HAZY = "E:/O-HAZE - Patch/hazy/"
+DATASET_OHAZE_PATH_PATCH_CLEAN = "E:/O-HAZE - Patch/clean/"
+DATASET_OHAZE_PATH_CROP_HAZY = "E:/O-Haze - Crop/hazy/"
+DATASET_OHAZE_PATH_CROP_CLEAN = "E:/O-Haze - Crop/clean/"
+
 DATASET_OHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
 DATASET_OHAZE_CLEAN_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
 DATASET_IHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
@@ -41,11 +44,11 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
-COLOR_TRANSFER_VERSION = "color_transfer_v1.10"
-TRANSMISSION_VERSION = "transmission_estimator_v1.00"
+COLOR_TRANSFER_VERSION = "color_transfer_v1.11"
+TRANSMISSION_VERSION = "transmission_estimator_v1.01"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "7"
+ITERATION = "2"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -84,7 +87,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 2
+batch_size = 32
 infer_size = 16
 
 brightness_enhance = 1.0
