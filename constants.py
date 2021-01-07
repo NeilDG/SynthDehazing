@@ -87,7 +87,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 4
+batch_size = 32
 infer_size = 16
 
 brightness_enhance = 1.0

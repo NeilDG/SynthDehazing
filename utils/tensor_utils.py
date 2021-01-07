@@ -16,6 +16,8 @@ import torch
 from utils import pytorch_colors
 import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
+from skimage.metrics import structural_similarity
+from utils import dark_channel_prior
 
 #for attaching hooks on pretrained models
 class SaveFeatures(nn.Module):
@@ -245,7 +247,7 @@ def generate_transmission(depth_map, beta, is_exponential_squared = False):
     #return np.power(np.e, -beta * depth_map)
 
 # Estimates transmission map given a depth image
-def perform_dehazing_equation_with_transmission(hazy_img, T, filter_strength = 0.1):
+def perform_dehazing_equation_with_transmission(hazy_img, T, use_scene_radiance = False, filter_strength = 0.1):
     hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
     #plt.imshow(hazy_img)
@@ -265,27 +267,43 @@ def perform_dehazing_equation_with_transmission(hazy_img, T, filter_strength = 0
     #plt.show()
 
     #compute clear image with radiance term
-    clear_img = np.ones_like(hazy_img)
-    T = np.resize(T, np.shape(clear_img[:,:,0]))
-    print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
-    clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])
-    clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])
-    clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])
+    if(use_scene_radiance):
+        clear_img = np.ones_like(hazy_img)
+        T = np.resize(T, np.shape(clear_img[:,:,0]))
+        print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
+        clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])
+        clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])
+        clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])) / np.maximum(T, filter_strength)) + np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])
 
-    # clear_img = np.ones_like(hazy_img)
-    # T = np.resize(T, np.shape(clear_img[:,:, 0]))
-    # print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
-    # clear_img[:, :, 0] = (hazy_img[:, :, 0] - (np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
-    # clear_img[:, :, 1] = (hazy_img[:, :, 1] - (np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
-    # clear_img[:, :, 2] = (hazy_img[:, :, 2] - (np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+    else:
+        clear_img = np.ones_like(hazy_img)
+        T = np.resize(T, np.shape(clear_img[:,:, 0]))
+        print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
+        clear_img[:, :, 0] = (hazy_img[:, :, 0] - (np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
+        clear_img[:, :, 1] = (hazy_img[:, :, 1] - (np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
+        clear_img[:, :, 2] = (hazy_img[:, :, 2] - (np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+
     return np.clip(clear_img, 0.0, 1.0)
+
+def compare_transmissions(hazy_img, depth_map):
+    T = generate_transmission(1 - depth_map, 1.2, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
+    dc = get_dark_channel(hazy_img, w = 7)
+    atmosphere = estimate_atmosphere(hazy_img, dc)
+    atmosphere = np.squeeze(atmosphere)
+
+    dcp_transmission = dark_channel_prior.estimate_transmission(hazy_img,dark_channel_prior.estimate_atmosphere(hazy_img, dc), dc)
+
+    fig, ax = plt.subplots(1, 2)
+    fig.tight_layout()
+    ax[0].imshow(T)
+    ax[1].imshow(dcp_transmission)
+    plt.show(block=True)
 
 
 def perform_dehazing_equation(hazy_img, depth_map):
     #normalize
-
     T = generate_transmission(1 - depth_map, 1.2, True)  #real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
-    atmosphere = estimate_atmosphere(hazy_img, get_dark_channel(hazy_img, w=15))
+    atmosphere = estimate_atmosphere(hazy_img, get_dark_channel(hazy_img, w = 15))
     atmosphere = np.squeeze(atmosphere)
     # Z = np.multiply((1 - T), np.max(atmosphere))
 
@@ -553,6 +571,13 @@ def compute_z_signal_concat(value, batch_size, image_size):
     torch.manual_seed(value)
     z_signal = torch.randn((batch_size, 100, image_size[0], image_size[1]))
     return z_signal
+
+def measure_ssim(img1, img2):
+    #preprocessing
+    img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2YUV)
+    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2YUV)
+
+    return structural_similarity(img1, img2, multichannel=True)
 
 class GaussianSmoothing(nn.Module):
     """
