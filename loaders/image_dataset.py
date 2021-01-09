@@ -15,6 +15,63 @@ import torchvision.transforms as transforms
 import constants
 from utils import tensor_utils
 
+#model-based transmission dataset. Only accepts the clear RGB image and depth image.
+class TransmissionDataset_Single(data.Dataset):
+    def __init__(self, image_list_a, image_list_b):
+        self.image_list_a = image_list_a
+        self.image_list_b = image_list_b
+
+        self.initial_img_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((256, 256))
+        ])
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5), (0.5))
+        ])
+
+        self.depth_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5), (0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        clear_img = cv2.imread(img_id);
+        clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        img_id = self.image_list_b[idx]
+        img_b = cv2.imread(img_id);
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
+        img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        T = tensor_utils.generate_transmission(1 - img_b, np.random.uniform(0.4, 2.5))
+        img_b = cv2.normalize(T, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        #formulate hazy img
+        atmosphere = np.random.uniform(0.5, 1.2)
+        hazy_img_like = np.zeros_like(clear_img)
+        T = np.resize(T, np.shape(clear_img[:, :, 0]))
+        hazy_img_like[:, :, 0] = (T * clear_img[:, :, 0]) + atmosphere * (1 - T)
+        hazy_img_like[:, :, 1] = (T * clear_img[:, :, 1]) + atmosphere * (1 - T)
+        hazy_img_like[:, :, 2] = (T * clear_img[:, :, 2]) + atmosphere * (1 - T)
+
+        img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        img_a = self.initial_img_op(img_a)
+        img_b = self.initial_img_op(img_b)
+
+        img_a = self.final_transform_op(img_a)
+        img_b = self.depth_transform_op(img_b)
+
+        return file_name, img_a, img_b #hazy img, transmission map
+
+    def __len__(self):
+        return len(self.image_list_a)
+
 class TransmissionDataset(data.Dataset):
     def __init__(self, image_list_a, image_list_b):
         self.image_list_a = image_list_a
