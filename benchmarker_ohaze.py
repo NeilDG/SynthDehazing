@@ -22,6 +22,7 @@ def benchmark_ohaze():
     #HAZY_PATH = constants.DATASET_HAZY_PATH_COMPLETE
     #GT_PATH = constants.DATASET_CLEAN_PATH_COMPLETE
 
+    AOD_RESULTS_PATH = "results/AODNet- Results - OHaze/"
     FFA_RESULTS_PATH = "results/FFA Net - Results - OHaze/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OHaze/"
@@ -36,6 +37,7 @@ def benchmark_ohaze():
 
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
     gt_list = glob.glob(GT_PATH + "*.jpg")
+    aod_list = glob.glob(AOD_RESULTS_PATH + "*.jpg")
     ffa_list = glob.glob(FFA_RESULTS_PATH + "*.png")
     grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
     cycle_dh_list = glob.glob(CYCLE_DEHAZE_PATH + "*.jpg")
@@ -56,20 +58,20 @@ def benchmark_ohaze():
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
 
-    FIG_ROWS = 7
+    FIG_ROWS = 8
     FIG_COLS = 4
-    FIG_WIDTH = 10
-    FIG_HEIGHT = 20
+    FIG_WIDTH = 20
+    FIG_HEIGHT = 30
     fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
     fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
     column = 0
     fig_num = 0
-    average_SSIM = [0.0, 0.0, 0.0, 0.0, 0.0]
-    average_PSNR = [0.0, 0.0, 0.0, 0.0, 0.0]
+    average_SSIM = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    average_PSNR = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     count = 0
 
     with open(BENCHMARK_PATH, "w") as f:
-        for i, (hazy_path, gt_path, ffa_path, grid_path, cycle_dh_path) in enumerate(zip(hazy_list, gt_list, ffa_list, grid_list, cycle_dh_list)):
+        for i, (hazy_path, gt_path, ffa_path, grid_path, cycle_dh_path, aod_path) in enumerate(zip(hazy_list, gt_list, ffa_list, grid_list, cycle_dh_list, aod_list)):
             with torch.no_grad():
                 count = count + 1
                 img_name = hazy_path.split("\\")[1]
@@ -79,6 +81,9 @@ def benchmark_ohaze():
                 gt_img = cv2.imread(gt_path)
                 #gt_img = cv2.resize(gt_img, (int(np.shape(gt_img)[1] / 4), int(np.shape(gt_img)[0] / 4)))
                 gt_img = cv2.resize(gt_img, (512, 512))
+
+                aod_img = cv2.imread(aod_path)
+                aod_img = cv2.resize(aod_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
                 ffa_img = cv2.imread(ffa_path)
                 ffa_img = cv2.resize(ffa_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
@@ -115,6 +120,7 @@ def benchmark_ohaze():
                 ffa_img = cv2.normalize(ffa_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 grid_img = cv2.normalize(grid_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 cycle_dehaze_img = cv2.normalize(cycle_dehaze_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                aod_img = cv2.normalize(aod_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 gt_img = cv2.normalize(gt_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
                 #make images compatible with matplotlib
@@ -124,6 +130,7 @@ def benchmark_ohaze():
                 ffa_img = cv2.cvtColor(ffa_img, cv2.COLOR_BGR2RGB)
                 grid_img = cv2.cvtColor(grid_img, cv2.COLOR_BGR2RGB)
                 cycle_dehaze_img = cv2.cvtColor(cycle_dehaze_img, cv2.COLOR_BGR2RGB)
+                aod_img = cv2.cvtColor(aod_img, cv2.COLOR_BGR2RGB)
                 gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
 
                 # measure PSNR
@@ -131,42 +138,50 @@ def benchmark_ohaze():
                 print("[DCP] PSNR of ", img_name, " : ", PSNR, file=f)
                 average_PSNR[0] += PSNR
 
+                PSNR = np.round(peak_signal_noise_ratio(gt_img, aod_img), 4)
+                print("[AOD-Net] PSNR of ", img_name, " : ", PSNR, file=f)
+                average_PSNR[1] += PSNR
+
                 PSNR = np.round(peak_signal_noise_ratio(gt_img, cycle_dehaze_img), 4)
                 print("[CycleDehaze] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[1] += PSNR
+                average_PSNR[2] += PSNR
 
                 PSNR = np.round(peak_signal_noise_ratio(gt_img, ffa_img), 4)
                 print("[FFA-Net] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[2] += PSNR
+                average_PSNR[3] += PSNR
 
                 PSNR = np.round(peak_signal_noise_ratio(gt_img, grid_img), 4)
                 print("[GridDehazeNet] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[3] += PSNR
+                average_PSNR[4] += PSNR
 
                 PSNR = np.round(peak_signal_noise_ratio(gt_img, clear_img), 4)
                 print("[Ours] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[4] += PSNR
+                average_PSNR[5] += PSNR
 
                 # measure SSIM
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, dcp_clear_img), 4)
                 print("[DCP] SSIM of ", img_name, " : ", SSIM, file=f)
                 average_SSIM[0] += SSIM
 
+                SSIM = np.round(tensor_utils.measure_ssim(gt_img, aod_img), 4)
+                print("[AOD-Net] SSIM of ", img_name, " : ", SSIM, file=f)
+                average_SSIM[1] += SSIM
+
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, cycle_dehaze_img), 4)
                 print("[CycleDehaze] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[1] += SSIM
+                average_SSIM[2] += SSIM
 
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, ffa_img), 4)
                 print("[FFA-Net] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[2] += SSIM
+                average_SSIM[3] += SSIM
 
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, grid_img), 4)
                 print("[GridDehazeNet] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[3] += SSIM
+                average_SSIM[4] += SSIM
 
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, clear_img), 4)
                 print("[Ours] SSIM of " ,img_name," : ", SSIM, file = f)
-                average_SSIM[4] += SSIM
+                average_SSIM[5] += SSIM
 
                 print(file = f)
 
@@ -174,16 +189,18 @@ def benchmark_ohaze():
                 ax[0, column].axis('off')
                 ax[1, column].imshow(dcp_clear_img)
                 ax[1, column].axis('off')
-                ax[2, column].imshow(cycle_dehaze_img)
+                ax[2, column].imshow(aod_img)
                 ax[2, column].axis('off')
-                ax[3, column].imshow(ffa_img)
+                ax[3, column].imshow(cycle_dehaze_img)
                 ax[3, column].axis('off')
-                ax[4, column].imshow(grid_img)
+                ax[4, column].imshow(ffa_img)
                 ax[4, column].axis('off')
-                ax[5, column].imshow(clear_img)
+                ax[5, column].imshow(grid_img)
                 ax[5, column].axis('off')
-                ax[6, column].imshow(gt_img)
+                ax[6, column].imshow(clear_img)
                 ax[6, column].axis('off')
+                ax[7, column].imshow(gt_img)
+                ax[7, column].axis('off')
                 column = column + 1
 
                 if (column == FIG_COLS):
@@ -203,16 +220,18 @@ def benchmark_ohaze():
 
         print(file = f)
         print("[DCP] Average PSNR: ", np.round(average_PSNR[0], 5), file=f)
-        print("[CycleDehaze] Average PSNR: ", np.round(average_PSNR[1], 5), file=f)
-        print("[FFA-Net] Average PSNR: ", np.round(average_PSNR[2], 5), file=f)
-        print("[GridDehazeNet] Average PSNR: ", np.round(average_PSNR[3], 5), file=f)
-        print("[Ours] Average PSNR: ", np.round(average_PSNR[4], 5), file=f)
+        print("[AOD-Net] Average PSNR: ", np.round(average_PSNR[1], 5), file=f)
+        print("[CycleDehaze] Average PSNR: ", np.round(average_PSNR[2], 5), file=f)
+        print("[FFA-Net] Average PSNR: ", np.round(average_PSNR[3], 5), file=f)
+        print("[GridDehazeNet] Average PSNR: ", np.round(average_PSNR[4], 5), file=f)
+        print("[Ours] Average PSNR: ", np.round(average_PSNR[5], 5), file=f)
         print(file = f)
         print("[DCP] Average SSIM: ", np.round(average_SSIM[0], 5), file=f)
-        print("[CycleDehaze] Average SSIM: ", np.round(average_SSIM[1], 5), file=f)
-        print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[2], 5), file = f)
-        print("[GridDehazeNet] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
-        print("[Ours] Average SSIM: ", np.round(average_SSIM[4], 5), file=f)
+        print("[AOD-Net] Average SSIM: ", np.round(average_SSIM[1], 5), file=f)
+        print("[CycleDehaze] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
+        print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[3], 5), file = f)
+        print("[GridDehazeNet] Average SSIM: ", np.round(average_SSIM[4], 5), file=f)
+        print("[Ours] Average SSIM: ", np.round(average_SSIM[5], 5), file=f)
 
 
 def main():
