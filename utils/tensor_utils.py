@@ -346,12 +346,20 @@ def perform_dehazing_equation(hazy_img, depth_map):
     plt.show(block=True)
 
 def introduce_haze(hazy_img, clear_img, depth_map):
-    T = generate_transmission(1 - depth_map, 1.8)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
-    plt.imshow(T)
+
+    LENGTH = 5
+    fig, ax = plt.subplots(1, LENGTH)
+    fig.tight_layout()
+    beta = 0.0
+    for i in range(LENGTH):
+        beta = beta + 0.5
+        T = generate_transmission(1 - depth_map, beta)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
+        ax[i].imshow(T)
+        ax[i].axis('off')
+
     plt.show()
 
-    atmosphere = 0.9
-
+    atmosphere = np.random.uniform(0.5, 1.2)
     hazy_img_like = np.zeros_like(clear_img)
     T = np.resize(T, np.shape(clear_img[:, :, 0]))
     hazy_img_like[:, :, 0] = (T * clear_img[:, :, 0]) + atmosphere * (1 - T)

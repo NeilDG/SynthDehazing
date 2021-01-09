@@ -201,6 +201,7 @@ def benchmark_ohaze():
                 ax[6, column].axis('off')
                 ax[7, column].imshow(gt_img)
                 ax[7, column].axis('off')
+
                 column = column + 1
 
                 if (column == FIG_COLS):
