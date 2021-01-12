@@ -21,12 +21,12 @@ def benchmark_ots():
     HAZY_PATH = "D:/Datasets/OTS_BETA/haze/"
     GT_PATH = "D:/Datasets/OTS_BETA/clear/"
 
-    AOD_RESULTS_PATH = "results/AODNet- Results - OHaze/"
+    AOD_RESULTS_PATH = "results/AODNet- Results - OTS-Beta/"
     FFA_RESULTS_PATH = "results/FFA Net - Results - OTS-Beta/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OTS-Beta/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OTS-Beta/"
 
-    MODEL_CHECKPOINT = "transmission_estimator_v1.01_1"
+    MODEL_CHECKPOINT = "transmission_estimator_v1.01_4"
     SAVE_PATH = "results/RESIDE-OTS Beta/"
     BENCHMARK_PATH = SAVE_PATH + "metrics_ots - " + str(MODEL_CHECKPOINT) + ".txt"
 
@@ -53,10 +53,10 @@ def benchmark_ots():
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
 
-    FIG_ROWS = 7
+    FIG_ROWS = 8
     FIG_COLS = 8
-    FIG_WIDTH = 20
-    FIG_HEIGHT = 15
+    FIG_WIDTH = 10
+    FIG_HEIGHT = 10
     fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
     fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
     column = 0
@@ -110,7 +110,7 @@ def benchmark_ots():
                 transmission_blend = dcp_transmission * 0.5 + transmission_img * 0.5
 
                 dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
-                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, True, 0.75)
+                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, True, 0.5)
                 #clear_img = tensor_utils.refine_dehaze_img(hazy_img, clear_img, transmission_blend)
 
                 # normalize images

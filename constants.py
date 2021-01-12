@@ -69,6 +69,7 @@ G_ADV_LOSS_KEY = "g_adv"
 LIKENESS_LOSS_KEY = "likeness"
 REALNESS_LOSS_KEY = "realness"
 COLOR_SHIFT_LOSS_KEY = "colorshift"
+EDGE_LOSS_KEY = "edge"
 
 D_OVERALL_LOSS_KEY = "d_loss"
 D_A_REAL_LOSS_KEY = "d_real_a"

@@ -49,7 +49,7 @@ class TransmissionDataset_Single(data.Dataset):
         img_b = cv2.imread(img_id);
         img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
         img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        T = tensor_utils.generate_transmission(1 - img_b, np.random.uniform(0.4, 2.5))
+        T = tensor_utils.generate_transmission(1 - img_b, np.random.uniform(0.0, 2.5)) #also include clear samples
         img_b = cv2.normalize(T, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
         #formulate hazy img

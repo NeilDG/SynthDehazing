@@ -17,6 +17,7 @@ from custom_losses import ssim_loss
 from utils import pytorch_colors
 from utils import tensor_utils
 
+
 class DehazeTrainer:
     
     def __init__(self, gan_version, gan_iteration, gpu_device, gen_blocks, g_lr, d_lr):

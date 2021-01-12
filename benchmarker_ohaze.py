@@ -27,7 +27,7 @@ def benchmark_ohaze():
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OHaze/"
 
-    MODEL_CHECKPOINT = "transmission_estimator_v1.01_1"
+    MODEL_CHECKPOINT = "transmission_estimator_v1.01_4"
 
     SAVE_PATH = "results/O-HAZE/"
     BENCHMARK_PATH = SAVE_PATH + "metrics - " + str(MODEL_CHECKPOINT) + ".txt"
@@ -111,7 +111,7 @@ def benchmark_ohaze():
                 transmission_blend = dcp_transmission * 0.5 + transmission_img * 0.5
 
                 dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
-                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, True, 0.7)
+                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, True, 0.5)
 
                 #normalize images
                 hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)

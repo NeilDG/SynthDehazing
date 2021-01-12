@@ -14,6 +14,8 @@ import torchvision.utils as vutils
 from utils import logger
 from utils import plot_utils
 from utils import tensor_utils
+import kornia
+from custom_losses import rmse_log_loss
 
 class DepthTrainer:
     
@@ -43,6 +45,7 @@ class DepthTrainer:
         self.losses_dict[constants.G_LOSS_KEY] = []
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
         self.losses_dict[constants.LIKENESS_LOSS_KEY] = []
+        self.losses_dict[constants.EDGE_LOSS_KEY] = []
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
@@ -53,6 +56,7 @@ class DepthTrainer:
         self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
+        self.caption_dict[constants.EDGE_LOSS_KEY] = "Edge loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
@@ -60,11 +64,11 @@ class DepthTrainer:
         #self.caption_dict[constants.D_B_REAL_LOSS_KEY] = "D(B) real loss per iteration"
         
     
-    def update_penalties(self, adv_weight, likeness_weight):
+    def update_penalties(self, adv_weight, likeness_weight, edge_weight):
         #what penalties to use for losses?
-        self.cycle_weight = 10.0
         self.adv_weight = adv_weight
         self.likeness_weight = likeness_weight
+        self.edge_weight = edge_weight
 
         # save hyperparameters for bookeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + ".config"
@@ -75,14 +79,22 @@ class DepthTrainer:
             print("====================================", file=f)
             print("Adv weight: ", str(self.adv_weight), file=f)
             print("Likeness weight: ", str(self.likeness_weight), file=f)
+            print("Edge weight: ", str(self.edge_weight), file=f)
     
     def adversarial_loss(self, pred, target):
         loss = nn.MSELoss()
         return loss(pred, target)
 
     def likeness_loss(self, pred, target):
-        loss = nn.L1Loss()
+        loss = nn.MSELoss()
         return loss(pred, target)
+
+    def edge_loss(self, pred, target):
+        loss = nn.L1Loss()
+        pred_grad = kornia.filters.spatial_gradient(pred)
+        target_grad = kornia.filters.spatial_gradient(target)
+
+        return loss(pred_grad, target_grad)
 
     def train(self, rgb_tensor, depth_tensor):
         depth_like = self.G_A(rgb_tensor)
@@ -118,17 +130,13 @@ class DepthTrainer:
 
         #print("Shape: ", np.shape(rgb_tensor), np.shape(depth_tensor))
         A_likeness_loss = self.likeness_loss(self.G_A(rgb_tensor), depth_tensor) * self.likeness_weight
-        #B_likeness_loss = self.likeness_loss(self.G_B(depth_tensor), rgb_tensor) * self.likeness_weight
+        A_edge_loss = self.edge_loss(self.G_A(rgb_tensor), depth_tensor) * self.edge_weight
 
         prediction = self.D_A(self.G_A(rgb_tensor))
         real_tensor = torch.ones_like(prediction)
         A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-        # prediction = self.D_B(self.G_B(depth_tensor))
-        # real_tensor = torch.ones_like(prediction)
-        # B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
-
-        errG = A_likeness_loss + A_adv_loss
+        errG = A_likeness_loss + A_adv_loss + A_edge_loss
         errG.backward()
         self.optimizerG.step()
         self.schedulerG.step(errG)
@@ -137,6 +145,7 @@ class DepthTrainer:
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
         self.losses_dict[constants.LIKENESS_LOSS_KEY].append(A_likeness_loss.item())
+        self.losses_dict[constants.EDGE_LOSS_KEY].append(A_edge_loss.item())
         self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
