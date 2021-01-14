@@ -255,7 +255,7 @@ def benchmark_reside():
 
             # remove 0.5 normalization for dehazing equation
             transmission_img = ((transmission_img * 0.5) + 0.5)
-            transmission_img = transmission_img + 0.7 #TODO: temporary experiment.
+            #transmission_img = transmission_img + 0.7
             hazy_img = ((hazy_img * 0.5) + 0.5)
 
             dark_channel = dark_channel_prior.get_dark_channel(hazy_img, 15)

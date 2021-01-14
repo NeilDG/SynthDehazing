@@ -30,7 +30,8 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="250.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--image_size', type=int, help="Weight", default="64")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
@@ -92,7 +93,7 @@ def main(argv):
     print("===================================================")
 
     gt = depth_trainer.DepthTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
-    gt.update_penalties(opts.adv_weight, opts.likeness_weight)
+    gt.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight)
     start_epoch = 0
     iteration = 0
 
