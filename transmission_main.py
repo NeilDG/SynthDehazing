@@ -30,12 +30,13 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="250.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="100.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--image_size', type=int, help="Weight", default="64")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
+parser.add_option('--plot_on', type=int, help="plotting?", default=0)
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE
@@ -52,6 +53,7 @@ def update_config(opts):
 
         constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
         constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
+        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/clean/"
 
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
         constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
@@ -89,6 +91,7 @@ def main(argv):
     color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_2.pt')
     color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
     color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    color_transfer_gan.eval()
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
@@ -98,13 +101,13 @@ def main(argv):
     iteration = 0
 
     if (opts.load_previous):
-        checkpoint = torch.load(constants.DEPTH_ESTIMATOR_CHECKPATH)
+        checkpoint = torch.load(constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1
         iteration = checkpoint['iteration'] + 1
         gt.load_saved_state(iteration, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY,
                             constants.OPTIMIZER_KEY)
 
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.DEPTH_ESTIMATOR_CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.TRANSMISSION_ESTIMATOR_CHECKPATH, start_epoch))
         print("===================================================")
 
     # Create the dataloader
@@ -135,14 +138,14 @@ def main(argv):
                 #perform color transfer first
                 rgb_tensor = color_transfer_gan(rgb_tensor)
                 gt.train(rgb_tensor, depth_tensor)
-                if ((i + 1) % 500 == 0):
+                if (opts.plot_on == 1 and (i) % 1000 == 0):
                     gt.visdom_report(iteration, rgb_tensor, depth_tensor)
 
                     _, view_rgb_batch, view_gray_batch = next(iter(vemon_loader))
                     __, view_rgb_batch_1, view_gray_batch_1 = next(iter(ohaze_loader))
                     ___, view_rgb_batch_2, view_gray_batch_2 = next(iter(reside_loader))
 
-                    view_rgb_batch = view_rgb_batch.to(device).float()
+                    view_rgb_batch = color_transfer_gan(view_rgb_batch.to(device).float())
                     view_gray_batch = view_gray_batch.to(device).float()
                     gt.visdom_plot_test_image(view_rgb_batch, view_gray_batch, 1)
 
@@ -164,7 +167,7 @@ def main(argv):
                         reside_loader = dataset_loader.load_transmision_test_dataset(
                             constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
 
-                    gt.save_states(epoch, iteration, constants.DEPTH_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+            gt.save_states(epoch, iteration, constants.TRANSMISSION_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:
         for i, train_data in enumerate(train_loader, 0):
             _, rgb_batch, depth_batch = train_data
@@ -176,7 +179,7 @@ def main(argv):
                 print("Iterating %d " % i)
 
         # save every X epoch
-        gt.save_states(start_epoch, iteration, constants.DEPTH_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(start_epoch, iteration, constants.TRANSMISSION_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 
 # FIX for broken pipe num_workers issue.

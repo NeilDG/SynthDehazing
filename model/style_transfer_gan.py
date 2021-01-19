@@ -39,18 +39,18 @@ class ResidualBlock(nn.Module):
             
 class Generator(nn.Module):
     
-    def __init__(self, input_nc = 3, output_nc = 3, filter_size = 64):
+    def __init__(self, input_nc = 3, output_nc = 3, filter_size = 64, n_residual_blocks = 10):
         super(Generator, self).__init__()
         
         self.conv1 = nn.Sequential(nn.Conv2d(in_channels = input_nc, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(filter_size),
+                                   nn.InstanceNorm2d(filter_size),
                                    nn.ReLU(True))
         
         in_size = filter_size
         out_size = in_size * 2
         
         self.conv2 = nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(out_size),
+                                   nn.InstanceNorm2d(out_size),
                                    nn.ReLU(True),
                                    nn.Dropout2d(0.5))
         
@@ -58,7 +58,7 @@ class Generator(nn.Module):
         out_size = in_size * 2
         
         self.conv3 = nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(out_size),
+                                   nn.InstanceNorm2d(out_size),
                                    nn.ReLU(True),
                                    nn.Dropout2d(0.5))
         
@@ -66,25 +66,31 @@ class Generator(nn.Module):
         out_size = in_size * 2
         
         self.conv4 = nn.Sequential(nn.Conv2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(out_size),
+                                   nn.InstanceNorm2d(out_size),
                                    nn.ReLU(True),
                                    nn.Dropout2d(0.5))
         
         
         #4 residual blocks
-        self.res1 = ResidualBlock(out_size)
-        self.res2 = ResidualBlock(out_size)
-        self.res3 = ResidualBlock(out_size)
-        self.res4 = ResidualBlock(out_size)
-        self.res5 = ResidualBlock(out_size)
-        self.res6 = ResidualBlock(out_size)
-        self.res7 = ResidualBlock(out_size)
+        # Residual blocks
+        residuals = []
+        for _ in range(n_residual_blocks):
+            residuals += [ResidualBlock(out_size)]
+
+        self.residuals = nn.Sequential(*residuals)
+        # self.res1 = ResidualBlock(out_size)
+        # self.res2 = ResidualBlock(out_size)
+        # self.res3 = ResidualBlock(out_size)
+        # self.res4 = ResidualBlock(out_size)
+        # self.res5 = ResidualBlock(out_size)
+        # self.res6 = ResidualBlock(out_size)
+        # self.res7 = ResidualBlock(out_size)
         
         in_size = out_size
         out_size = int(in_size / 2)
         
         self.upconv1 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(out_size),
+            nn.InstanceNorm2d(out_size),
             nn.ReLU(True),
             nn.Dropout2d(0.5))
     
@@ -92,7 +98,7 @@ class Generator(nn.Module):
         out_size = int(in_size / 2)
         
         self.upconv2 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(out_size),
+            nn.InstanceNorm2d(out_size),
             nn.ReLU(True),
             nn.Dropout2d(0.5))
         
@@ -100,7 +106,7 @@ class Generator(nn.Module):
         out_size = int(in_size / 2)
         
         self.upconv3 = nn.Sequential(nn.ConvTranspose2d(in_channels = in_size, out_channels = out_size, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(out_size),
+            nn.InstanceNorm2d(out_size),
             nn.ReLU(True),
             nn.Dropout2d(0.5))
         
@@ -117,19 +123,21 @@ class Generator(nn.Module):
        x2 = self.conv2(x1)
        x3 = self.conv3(x2)
        x4 = self.conv4(x3)
-       
-       x4 = self.res1(x4)
-       x4 = self.res2(x4)
-       x4 = self.res3(x4)
-       x4 = self.res4(x4)
-       x4 = self.res5(x4)
-       x4 = self.res6(x4)
-       x4 = self.res7(x4)
+
+       x4 = self.residuals(x4)
+       # x4 = self.res1(x4)
+       # x4 = self.res2(x4)
+       # x4 = self.res3(x4)
+       # x4 = self.res4(x4)
+       # x4 = self.res5(x4)
+       # x4 = self.res6(x4)
+       # x4 = self.res7(x4)
 
        y1 = self.upconv1(x4)
        y2 = self.upconv2(y1 + x3)
        y3 = self.upconv3(y2 + x2)
-       y4 = self.upconv4(y3 + x1)
+       y4 = self.upconv4(y3)
+       #y4 = self.upconv4(y3 + x1)
 
        #print("\tIn Model: input size: %s", input.size())
        

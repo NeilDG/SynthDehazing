@@ -3,6 +3,8 @@
 
 import os
 from model import vanilla_cycle_gan as cg
+from model import style_transfer_gan as sg
+from model import dehaze_discriminator as dh
 import constants
 import torch
 import random
@@ -25,10 +27,10 @@ class DepthTrainer:
         self.d_lr = d_lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
-        self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 6).to(self.gpu_device)
-        #self.G_B = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks = 6).to(self.gpu_device)
-        self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)  # use CycleGAN's discriminator
-        #self.D_B = cg.Discriminator(input_nc = 3).to(self.gpu_device)
+        #self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 10).to(self.gpu_device)
+        self.G_A = sg.Generator(input_nc=3, output_nc=1, n_residual_blocks = 10).to(self.gpu_device)
+        #self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)  # use CycleGAN's discriminator
+        self.D_A = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
@@ -36,7 +38,7 @@ class DepthTrainer:
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr=self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters()), lr=self.d_lr)
         self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 1000, threshold = 0.00005)
-        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience=1000, threshold=0.00005)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 1000, threshold=0.00005)
         
     
     def initialize_dict(self):
@@ -73,7 +75,8 @@ class DepthTrainer:
         # save hyperparameters for bookeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
-            print("Version: ", constants.DEPTH_ESTIMATOR_CHECKPATH, file=f)
+            print("Version: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH, file=f)
+            print("Comment: Patch-based transmission estimator network", file=f)
             print("Learning rate for G: ", str(self.g_lr), file=f)
             print("Learning rate for D: ", str(self.d_lr), file=f)
             print("====================================", file=f)
@@ -82,7 +85,9 @@ class DepthTrainer:
             print("Edge weight: ", str(self.edge_weight), file=f)
     
     def adversarial_loss(self, pred, target):
-        loss = nn.MSELoss()
+        # loss = nn.MSELoss()
+        # return loss(pred, target)
+        loss = nn.BCELoss()
         return loss(pred, target)
 
     def likeness_loss(self, pred, target):

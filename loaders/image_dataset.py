@@ -64,6 +64,12 @@ class TransmissionDataset_Single(data.Dataset):
         img_a = self.initial_img_op(img_a)
         img_b = self.initial_img_op(img_b)
 
+        crop_indices = transforms.RandomCrop.get_params(img_a, output_size=(64, 64))
+        i, j, h, w = crop_indices
+
+        img_a = transforms.functional.crop(img_a, i, j, h, w)
+        img_b = transforms.functional.crop(img_b, i, j, h, w)
+
         img_a = self.final_transform_op(img_a)
         img_b = self.depth_transform_op(img_b)
 

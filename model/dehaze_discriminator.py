@@ -17,45 +17,31 @@ def weights_init(m):
             nn.init.constant_(m.bias.data, 0)
             
 class Discriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, input_nc = 3):
         super(Discriminator, self).__init__()
-        
-        filter_size = 256
-        
-        self.conv1 = nn.Sequential(nn.Conv2d(in_channels = 6, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
-                                   nn.LeakyReLU(0.2, inplace = True))
-        
-        self.conv2 = nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(filter_size),
-                                   nn.LeakyReLU(0.2, inplace = True),
-                                   nn.Dropout(0.5))
-        
-        self.conv3 = nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(filter_size),
-                                   nn.LeakyReLU(0.2, inplace = True),
-                                   nn.Dropout(0.5))
-        
-        self.conv4 = nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(filter_size),
-                                   nn.LeakyReLU(0.2, inplace = True),
-                                   nn.Dropout(0.5))
-        
-        self.conv5 = nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = filter_size, kernel_size=4, stride=2, padding=1),
-                                   nn.BatchNorm2d(filter_size),
-                                   nn.LeakyReLU(0.2, inplace = True))
-        
-        self.disc_layer = nn.Sequential(nn.Conv2d(in_channels = filter_size, out_channels = 1, kernel_size=4, stride=1, padding=0),
+
+        # A bunch of convolutions one after another
+        model = [nn.Conv2d(input_nc, 64, 4, stride=2, padding=1),
+                 nn.LeakyReLU(0.2, inplace=True)]
+
+        model += [nn.Conv2d(64, 128, 4, stride=2, padding=1),
+                  nn.InstanceNorm2d(128),
+                  nn.LeakyReLU(0.2, inplace=True)]
+
+        model += [nn.Conv2d(128, 256, 2, stride=2, padding=1),
+                  nn.InstanceNorm2d(256),
+                  nn.LeakyReLU(0.2, inplace=True)]
+
+        model += [nn.Conv2d(256, 512, 2, padding=1),
+                  nn.InstanceNorm2d(512),
+                  nn.LeakyReLU(0.2, inplace=True)]
+
+        # FCN classification layer
+        model += nn.Sequential(nn.Conv2d(in_channels = 512, out_channels = 1, kernel_size=4, stride=1, padding=0),
                                         nn.Sigmoid())
-        
+
+        self.model = nn.Sequential(*model)
         self.apply(weights_init)
 
-    def forward(self, clean_like, clean_tensor):
-        input = torch.cat([clean_like, clean_tensor], 1)
-        x = self.conv1(input)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.conv4(x)
-        x = self.conv5(x)
-        x = self.disc_layer(x)
-        
-        return x
+    def forward(self, x):
+        return self.model(x)

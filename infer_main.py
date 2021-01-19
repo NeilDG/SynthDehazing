@@ -321,6 +321,7 @@ def benchmark_reside():
                 fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
                 column = 0
 
+
 def main():
     VERSION = "dehazer_v1.08"
     ITERATION = "1"
