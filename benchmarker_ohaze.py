@@ -6,6 +6,7 @@ from PIL import Image
 
 from loaders import dataset_loader
 from model import vanilla_cycle_gan as cycle_gan
+from model import style_transfer_gan as style_gan #for TR_V1.02.3 and above.
 from model import ffa_net as ffa
 import constants
 from torchvision import transforms
@@ -27,7 +28,7 @@ def benchmark_ohaze():
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OHaze/"
 
-    MODEL_CHECKPOINT = "transmission_estimator_v1.01_4"
+    MODEL_CHECKPOINT = "transmission_estimator_v1.02_4"
 
     SAVE_PATH = "results/O-HAZE/"
     BENCHMARK_PATH = SAVE_PATH + "metrics - " + str(MODEL_CHECKPOINT) + ".txt"
@@ -53,15 +54,15 @@ def benchmark_ohaze():
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=6).to(device)
+    transmission_G = style_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(device)
     checkpt = torch.load('checkpoint/' + MODEL_CHECKPOINT + ".pt")
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
 
     FIG_ROWS = 8
     FIG_COLS = 4
-    FIG_WIDTH = 20
-    FIG_HEIGHT = 30
+    FIG_WIDTH = 10
+    FIG_HEIGHT = 20
     fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
     fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
     column = 0
