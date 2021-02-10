@@ -30,8 +30,8 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="100.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="50.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
 parser.add_option('--image_size', type=int, help="Weight", default="64")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
@@ -112,19 +112,19 @@ def main(argv):
 
     # Create the dataloader
     train_loader = dataset_loader.load_model_based_transmission_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.batch_size, opts.img_to_load)
-    vemon_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.display_size, 500)
-    ohaze_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
-    reside_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
+    #vemon_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.display_size, 500)
+    # ohaze_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
+    # reside_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
     index = 0
 
     # Plot some training images
     if (constants.is_coare == 0):
         _, a, b = next(iter(train_loader))
-        _, c, gray = next(iter(vemon_loader))
+        #_, c, gray = next(iter(vemon_loader))
         show_images(a, "Training - RGB Images")
         show_images(b, "Training - Depth Images")
-        show_images(c, "Test - RGB Images")
-        show_images(gray, "Test - Gray Images")
+        #show_images(c, "Test - RGB Images")
+        #show_images(gray, "Test - Gray Images")
 
     print("Starting Training Loop...")
     if (constants.is_coare == 0):
@@ -138,36 +138,36 @@ def main(argv):
                 #perform color transfer first
                 rgb_tensor = color_transfer_gan(rgb_tensor)
                 gt.train(rgb_tensor, depth_tensor)
-                if (opts.plot_on == 1 and (i) % 1000 == 0):
+                if (opts.plot_on == 1 and (i + 1) % 4000 == 0):
                     gt.visdom_report(iteration, rgb_tensor, depth_tensor)
 
-                    _, view_rgb_batch, view_gray_batch = next(iter(vemon_loader))
-                    __, view_rgb_batch_1, view_gray_batch_1 = next(iter(ohaze_loader))
-                    ___, view_rgb_batch_2, view_gray_batch_2 = next(iter(reside_loader))
+                    # _, view_rgb_batch, view_gray_batch = next(iter(vemon_loader))
+                    # __, view_rgb_batch_1, view_gray_batch_1 = next(iter(ohaze_loader))
+                    # ___, view_rgb_batch_2, view_gray_batch_2 = next(iter(reside_loader))
+                    #
+                    # view_rgb_batch = color_transfer_gan(view_rgb_batch.to(device).float())
+                    # view_gray_batch = view_gray_batch.to(device).float()
+                    # gt.visdom_plot_test_image(view_rgb_batch, view_gray_batch, 1)
+                    #
+                    # view_rgb_batch_1 = view_rgb_batch_1.to(device).float()
+                    # view_gray_batch_1 = view_gray_batch_1.to(device).float()
+                    # gt.visdom_plot_test_image(view_rgb_batch_1, view_gray_batch_1, 2)
+                    #
+                    # view_rgb_batch_2 = view_rgb_batch_2.to(device).float()
+                    # view_gray_batch_2 = view_gray_batch_2.to(device).float()
+                    # gt.visdom_plot_test_image(view_rgb_batch_2, view_gray_batch_2, 3)
+                    #
+                    # iteration = iteration + 1
+                    # index = (index + 1) % len(vemon_loader)
+                    # if (index == 0):
+                    #     vemon_loader = dataset_loader.load_transmision_test_dataset(
+                    #         constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
+                    #     ohaze_loader = dataset_loader.load_transmision_test_dataset(
+                    #         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
+                    #     reside_loader = dataset_loader.load_transmision_test_dataset(
+                    #         constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
 
-                    view_rgb_batch = color_transfer_gan(view_rgb_batch.to(device).float())
-                    view_gray_batch = view_gray_batch.to(device).float()
-                    gt.visdom_plot_test_image(view_rgb_batch, view_gray_batch, 1)
-
-                    view_rgb_batch_1 = view_rgb_batch_1.to(device).float()
-                    view_gray_batch_1 = view_gray_batch_1.to(device).float()
-                    gt.visdom_plot_test_image(view_rgb_batch_1, view_gray_batch_1, 2)
-
-                    view_rgb_batch_2 = view_rgb_batch_2.to(device).float()
-                    view_gray_batch_2 = view_gray_batch_2.to(device).float()
-                    gt.visdom_plot_test_image(view_rgb_batch_2, view_gray_batch_2, 3)
-
-                    iteration = iteration + 1
-                    index = (index + 1) % len(vemon_loader)
-                    if (index == 0):
-                        vemon_loader = dataset_loader.load_transmision_test_dataset(
-                            constants.DATASET_VEMON_PATH_COMPLETE, constants.display_size, 500)
-                        ohaze_loader = dataset_loader.load_transmision_test_dataset(
-                            constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
-                        reside_loader = dataset_loader.load_transmision_test_dataset(
-                            constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
-
-            gt.save_states(epoch, iteration, constants.TRANSMISSION_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+                    gt.save_states(epoch, iteration, constants.TRANSMISSION_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
     else:
         for i, train_data in enumerate(train_loader, 0):
             _, rgb_batch, depth_batch = train_data

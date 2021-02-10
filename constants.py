@@ -48,7 +48,7 @@ COLOR_TRANSFER_VERSION = "color_transfer_v1.11"
 TRANSMISSION_VERSION = "transmission_estimator_v1.02"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "4"
+ITERATION = "6"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -88,7 +88,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 128
+batch_size = 8
 infer_size = 16
 
 brightness_enhance = 1.0

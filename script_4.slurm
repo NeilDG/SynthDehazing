@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J TR_4
+#SBATCH -J TR_8
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu
 #SBATCH --cpus-per-task=4
@@ -9,7 +9,7 @@
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph
 #SBATCH --mail-type=END
 
-ITERATION=4
+ITERATION=8
 
 #About this script:
 # CycleGAN using new dataset between synth hazy and places dataset
@@ -20,18 +20,17 @@ nvidia-smi
 module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
-source activate NeilGAN
+source activate NeilGAN_V2
 
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge scikit-image
-pip install kornia
 
-#srun python transmission_main.py --iteration=$ITERATION --coare=1 --likeness_weight=100.0 --edge_weight=1.0 --img_to_load=-1 --load_previous=0
-source deactivate
+srun python transmission_main.py --iteration=$ITERATION --coare=1 --likeness_weight=10.0 --edge_weight=5.0 --img_to_load=-1 --load_previous=0
+conda deactivate
 
 for i in {1..100}
     do
-        source activate NeilGAN
-        srun python transmission_main.py --iteration=$ITERATION --coare=1 --likeness_weight=100.0 --edge_weight=1.0 --img_to_load=-1 --load_previous=1
-        source deactivate
+        source activate NeilGAN_V2
+        srun python transmission_main.py --iteration=$ITERATION --coare=1 --likeness_weight=10.0 --edge_weight=5.0 --img_to_load=-1 --load_previous=1
+        conda deactivate
     done

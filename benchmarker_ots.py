@@ -27,7 +27,7 @@ def benchmark_ots():
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OTS-Beta/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OTS-Beta/"
 
-    MODEL_CHECKPOINT = "transmission_estimator_v1.02_4"
+    MODEL_CHECKPOINT = "transmission_estimator_v1.02_5"
     SAVE_PATH = "results/RESIDE-OTS Beta/"
     BENCHMARK_PATH = SAVE_PATH + "metrics_ots - " + str(MODEL_CHECKPOINT) + ".txt"
 
@@ -49,7 +49,7 @@ def benchmark_ots():
                                      transforms.ToTensor(),
                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    transmission_G = style_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(device)
+    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(device)
     checkpt = torch.load('checkpoint/' + MODEL_CHECKPOINT + ".pt")
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
@@ -108,10 +108,10 @@ def benchmark_ots():
                 # DCP is not 0-1 range
                 dcp_transmission = cv2.normalize(dcp_transmission, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX,
                                                  dtype=cv2.CV_32F)
-                transmission_blend = dcp_transmission * 0.5 + transmission_img * 0.5
+                transmission_blend = dcp_transmission * 0.0 + transmission_img * 0.5
 
                 dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
-                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, True, 0.5)
+                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, True, 0.8)
                 #clear_img = tensor_utils.refine_dehaze_img(hazy_img, clear_img, transmission_blend)
 
                 # normalize images

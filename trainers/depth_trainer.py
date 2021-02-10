@@ -27,8 +27,8 @@ class DepthTrainer:
         self.d_lr = d_lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
-        #self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 10).to(self.gpu_device)
-        self.G_A = sg.Generator(input_nc=3, output_nc=1, n_residual_blocks = 10).to(self.gpu_device)
+        self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 8).to(self.gpu_device)
+        #self.G_A = sg.Generator(input_nc=3, output_nc=1, n_residual_blocks = 10).to(self.gpu_device)
         #self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)  # use CycleGAN's discriminator
         self.D_A = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 
