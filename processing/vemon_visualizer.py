@@ -146,10 +146,10 @@ def visualize_haze_equation(path_a, depth_path, path_b):
         clear_img = cv2.resize(clear_img, (256, 256))
         clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
-        tensor_utils.compare_transmissions(img, depth_img)
+        #tensor_utils.compare_transmissions(img, depth_img)
         #tensor_utils.perform_dehazing_equation(img, depth_img)
         #tensor_utils.perform_custom_dehazing_equation(img, clear_img)
-        #tensor_utils.introduce_haze(img, clear_img, depth_img)
+        tensor_utils.introduce_haze(img, clear_img, depth_img)
         #tensor_utils.mask_haze(img, clear_img, depth_img)
 
 def show_images(img_tensor, caption):

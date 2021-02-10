@@ -94,7 +94,7 @@ def main(argv):
     start_epoch = 0
     iteration = 0
 
-    #TODO: Temp code loading old dehazer
+    #Temp code loading old dehazer
     #dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
     #dehazer.load_saved_state(iteration, dehaze_checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 

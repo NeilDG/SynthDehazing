@@ -11,6 +11,7 @@ cd scratch2/NeuralNets-GenerativeExperiment-5
 cd scratch2/NeuralNets-GenerativeExperiment-6
 
 //Execute job
+sbatch slurm_install.slurm
 sbatch visdom_run.slurm
 sbatch neil_job.slurm
 sbatch denoise_1.slurm

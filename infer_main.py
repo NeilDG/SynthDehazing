@@ -11,7 +11,7 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-
+from trainers import depth_trainer
 from loaders import dataset_loader
 from model import vanilla_cycle_gan as cycle_gan
 from model import ffa_net as ffa
@@ -255,7 +255,7 @@ def benchmark_reside():
 
             # remove 0.5 normalization for dehazing equation
             transmission_img = ((transmission_img * 0.5) + 0.5)
-            transmission_img = transmission_img + 0.7 #TODO: temporary experiment.
+            #transmission_img = transmission_img + 0.7
             hazy_img = ((hazy_img * 0.5) + 0.5)
 
             dark_channel = dark_channel_prior.get_dark_channel(hazy_img, 15)
@@ -321,6 +321,32 @@ def benchmark_reside():
                 fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
                 column = 0
 
+def visdom_preview():
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    gt = depth_trainer.DepthTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, 0.0002, 0.0002)
+    checkpoint = torch.load(constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
+    start_epoch = checkpoint['epoch'] + 1
+    iteration = checkpoint['iteration'] + 1
+    gt.load_saved_state(iteration, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY,
+                        constants.OPTIMIZER_KEY)
+
+    print("Loaded checkpt: %s Current epoch: %d" % (constants.TRANSMISSION_ESTIMATOR_CHECKPATH, start_epoch))
+    print("===================================================")
+
+    ohaze_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
+    reside_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
+
+    __, view_rgb_batch_1, view_gray_batch_1 = next(iter(ohaze_loader))
+    ___, view_rgb_batch_2, view_gray_batch_2 = next(iter(reside_loader))
+
+    view_rgb_batch_1 = view_rgb_batch_1.to(device).float()
+    view_gray_batch_1 = view_gray_batch_1.to(device).float()
+    gt.visdom_plot_test_image(view_rgb_batch_1, view_gray_batch_1, 2)
+
+    view_rgb_batch_2 = view_rgb_batch_2.to(device).float()
+    view_gray_batch_2 = view_gray_batch_2.to(device).float()
+    gt.visdom_plot_test_image(view_rgb_batch_2, view_gray_batch_2, 3)
+
 def main():
     VERSION = "dehazer_v1.08"
     ITERATION = "1"
@@ -331,6 +357,7 @@ def main():
     #benchmark_reside()
     #color_transfer()
     #remove_haze_by_transmission(constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
+    visdom_preview()
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

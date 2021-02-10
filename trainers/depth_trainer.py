@@ -3,6 +3,8 @@
 
 import os
 from model import vanilla_cycle_gan as cg
+from model import style_transfer_gan as sg
+from model import dehaze_discriminator as dh
 import constants
 import torch
 import random
@@ -14,6 +16,8 @@ import torchvision.utils as vutils
 from utils import logger
 from utils import plot_utils
 from utils import tensor_utils
+import kornia
+from custom_losses import rmse_log_loss
 
 class DepthTrainer:
     
@@ -23,10 +27,10 @@ class DepthTrainer:
         self.d_lr = d_lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
-        self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 6).to(self.gpu_device)
-        #self.G_B = cg.Generator(input_nc = 1, output_nc = 1, n_residual_blocks = 6).to(self.gpu_device)
-        self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)  # use CycleGAN's discriminator
-        #self.D_B = cg.Discriminator(input_nc = 3).to(self.gpu_device)
+        self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 8).to(self.gpu_device)
+        #self.G_A = sg.Generator(input_nc=3, output_nc=1, n_residual_blocks = 10).to(self.gpu_device)
+        #self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)  # use CycleGAN's discriminator
+        self.D_A = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
@@ -34,7 +38,7 @@ class DepthTrainer:
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr=self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters()), lr=self.d_lr)
         self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 1000, threshold = 0.00005)
-        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience=1000, threshold=0.00005)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 1000, threshold=0.00005)
         
     
     def initialize_dict(self):
@@ -43,6 +47,7 @@ class DepthTrainer:
         self.losses_dict[constants.G_LOSS_KEY] = []
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
         self.losses_dict[constants.LIKENESS_LOSS_KEY] = []
+        self.losses_dict[constants.EDGE_LOSS_KEY] = []
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
@@ -53,6 +58,7 @@ class DepthTrainer:
         self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
+        self.caption_dict[constants.EDGE_LOSS_KEY] = "Edge loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
@@ -60,29 +66,40 @@ class DepthTrainer:
         #self.caption_dict[constants.D_B_REAL_LOSS_KEY] = "D(B) real loss per iteration"
         
     
-    def update_penalties(self, adv_weight, likeness_weight):
+    def update_penalties(self, adv_weight, likeness_weight, edge_weight):
         #what penalties to use for losses?
-        self.cycle_weight = 10.0
         self.adv_weight = adv_weight
         self.likeness_weight = likeness_weight
+        self.edge_weight = edge_weight
 
         # save hyperparameters for bookeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
-            print("Version: ", constants.DEPTH_ESTIMATOR_CHECKPATH, file=f)
+            print("Version: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH, file=f)
+            print("Comment: Patch-based transmission estimator network", file=f)
             print("Learning rate for G: ", str(self.g_lr), file=f)
             print("Learning rate for D: ", str(self.d_lr), file=f)
             print("====================================", file=f)
             print("Adv weight: ", str(self.adv_weight), file=f)
             print("Likeness weight: ", str(self.likeness_weight), file=f)
+            print("Edge weight: ", str(self.edge_weight), file=f)
     
     def adversarial_loss(self, pred, target):
-        loss = nn.MSELoss()
+        # loss = nn.MSELoss()
+        # return loss(pred, target)
+        loss = nn.BCELoss()
         return loss(pred, target)
 
     def likeness_loss(self, pred, target):
-        loss = nn.L1Loss()
+        loss = nn.MSELoss()
         return loss(pred, target)
+
+    def edge_loss(self, pred, target):
+        loss = nn.L1Loss()
+        pred_grad = kornia.filters.spatial_gradient(pred)
+        target_grad = kornia.filters.spatial_gradient(target)
+
+        return loss(pred_grad, target_grad)
 
     def train(self, rgb_tensor, depth_tensor):
         depth_like = self.G_A(rgb_tensor)
@@ -118,17 +135,13 @@ class DepthTrainer:
 
         #print("Shape: ", np.shape(rgb_tensor), np.shape(depth_tensor))
         A_likeness_loss = self.likeness_loss(self.G_A(rgb_tensor), depth_tensor) * self.likeness_weight
-        #B_likeness_loss = self.likeness_loss(self.G_B(depth_tensor), rgb_tensor) * self.likeness_weight
+        A_edge_loss = self.edge_loss(self.G_A(rgb_tensor), depth_tensor) * self.edge_weight
 
         prediction = self.D_A(self.G_A(rgb_tensor))
         real_tensor = torch.ones_like(prediction)
         A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-        # prediction = self.D_B(self.G_B(depth_tensor))
-        # real_tensor = torch.ones_like(prediction)
-        # B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
-
-        errG = A_likeness_loss + A_adv_loss
+        errG = A_likeness_loss + A_adv_loss + A_edge_loss
         errG.backward()
         self.optimizerG.step()
         self.schedulerG.step(errG)
@@ -137,6 +150,7 @@ class DepthTrainer:
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
         self.losses_dict[constants.LIKENESS_LOSS_KEY].append(A_likeness_loss.item())
+        self.losses_dict[constants.EDGE_LOSS_KEY].append(A_edge_loss.item())
         self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())

@@ -313,23 +313,23 @@ def create_hazy_data(offset):
             count += 1
     
 def main():
-    PATH_A = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
-    SAVE_PATH_A = "E:/O-Haze - Crop/hazy/"
-    PATH_B = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
-    SAVE_PATH_B = "E:/O-Haze - Crop/clean/"
-    create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", (960, 960), (256, 256), 1000, 500, offset = 45000)
+    # PATH_A = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
+    # SAVE_PATH_A = "E:/O-Haze - Crop/hazy/"
+    # PATH_B = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
+    # SAVE_PATH_B = "E:/O-Haze - Crop/clean/"
+    # create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", (960, 960), (256, 256), 1000, 500, offset = 45000)
 
     # PATH_A = constants.DATASET_DIV2K_PATH
     # SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
     # create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 100, offset = 3743814)
 
-    # PATH_A = "E:/Synth Hazy/clean/"
-    # SAVE_PATH_A = "E:/Synth Hazy - Patch/clean/"
-    # PATH_B = "E:/Synth Hazy/hazy/"
-    # SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
-    # PATH_C = "E:/Synth Hazy/depth/"
-    # SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
-    # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", constants.TEST_IMAGE_SIZE,constants.PATCH_IMAGE_SIZE, 10, 7620664)
+    PATH_A = "E:/Synth Hazy/clean/"
+    SAVE_PATH_A = "E:/Synth Hazy - Patch/clean/"
+    PATH_B = "E:/Synth Hazy/hazy/"
+    SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
+    PATH_C = "E:/Synth Hazy/depth/"
+    SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
+    create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (64, 64), 10, 0)
 
     #create_hazy_data(138556)
 
