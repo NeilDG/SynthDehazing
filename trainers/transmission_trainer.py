@@ -19,7 +19,7 @@ from utils import tensor_utils
 import kornia
 from custom_losses import rmse_log_loss
 
-class DepthTrainer:
+class TransmissionTrainer:
     
     def __init__(self, gan_version, gan_iteration, gpu_device, g_lr = 0.0002, d_lr = 0.0002):
         self.gpu_device = gpu_device
@@ -66,17 +66,17 @@ class DepthTrainer:
         #self.caption_dict[constants.D_B_REAL_LOSS_KEY] = "D(B) real loss per iteration"
         
     
-    def update_penalties(self, adv_weight, likeness_weight, edge_weight):
+    def update_penalties(self, adv_weight, likeness_weight, edge_weight, comments):
         #what penalties to use for losses?
         self.adv_weight = adv_weight
         self.likeness_weight = likeness_weight
         self.edge_weight = edge_weight
 
-        # save hyperparameters for bookeeping
+        # save hyperparameters for bookkeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
             print("Version: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH, file=f)
-            print("Comment: Patch-based transmission estimator network", file=f)
+            print("Comment: ", comments, file=f)
             print("Learning rate for G: ", str(self.g_lr), file=f)
             print("Learning rate for D: ", str(self.d_lr), file=f)
             print("====================================", file=f)

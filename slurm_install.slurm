@@ -20,6 +20,8 @@ conda update python
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge scikit-image
 conda install -c conda-forge kornia
+pip install opencv-python
+pip install visdom
 
 conda list
 

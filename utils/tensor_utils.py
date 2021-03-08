@@ -381,35 +381,36 @@ def perform_dehazing_equation(hazy_img, depth_map):
 
 
 def introduce_haze(hazy_img, clear_img, depth_map):
-    LENGTH = 5
-    fig, ax = plt.subplots(1, LENGTH)
+    LENGTH = 3
+    fig, ax = plt.subplots(LENGTH, 1)
     fig.tight_layout()
     beta = 0.0
     for i in range(LENGTH):
         beta = beta + 0.5
-        T = generate_transmission(1 - depth_map, beta)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
+        T = generate_transmission(1 - depth_map, beta, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
         ax[i].imshow(T)
         ax[i].axis('off')
 
     plt.show()
 
-    atmosphere = np.random.uniform(0.5, 1.2)
+    atmosphere_val = np.random.uniform(0.5, 1.2)
+    atmosphere = [atmosphere_val, atmosphere_val, atmosphere_val] #atmosphere values can change per channel. but make it uniform for this time
     hazy_img_like = np.zeros_like(clear_img)
     T = np.resize(T, np.shape(clear_img[:, :, 0]))
-    hazy_img_like[:, :, 0] = (T * clear_img[:, :, 0]) + atmosphere * (1 - T)
-    hazy_img_like[:, :, 1] = (T * clear_img[:, :, 1]) + atmosphere * (1 - T)
-    hazy_img_like[:, :, 2] = (T * clear_img[:, :, 2]) + atmosphere * (1 - T)
+    hazy_img_like[:, :, 0] = (T * clear_img[:, :, 0]) + atmosphere[0] * (1 - T)
+    hazy_img_like[:, :, 1] = (T * clear_img[:, :, 1]) + atmosphere[1] * (1 - T)
+    hazy_img_like[:, :, 2] = (T * clear_img[:, :, 2]) + atmosphere[2] * (1 - T)
 
     # reverse equation
     clear_img_like = np.zeros_like(hazy_img)
     T = np.resize(T, np.shape(clear_img[:, :, 0]))
     print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
     clear_img_like[:, :, 0] = (hazy_img_like[:, :, 0] - (
-                np.full(np.shape(hazy_img_like[:, :, 0]), atmosphere) * (1 - T))) / T
+                np.full(np.shape(hazy_img_like[:, :, 0]), atmosphere[0]) * (1 - T))) / T
     clear_img_like[:, :, 1] = (hazy_img_like[:, :, 1] - (
-                np.full(np.shape(hazy_img_like[:, :, 1]), atmosphere) * (1 - T))) / T
+                np.full(np.shape(hazy_img_like[:, :, 1]), atmosphere[1]) * (1 - T))) / T
     clear_img_like[:, :, 2] = (hazy_img_like[:, :, 2] - (
-                np.full(np.shape(hazy_img_like[:, :, 2]), atmosphere) * (1 - T))) / T
+                np.full(np.shape(hazy_img_like[:, :, 2]), atmosphere[2]) * (1 - T))) / T
 
     hazy_img_like = np.clip(hazy_img_like, 0.0, 1.0)
     clear_img_like = np.clip(clear_img_like, 0.0, 1.0)

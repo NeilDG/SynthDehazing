@@ -11,7 +11,7 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-from trainers import depth_trainer
+from trainers import transmission_trainer
 from loaders import dataset_loader
 from model import vanilla_cycle_gan as cycle_gan
 from model import ffa_net as ffa
@@ -23,7 +23,8 @@ from utils import dark_channel_prior
 import os
 import glob
 from skimage.metrics import peak_signal_noise_ratio
-
+from processing import gist
+from custom_losses import vgg_loss_model
 
 def show_images(img_tensor, caption):
     plt.figure(figsize=(16, 4))
@@ -73,6 +74,15 @@ def save_img(img_numpy, item_number):
     im = Image.fromarray(img_numpy)
     im.save(LOCATION + "image_" + str(item_number) + ".png")
 
+def get_gist():
+    param = {
+        "orientationsPerScale": np.array([8, 8]),
+        "numberBlocks": [10, 10],
+        "fc_prefilt": 10,
+        "boundaryExtension": 32
+    }
+
+    gist_runner = gist.GIST(param)
 
 def produce_ffa_video(video_path):
     DEHAZER_CHECKPATH = "checkpoint/dehazer_v1.10_2 - stable@12.pt"
@@ -323,7 +333,7 @@ def benchmark_reside():
 
 def visdom_preview():
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    gt = depth_trainer.DepthTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, 0.0002, 0.0002)
+    gt = transmission_trainer.TransmissionTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, 0.0002, 0.0002)
     checkpoint = torch.load(constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
     start_epoch = checkpoint['epoch'] + 1
     iteration = checkpoint['iteration'] + 1
@@ -351,16 +361,12 @@ def main():
     VERSION = "dehazer_v1.08"
     ITERATION = "1"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
-    
-    #produce_video_batch()
-    #benchmark_ohaze()
-    #benchmark_reside()
-    #color_transfer()
-    #remove_haze_by_transmission(constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
-    visdom_preview()
+    #visdom_preview()
+
+    monet_perceptual_loss()
 
 #FIX for broken pipe num_workers issue.
-if __name__=="__main__": 
-    main()        
-        
+if __name__=="__main__":
+    main()
+
         

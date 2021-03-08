@@ -13,7 +13,6 @@ from torchvision import transforms
 import cv2
 from utils import tensor_utils
 from utils import dark_channel_prior
-import os
 import glob
 from skimage.metrics import peak_signal_noise_ratio
 
@@ -28,7 +27,7 @@ def benchmark_ohaze():
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OHaze/"
 
-    MODEL_CHECKPOINT = "transmission_estimator_v1.02_5"
+    MODEL_CHECKPOINT = "transmission_estimator_v1.02_2"
 
     SAVE_PATH = "results/O-HAZE/"
     BENCHMARK_PATH = SAVE_PATH + "metrics - " + str(MODEL_CHECKPOINT) + ".txt"
@@ -54,7 +53,7 @@ def benchmark_ohaze():
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(device)
+    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
     checkpt = torch.load('checkpoint/' + MODEL_CHECKPOINT + ".pt")
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")

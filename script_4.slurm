@@ -25,12 +25,12 @@ source activate NeilGAN_V2
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge scikit-image
 
-srun python transmission_main.py --iteration=$ITERATION --coare=1 --likeness_weight=10.0 --edge_weight=5.0 --img_to_load=-1 --load_previous=0
+#srun python transmission_main.py --iteration=$ITERATION --coare=1 --likeness_weight=10.0 --edge_weight=5.0 --img_to_load=-1 --batch_size=16 --load_previous=0
 conda deactivate
 
 for i in {1..100}
     do
         source activate NeilGAN_V2
-        srun python transmission_main.py --iteration=$ITERATION --coare=1 --likeness_weight=10.0 --edge_weight=5.0 --img_to_load=-1 --load_previous=1
+        srun python transmission_main.py --iteration=$ITERATION --coare=1 --likeness_weight=10.0 --edge_weight=5.0 --img_to_load=-1 --batch_size=16 --load_previous=1
         conda deactivate
     done
