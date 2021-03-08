@@ -75,27 +75,35 @@ def store_summaries(file_list, base_path):
 	BENCHMARK_PATH = base_path + "metrics.txt"
 
 	average = 0.0
+	lowest = 99999.0
+	highest = 0.0
 	with open(BENCHMARK_PATH, "w") as f:
 		for file_path in file_list:
-			file_name = file_path.split("/")[6]
+			file_name = file_path.split("/")[7]
 			gist_feature = _get_gist_single(param, file_path)
 			norm_rounded = np.round(np.linalg.norm(gist_feature), 5)
 			average = average + norm_rounded
 			print("Image: " + file_name + " : " + str(norm_rounded), file = f)
 
+			if(norm_rounded < lowest):
+				lowest = norm_rounded
+			if(norm_rounded > highest):
+				highest = norm_rounded
+
 		average = np.round(average / len(file_list), 5)
 		print("Average GIST norm: " +str(average), file = f)
+		print("Lowest GIST norm: " + str(lowest), file=f)
+		print("Highest GIST norm: " + str(highest), file=f)
 
 def main():
 	BASE_PATH = "G:/My Drive/CONFERENCES/WSCG 2021/Experiments/"
 
 	arg = argparse.ArgumentParser()
-	arg.add_argument("--input_path", default=BASE_PATH + "Monet Gallery numbered/")
+	arg.add_argument("--input_path", default=BASE_PATH + "Impressionism sorted/post-1886/")
 	arg.add_argument("--output_path", default=BASE_PATH + "gist.feather")
 	arg.add_argument("--save", default=True)
 	args = arg.parse_args()
 	print(args)
-
 	data = Dataloader(args.input_path, args.output_path)
 	file_list = data.get_inputfile()
 	store_summaries(file_list, BASE_PATH)

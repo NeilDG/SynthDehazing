@@ -19,7 +19,7 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
-from trainers import depth_trainer
+from trainers import transmission_trainer
 from model import style_transfer_gan as color_gan
 from model import vanilla_cycle_gan as cycle_gan
 import constants
@@ -29,14 +29,15 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--adv_weight', type=float, help="Weight", default="2.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="50.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--image_size', type=int, help="Weight", default="64")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
 parser.add_option('--plot_on', type=int, help="plotting?", default=0)
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network")
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE
@@ -49,7 +50,7 @@ def update_config(opts):
         constants.batch_size = opts.batch_size
 
         constants.ITERATION = str(opts.iteration)
-        constants.COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + '.pt'
+        constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
 
         constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
         constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
@@ -95,8 +96,8 @@ def main(argv):
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
-    gt = depth_trainer.DepthTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
-    gt.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight)
+    gt = transmission_trainer.TransmissionTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
+    gt.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
     start_epoch = 0
     iteration = 0
 

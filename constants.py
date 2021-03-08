@@ -46,9 +46,10 @@ DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "color_transfer_v1.11"
 TRANSMISSION_VERSION = "transmission_estimator_v1.02"
+AIRLIGHT_VERSION = "airlight_estimator_v1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "6"
+ITERATION = "9"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
