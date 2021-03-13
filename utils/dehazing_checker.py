@@ -9,6 +9,7 @@ import glob
 from torchvision import transforms
 import cv2
 from utils import tensor_utils
+from model import dehaze_discriminator as dh
 
 class DehazingChecker:
 
@@ -21,6 +22,7 @@ class DehazingChecker:
         checkpt = torch.load('checkpoint/' + MODEL_CHECKPOINT + ".pt")
         self.transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
         print("Transmission GAN model loaded. ", MODEL_CHECKPOINT)
+
 
         self.batch_num = 0
         self.PSNR_KEY = "PSNR_KEY"
@@ -40,6 +42,10 @@ class DehazingChecker:
 
 
     def check_performance(self):
+        self.airlight_model = dh.AirlightEstimator(input_nc=3, num_layers=2).to(self.gpu_device)
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.00_1.pt")
+        self.airlight_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY])
+
         OHAZE_HAZY_PATH = "D:/Datasets/OTS_BETA/haze/"
         OHAZE_CLEAR_PATH = "D:/Datasets/OTS_BETA/clear/"
         IMAGE_LIMIT = 5
@@ -73,9 +79,20 @@ class DehazingChecker:
                 transmission_img = ((transmission_img * 0.5) + 0.5)
 
                 hazy_img = ((hazy_img * 0.5) + 0.5)
-                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_img,
-                                                                                     tensor_utils.AtmosphereMethod.NETWORK_ESTIMATOR,
-                                                                                     0.8)
+
+                transform_op = transforms.Compose([transforms.ToTensor(),
+                                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+                hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+                resized_hazy_img = cv2.resize(hazy_img, constants.TEST_IMAGE_SIZE, cv2.INTER_LINEAR)
+                hazy_tensor = torch.unsqueeze(transform_op(resized_hazy_img), 0).to(self.gpu_device)
+                atmosphere = self.airlight_model(hazy_tensor).cpu().item()
+
+                clear_img = np.ones_like(hazy_img)
+                T = np.resize(transmission_img, np.shape(clear_img[:, :, 0]))
+                clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere)) / np.maximum(T, 0.8)) + np.full(np.shape(hazy_img[:, :, 0]), atmosphere)
+                clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere)) / np.maximum(T, 0.8)) + np.full(np.shape(hazy_img[:, :, 1]), atmosphere)
+                clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere)) / np.maximum(T, 0.8)) + np.full(np.shape(hazy_img[:, :, 2]), atmosphere)
 
                 # normalize images
                 hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,dtype=cv2.CV_8U)
@@ -96,9 +113,8 @@ class DehazingChecker:
                 if(count == IMAGE_LIMIT):
                     break
 
-        average_PSNR = average_PSNR / count * 1.0
-        average_SSIM = average_SSIM / count * 1.0
-
+        average_PSNR = average_PSNR / (IMAGE_LIMIT * 1.0)
+        average_SSIM = average_SSIM / (IMAGE_LIMIT * 1.0)
         self.losses_dict[self.PSNR_KEY].append(average_PSNR)
         self.losses_dict[self.SSIM_KEY].append(average_SSIM)
 

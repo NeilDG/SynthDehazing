@@ -31,7 +31,7 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--airlight_weight', type=float, help="Weight", default="500.0")
-parser.add_option('--d_lr', type=float, help="LR", default="0.002")
+parser.add_option('--d_lr', type=float, help="LR", default="0.005")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--image_size', type=int, help="Weight", default="256")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based airlight estimation network")
@@ -129,10 +129,12 @@ def main(argv):
                 # perform color transfer first
                 rgb_tensor = color_transfer_gan(rgb_tensor)
                 gt.train(rgb_tensor, airlight_tensor)
-                if ((i + 1) % 250 == 0):
+                #dh_checker.check_performance()
+
+                if ((i + 1) % 200 == 0):
                     gt.save_states(epoch, iteration, constants.AIRLIGHT_ESTIMATOR_CHECKPATH, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
                     gt.visdom_report(iteration, rgb_tensor)
-                    dh_checker.visdom_report(iteration)
+                    #dh_checker.visdom_report(iteration)
 
     else:
         for i, train_data in enumerate(train_loader, 0):

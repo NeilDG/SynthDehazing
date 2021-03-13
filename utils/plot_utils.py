@@ -107,7 +107,6 @@ class VisdomReporter:
 
         colors = ['r', 'g', 'black', 'darkorange', 'olive', 'palevioletred', 'rosybrown', 'cyan', 'slategray',
                   'darkmagenta', 'linen', 'chocolate']
-        index = 0
 
         x = [i for i in range(iteration, iteration + len(losses_dict[base_key]))]
         COLS = 2;
@@ -116,8 +115,7 @@ class VisdomReporter:
         fig.tight_layout()
 
         for j in range(COLS):
-            if (index < len(loss_keys)):
-                ax[j].plot(x, losses_dict[loss_keys[j]], color=colors[j], label=str(caption_dict[caption_keys[index]]))
+            ax[j].plot(x, losses_dict[loss_keys[j]], color=colors[j], label=str(caption_dict[caption_keys[j]]))
 
         fig.legend(loc='lower right')
         if loss_key not in self.loss_windows:
