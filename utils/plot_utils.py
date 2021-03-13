@@ -65,7 +65,7 @@ class VisdomReporter:
         else:
             self.vis.matplot(plt, win = self.loss_windows[hash(caption)], opts = dict(caption = caption))
 
-    def plot_finegrain_loss(self, loss_key, iteration, losses_dict, caption_dict):        
+    def plot_finegrain_loss(self, loss_key, iteration, losses_dict, caption_dict):
         if(constants.is_coare == 1):
             #TODO: fix issue on matplot user permission for COARE
             return
@@ -75,7 +75,7 @@ class VisdomReporter:
         colors = ['r', 'g', 'black', 'darkorange', 'olive', 'palevioletred', 'rosybrown', 'cyan', 'slategray', 'darkmagenta', 'linen', 'chocolate']
         index = 0
         
-        x = [i for i in range(iteration, iteration + len(losses_dict[constants.G_LOSS_KEY]))]
+        x = [i for i in range(iteration, iteration + len(losses_dict[constants.D_OVERALL_LOSS_KEY]))]
         COLS = 3; ROWS = 4
         fig, ax = plt.subplots(ROWS, COLS, sharex=True)
         fig.set_size_inches(9, 9)
@@ -96,31 +96,33 @@ class VisdomReporter:
             self.vis.matplot(plt, win = self.loss_windows[loss_key], opts = dict(caption = "Losses" + " " + str(constants))) 
           
         plt.show()
-        
-    # def plot_finegrain_loss(self, loss_key, iteration, losses_dict):        
-    #     if(constants.is_coare == 1):
-    #         #TODO: fix issue on matplot user permission for COARE
-    #         return
-        
-    #     x = [i for i in range(iteration, iteration + len(losses_dict[constants.LIKENESS_LOSS_KEY]))]
-    #     fig, ax = plt.subplots(4, 3, sharex=True)
-    #     fig.set_size_inches(9, 9)
-    #     fig.tight_layout()
-        
-    #     ax[0,0].plot(x, losses_dict[constants.REALNESS_LOSS_KEY], color = 'r', label = "Realness loss per iteration")
-    #     ax[0,1].plot(x, losses_dict[constants.LIKENESS_LOSS_KEY], color = 'g', label = "Clarity loss per iteration")
-    #     ax[0,2].plot(x, losses_dict[constants.G_LOSS_KEY], color = 'black', label = "G Overall loss per iteration")
-    #     ax[1,0].plot(x, losses_dict[constants.D_OVERALL_LOSS_KEY], color = 'darkorange', label = "D overall loss per iteration")
-    #     ax[1,1].plot(x, losses_dict[constants.G_ADV_LOSS_KEY], color = 'olive', label = "G Adv loss per iteration")
-    #     ax[1,2].plot(x, losses_dict[constants.D_A_FAKE_LOSS_KEY], color = 'palevioletred', label = "D(A) fake loss")
-    #     ax[2,0].plot(x, losses_dict[constants.D_A_REAL_LOSS_KEY], color = 'rosybrown', label = "D(A) real loss")
-    #     ax[2,1].plot(x, losses_dict[constants.D_B_FAKE_LOSS_KEY], color = 'cyan', label = "D(B) fake loss")
-    #     ax[2,2].plot(x, losses_dict[constants.D_B_REAL_LOSS_KEY], color = 'slategray', label = "D(B) real loss")
-    
-    #     fig.legend(loc = 'lower right')
-    #     if loss_key not in self.loss_windows:
-    #         self.loss_windows[loss_key] = self.vis.matplot(plt, opts = dict(caption = "Losses" + " " + str(constants)))
-    #     else:
-    #        self.vis.matplot(plt, win = self.loss_windows[loss_key], opts = dict(caption = "Losses" + " " + str(constants))) 
-          
-    #     plt.show()
+
+    def plot_psnr_ssim_loss(self, loss_key, iteration, losses_dict, caption_dict, base_key):
+        if (constants.is_coare == 1):
+            # TODO: fix issue on matplot user permission for COARE
+            return
+
+        loss_keys = list(losses_dict.keys())
+        caption_keys = list(caption_dict.keys())
+
+        colors = ['r', 'g', 'black', 'darkorange', 'olive', 'palevioletred', 'rosybrown', 'cyan', 'slategray',
+                  'darkmagenta', 'linen', 'chocolate']
+        index = 0
+
+        x = [i for i in range(iteration, iteration + len(losses_dict[base_key]))]
+        COLS = 2;
+        fig, ax = plt.subplots(1, COLS, sharex=True)
+        fig.set_size_inches(5, 5)
+        fig.tight_layout()
+
+        for j in range(COLS):
+            if (index < len(loss_keys)):
+                ax[j].plot(x, losses_dict[loss_keys[j]], color=colors[j], label=str(caption_dict[caption_keys[index]]))
+
+        fig.legend(loc='lower right')
+        if loss_key not in self.loss_windows:
+            self.loss_windows[loss_key] = self.vis.matplot(plt, opts=dict(caption="Losses" + " " + str(constants)))
+        else:
+            self.vis.matplot(plt, win=self.loss_windows[loss_key], opts=dict(caption="Losses" + " " + str(constants)))
+
+        plt.show()

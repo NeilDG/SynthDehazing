@@ -31,7 +31,7 @@ DATASET_DIV2K_PATH_PATCH = "E:/Div2k - Patch/"
 DATASET_DIV2K_PATH = "E:/DIV2K_train_HR/"
 
 PATCH_IMAGE_SIZE = (32, 32)
-TEST_IMAGE_SIZE = (512, 512)
+TEST_IMAGE_SIZE = (256, 256)
 DIV2K_IMAGE_SIZE = (2040, 1404)
 FIG_SIZE = (16, 32)
 TENSORBOARD_PATH = os.getcwd() + "/train_plot/"
@@ -49,7 +49,7 @@ TRANSMISSION_VERSION = "transmission_estimator_v1.02"
 AIRLIGHT_VERSION = "airlight_estimator_v1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "9"
+ITERATION = "1"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -59,6 +59,7 @@ DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
 COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
 TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + TRANSMISSION_VERSION + "_" + ITERATION + '.pt'
+AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + AIRLIGHT_VERSION + "_" + ITERATION + '.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys
@@ -89,7 +90,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 8
+batch_size = 16
 infer_size = 16
 
 brightness_enhance = 1.0

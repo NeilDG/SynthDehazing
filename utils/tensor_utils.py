@@ -18,6 +18,9 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 from skimage.metrics import structural_similarity
 from utils import dark_channel_prior
+from enum import Enum
+from model import dehaze_discriminator as dh
+import constants
 
 
 # for attaching hooks on pretrained models
@@ -272,27 +275,22 @@ def generate_transmission(depth_map, beta, is_exponential_squared=False):
 
 
 # Estimates transmission map given a depth image
-def perform_dehazing_equation_with_transmission(hazy_img, T, use_scene_radiance=False, filter_strength=0.1):
+class AtmosphereMethod(Enum):
+    SCENE_RADIANCE = 0
+    DIRECT = 1
+    NETWORK_ESTIMATOR = 2
+
+def perform_dehazing_equation_with_transmission(hazy_img, T, atmosphere_method, filter_strength=0.1):
     hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
-    # plt.imshow(hazy_img)
-    # plt.show()
-
-    # plt.imshow(T)
-    # plt.show()
-
     atmosphere = estimate_atmosphere(hazy_img, get_dark_channel(hazy_img, w=15))
-    # atmosphere = [1.9, 1.9, 1.9]
     atmosphere = np.squeeze(atmosphere)
-    # Z = (1 - T) * np.max(atmosphere)
 
     print("Min of input: ", np.min(hazy_img), " Max of input: ", np.max(hazy_img),
           "Min of T: ", np.min(T), " Max of T: ", np.max(T))
-    # plt.imshow(A)
-    # plt.show()
 
     # compute clear image with radiance term
-    if (use_scene_radiance):
+    if (atmosphere_method == AtmosphereMethod.SCENE_RADIANCE):
         clear_img = np.ones_like(hazy_img)
         T = np.resize(T, np.shape(clear_img[:, :, 0]))
         print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
@@ -306,13 +304,37 @@ def perform_dehazing_equation_with_transmission(hazy_img, T, use_scene_radiance=
                                                                                                                      filter_strength)) + np.full(
             np.shape(hazy_img[:, :, 2]), atmosphere[2])
 
-    else:
+    elif(atmosphere_method == AtmosphereMethod.DIRECT):
         clear_img = np.ones_like(hazy_img)
         T = np.resize(T, np.shape(clear_img[:, :, 0]))
         print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
         clear_img[:, :, 0] = (hazy_img[:, :, 0] - (np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
         clear_img[:, :, 1] = (hazy_img[:, :, 1] - (np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
         clear_img[:, :, 2] = (hazy_img[:, :, 2] - (np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+
+    else:
+        device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+        airlight_model = dh.AirlightEstimator(input_nc=3, num_layers = 2).to(device)
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.00_1.pt")
+        airlight_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY])
+
+        transform_op = transforms.Compose([transforms.ToTensor(),
+                                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+        resized_hazy_img = cv2.resize(hazy_img, constants.TEST_IMAGE_SIZE, cv2.INTER_LINEAR)
+        hazy_tensor = torch.unsqueeze(transform_op(resized_hazy_img), 0).to(device)
+        atmosphere = airlight_model(hazy_tensor).cpu().item()
+
+        clear_img = np.ones_like(hazy_img)
+        T = np.resize(T, np.shape(clear_img[:, :, 0]))
+        #print("Airlight estimator network loaded. Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T),
+              #"Atmosphere estimate: ", atmosphere)
+        clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere)) / np.maximum(T,filter_strength)) + np.full(
+            np.shape(hazy_img[:, :, 0]), atmosphere)
+        clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere)) / np.maximum(T,filter_strength)) + np.full(
+            np.shape(hazy_img[:, :, 1]), atmosphere)
+        clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere)) / np.maximum(T,filter_strength)) + np.full(
+            np.shape(hazy_img[:, :, 2]), atmosphere)
 
     return np.clip(clear_img, 0.0, 1.0)
 

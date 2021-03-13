@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# Template trainer. Do not use this for actual training.
 
 import os
 from model import vanilla_cycle_gan as cg
@@ -177,7 +176,7 @@ class TransmissionTrainer:
         self.visdom_reporter.plot_image(test_rgb_tensor, "Test RGB images - " + str(id))
         self.visdom_reporter.plot_image(test_depth_like, "Test Depth-like images - " + str(id))
     
-    def load_saved_state(self, iteration, checkpoint, generator_key, discriminator_key, optimizer_key):
+    def load_saved_state(self, checkpoint, generator_key, discriminator_key, optimizer_key):
         self.G_A.load_state_dict(checkpoint[generator_key + "A"])
         #self.G_B.load_state_dict(checkpoint[generator_key + "B"])
         self.D_A.load_state_dict(checkpoint[discriminator_key + "A"])
