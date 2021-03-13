@@ -17,9 +17,10 @@ from utils import tensor_utils
 
 #model-based transmission dataset. Only accepts the clear RGB image and depth image.
 class TransmissionDataset_Single(data.Dataset):
-    def __init__(self, image_list_a, image_list_b):
+    def __init__(self, image_list_a, image_list_b, crop_size):
         self.image_list_a = image_list_a
         self.image_list_b = image_list_b
+        self.crop_size = crop_size
 
         self.initial_img_op = transforms.Compose([
             transforms.ToPILImage(),
@@ -35,6 +36,8 @@ class TransmissionDataset_Single(data.Dataset):
             transforms.ToTensor(),
             transforms.Normalize((0.5), (0.5))
         ])
+
+        self.airlight_transform_op = transforms.Compose([transforms.ToTensor()])
 
     def __getitem__(self, idx):
         img_id = self.image_list_a[idx]
@@ -64,7 +67,7 @@ class TransmissionDataset_Single(data.Dataset):
         img_a = self.initial_img_op(img_a)
         img_b = self.initial_img_op(img_b)
 
-        crop_indices = transforms.RandomCrop.get_params(img_a, output_size=(128, 128))
+        crop_indices = transforms.RandomCrop.get_params(img_a, output_size=self.crop_size)
         i, j, h, w = crop_indices
 
         img_a = transforms.functional.crop(img_a, i, j, h, w)
@@ -73,7 +76,9 @@ class TransmissionDataset_Single(data.Dataset):
         img_a = self.final_transform_op(img_a)
         img_b = self.depth_transform_op(img_b)
 
-        return file_name, img_a, img_b #hazy img, transmission map
+        airlight_tensor = torch.tensor(atmosphere, dtype=torch.float32)
+
+        return file_name, img_a, img_b, airlight_tensor #hazy img, transmission map, airlight
 
     def __len__(self):
         return len(self.image_list_a)
@@ -90,7 +95,7 @@ class TransmissionDataset(data.Dataset):
 
         self.final_transform_op = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5), (0.5))
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
         self.depth_transform_op = transforms.Compose([
@@ -113,16 +118,9 @@ class TransmissionDataset(data.Dataset):
         img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         img_b = tensor_utils.generate_transmission(img_b, np.random.uniform(0.4, 1.8))
         img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-        #img_b = cv2.resize(img_b, (256, 256))
 
         img_a = self.initial_img_op(img_a)
         img_b = self.initial_img_op(img_b)
-
-        # crop_indices = transforms.RandomCrop.get_params(img_a, output_size=(128, 128))
-        # i, j, h, w = crop_indices
-        #
-        # img_a = transforms.functional.crop(img_a, i, j, h, w)
-        # img_b = transforms.functional.crop(img_b, i, j, h, w)
 
         img_a = self.final_transform_op(img_a)
         img_b = self.depth_transform_op(img_b)
@@ -469,6 +467,44 @@ class HazeDataset(data.Dataset):
     def __len__(self):
         return len(self.hazy_list)
 
+class HazeTestPairedDataset(data.Dataset):
+    def __init__(self, hazy_list, clear_list):
+        self.hazy_list = hazy_list
+        self.clear_list = clear_list
+
+        self.initial_transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(constants.TEST_IMAGE_SIZE),
+            transforms.CenterCrop(constants.TEST_IMAGE_SIZE)
+        ])
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.hazy_list[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        hazy_img = cv2.imread(img_id);
+        hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
+        hazy_img = self.initial_transform_op(hazy_img)
+        hazy_img = self.final_transform_op(hazy_img)
+
+        img_id = self.clear_list[idx]
+        clear_img = cv2.imread(img_id);
+        clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
+        clear_img = self.initial_transform_op(clear_img)
+        clear_img = self.final_transform_op(clear_img)
+
+        return file_name, hazy_img, clear_img
+
+    def __len__(self):
+        return len(self.hazy_list)
+
+
 class HazeTestDataset(data.Dataset):
     def __init__(self, rgb_list):
         self.rgb_list = rgb_list
@@ -512,10 +548,6 @@ class ColorDataset(data.Dataset):
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.5), (0.5), (0.5))
                                     ])
-            
-        # self.final_transform_op = transforms.Compose([transforms.ToTensor(),
-        #                                               transforms.Normalize((0.5), (0.5))])
-        
     
     def __getitem__(self, idx):
         img_id = self.rgb_list[idx]

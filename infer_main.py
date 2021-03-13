@@ -170,13 +170,13 @@ def color_transfer():
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
     # load color transfer
-    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_1 - stable.pt')
+    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_2.pt')
     color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
     color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
     print("Color transfer GAN model loaded.")
     print("===================================================")
     
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
     
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -361,9 +361,9 @@ def main():
     VERSION = "dehazer_v1.08"
     ITERATION = "1"
     CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
-    #visdom_preview()
-
-    monet_perceptual_loss()
+    #visdom_preview(
+    #monet_perceptual_loss()
+    color_transfer()
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__":

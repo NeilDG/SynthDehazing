@@ -126,7 +126,7 @@ def visualize_edge_distribution(path_a):
 
 
 def visualize_haze_equation(path_a, depth_path, path_b):
-    img_list, depth_list = dataset_loader.assemble_train_data(path_a, depth_path, num_image_to_load = 10)
+    img_list, depth_list = dataset_loader.assemble_paired_data(path_a, depth_path, num_image_to_load = 10)
     clear_list = dataset_loader.assemble_unpaired_data(path_b, num_image_to_load = 10)
     print("Reading images in ", path_a, depth_path)
 
