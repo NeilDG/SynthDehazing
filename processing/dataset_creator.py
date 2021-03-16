@@ -263,17 +263,16 @@ def create_gta_noisy_data():
         count = count + 1
 
 def create_hazy_data(offset):
-    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_7_clean.mp4"
-    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_7_haze.mp4"
-    depth_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_7_depth.mp4"
+    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_8_clean.mp4"
+    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_8_haze.mp4"
+    depth_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_8_depth.mp4"
 
-    CLEAN_SAVE_PATH = "E:/Synth Hazy/clean/"
-    HAZY_SAVE_PATH = "E:/Synth Hazy/hazy/"
-    DEPTH_SAVE_PATH = "E:/Synth Hazy/depth/"
+    CLEAN_SAVE_PATH = "E:/Synth Hazy 2/clean/"
+    HAZY_SAVE_PATH = "E:/Synth Hazy 2/hazy/"
+    DEPTH_SAVE_PATH = "E:/Synth Hazy 2/depth/"
     
     vidcap = cv2.VideoCapture(clean_video_path)
     count = offset
-
 
     success = True
     while success:
@@ -323,15 +322,13 @@ def main():
     # SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
     # create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 100, offset = 3743814)
 
-    PATH_A = "E:/Synth Hazy/clean/"
-    SAVE_PATH_A = "E:/Synth Hazy - Patch/clean/"
-    PATH_B = "E:/Synth Hazy/hazy/"
-    SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
-    PATH_C = "E:/Synth Hazy/depth/"
-    SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
-    create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (64, 64), 10, 0)
+    # PATH_A = "E:/Synth Hazy/clean/"
+    # SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
+    # PATH_C = "E:/Synth Hazy/depth/"
+    # SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
+    # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (64, 64), 10, 0)
 
-    #create_hazy_data(138556)
+    create_hazy_data(0)
 
 if __name__=="__main__": 
     main()   

@@ -6,9 +6,10 @@ DATASET_VEMON_PATH_PATCH_32 = "E:/VEMON_Transfer/train/32_patch/"
 DATASET_VEMON_PATH_PATCH_64 = "E:/VEMON_Transfer/train/64_patch/"
 DATASET_VEMON_PATH_PATCH_128 = "E:/VEMON_Transfer/train/128_patch/"
 
-DATASET_HAZY_PATH_COMPLETE = "E:/Synth Hazy/hazy/"
-DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy/clean/"
-DATASET_DEPTH_PATH_COMPLETE = "E:/Synth Hazy/depth/"
+DATASET_HAZY_PATH_COMPLETE = "E:/Synth Hazy 2/hazy/"
+DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy 2/clean/"
+DATASET_DEPTH_PATH_COMPLETE = "E:/Synth Hazy 2/depth/"
+DATASET_LIGHTCOORDS_PATH_COMPLETE = "E:/Synth Hazy 2/light/"
 
 DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
@@ -47,6 +48,7 @@ COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "color_transfer_v1.11"
 TRANSMISSION_VERSION = "transmission_estimator_v1.02"
 AIRLIGHT_VERSION = "airlight_estimator_v1.00"
+LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
 ITERATION = "1"
@@ -60,6 +62,7 @@ COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
 COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
 TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + TRANSMISSION_VERSION + "_" + ITERATION + '.pt'
 AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + AIRLIGHT_VERSION + "_" + ITERATION + '.pt'
+LIGHTCOORDS_ESTIMATOR_CHECKPATH = 'checkpoint/' + LIGHTS_ESTIMATOR_VERSION + "_" + ITERATION + '.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys

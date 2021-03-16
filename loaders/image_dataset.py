@@ -17,9 +17,10 @@ from utils import tensor_utils
 
 #model-based transmission dataset. Only accepts the clear RGB image and depth image.
 class TransmissionDataset_Single(data.Dataset):
-    def __init__(self, image_list_a, image_list_b, crop_size):
+    def __init__(self, image_list_a, image_list_b, light_list_c, crop_size):
         self.image_list_a = image_list_a
         self.image_list_b = image_list_b
+        self.light_list_c = light_list_c
         self.crop_size = crop_size
 
         self.initial_img_op = transforms.Compose([
@@ -78,7 +79,13 @@ class TransmissionDataset_Single(data.Dataset):
 
         airlight_tensor = torch.tensor(atmosphere, dtype=torch.float32)
 
-        return file_name, img_a, img_b, airlight_tensor #hazy img, transmission map, airlight
+        light_file = open(self.light_list_c[idx], "r")
+        light_string = light_file.readline()
+        light_vector = str.split(light_string, ",")
+        light_vector = [float(light_vector[0]), float(light_vector[1])]
+        light_coords_tensor = torch.tensor(light_vector, dtype = torch.float32)
+
+        return file_name, img_a, img_b, light_coords_tensor, airlight_tensor #hazy img, transmission map, light distance, airlight
 
     def __len__(self):
         return len(self.image_list_a)
