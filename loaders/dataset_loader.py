@@ -144,12 +144,13 @@ def load_depth_test_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
     return data_loader
 
 
-def load_model_based_transmission_dataset(path_a, path_b, crop_size, batch_size=8, num_image_to_load=-1):
-    a_list, b_list = assemble_paired_data(path_a, path_b, num_image_to_load)
-    print("Length of training transmission dataset: %d, %d" % (len(a_list), len(b_list)))
+def load_model_based_transmission_dataset(img_a, img_b, light_path, crop_size, batch_size=8, num_image_to_load=-1):
+    a_list, b_list = assemble_paired_data(img_a, img_b, num_image_to_load)
+    light_list = assemble_unpaired_data(light_path, num_image_to_load=-1)
+    print("Length of training transmission dataset: %d, %d %d" % (len(a_list), len(b_list), len(light_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.TransmissionDataset_Single(a_list, b_list, crop_size),
+        image_dataset.TransmissionDataset_Single(a_list, b_list, light_list, crop_size),
         batch_size=batch_size,
         num_workers=4,
         shuffle=True

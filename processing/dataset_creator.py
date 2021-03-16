@@ -263,9 +263,9 @@ def create_gta_noisy_data():
         count = count + 1
 
 def create_hazy_data(offset):
-    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_7_clean.mp4"
-    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_7_haze.mp4"
-    depth_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_7_depth.mp4"
+    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_8_clean.mp4"
+    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_8_haze.mp4"
+    depth_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_8_depth.mp4"
 
     CLEAN_SAVE_PATH = "E:/Synth Hazy 2/clean/"
     HAZY_SAVE_PATH = "E:/Synth Hazy 2/hazy/"
@@ -328,7 +328,7 @@ def main():
     # SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
     # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (64, 64), 10, 0)
 
-    create_hazy_data(5)
+    create_hazy_data(0)
 
 if __name__=="__main__": 
     main()   

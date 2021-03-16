@@ -20,6 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import airlight_trainer
+from trainers import lightcoords_trainer
 from model import style_transfer_gan as color_gan
 from model import vanilla_cycle_gan as cycle_gan
 import constants
@@ -91,7 +92,8 @@ def main(argv):
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
-    gt = airlight_trainer.AirlightTrainer(constants.AIRLIGHT_VERSION, constants.ITERATION, device, opts.d_lr)
+    #gt = airlight_trainer.AirlightTrainer(constants.AIRLIGHT_VERSION, constants.ITERATION, device, opts.d_lr)
+    gt = lightcoords_trainer.LightCoordsTrainer(constants.LIGHTS_ESTIMATOR_VERSION, constants.ITERATION, device, opts.d_lr)
     gt.update_penalties(opts.airlight_weight, opts.comments)
     start_epoch = 0
     iteration = 0
@@ -105,34 +107,37 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_model_based_transmission_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.TEST_IMAGE_SIZE, constants.batch_size, opts.img_to_load)
+    train_loader = dataset_loader.load_model_based_transmission_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_LIGHTCOORDS_PATH_COMPLETE,
+                                                                        constants.TEST_IMAGE_SIZE, constants.batch_size, opts.img_to_load)
 
     # Create dehazing checker
-    dh_checker = dehazing_checker.DehazingChecker()
-    dh_checker.check_performance()
+    #dh_checker = dehazing_checker.DehazingChecker()
+    #dh_checker.check_performance()
 
     # Plot some training images
     if (constants.is_coare == 0):
-        _, a, b, _ = next(iter(train_loader))
+        _, a, b, _, lights_tensor = next(iter(train_loader))
         show_images(a, "Training - RGB Images")
         show_images(b, "Training - Depth Images")
+        print(np.shape(lights_tensor))
 
     print("Starting Training Loop...")
     if (constants.is_coare == 0):
         for epoch in range(start_epoch, constants.num_epochs):
             # For each batch in the dataloader
             for i, train_data in enumerate(train_loader, 0):
-                _, rgb_batch, _, airlight_batch = train_data
+                _, rgb_batch, _, light_batch, airlight_batch = train_data
                 rgb_tensor = rgb_batch.to(device).float()
                 airlight_tensor = airlight_batch.to(device).float()
+                lights_coord_tensor =light_batch.to(device).float()
 
                 # perform color transfer first
                 rgb_tensor = color_transfer_gan(rgb_tensor)
-                gt.train(rgb_tensor, airlight_tensor)
+                gt.train(rgb_tensor, lights_coord_tensor)
                 #dh_checker.check_performance()
 
-                if ((i + 1) % 200 == 0):
-                    gt.save_states(epoch, iteration, constants.AIRLIGHT_ESTIMATOR_CHECKPATH, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+                if ((i + 1) % 400 == 0):
+                    gt.save_states(epoch, iteration, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
                     gt.visdom_report(iteration, rgb_tensor)
                     #dh_checker.visdom_report(iteration)
 
@@ -148,7 +153,7 @@ def main(argv):
             if ((i + 1) % 300 == 0):
                 print("Iterating %d" % i)
 
-        gt.save_states(start_epoch, iteration, constants.AIRLIGHT_ESTIMATOR_CHECKPATH, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(start_epoch, iteration, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 
 
 # FIX for broken pipe num_workers issue.

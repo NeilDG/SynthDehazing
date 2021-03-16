@@ -316,7 +316,7 @@ def perform_dehazing_equation_with_transmission(hazy_img, T, atmosphere_method, 
         device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
         airlight_model = dh.AirlightEstimator(input_nc=3, num_layers = 2).to(device)
         checkpt = torch.load("checkpoint/airlight_estimator_v1.00_1.pt")
-        airlight_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY])
+        airlight_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "B"])
 
         transform_op = transforms.Compose([transforms.ToTensor(),
                                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
