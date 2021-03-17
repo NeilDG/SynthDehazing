@@ -145,15 +145,21 @@ def perform_dehazing_equation_with_transmission(hazy_img, T, atmosphere_method, 
 
     else:
         device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-        airlight_model = dh.AirlightEstimator_V2(input_nc=3, num_layers = 2).to(device)
+        #airlight_model = dh.AirlightEstimator_V2(input_nc=3, num_layers = 2).to(device)
+        airlight_model = dh.AirlightEstimator(input_nc=3, num_layers=2).to(device)
+        lightcoord_model = dh.LightCoordsEstimator().to(device)
+
         checkpt = torch.load("checkpoint/airlight_estimator_v1.00_1.pt")
-        airlight_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "B"])
+        airlight_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
+        #checkpt = torch.load("checkpoint/lightcoords_estimator_V1.00_1.pt")
+        #lightcoord_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY])
 
         transform_op = transforms.Compose([transforms.ToTensor(),
                                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
         resized_hazy_img = cv2.resize(hazy_img, constants.TEST_IMAGE_SIZE, cv2.INTER_LINEAR)
         hazy_tensor = torch.unsqueeze(transform_op(resized_hazy_img), 0).to(device)
+        #atmosphere = airlight_model(hazy_tensor, lightcoord_model(hazy_tensor)).cpu().item()
         atmosphere = airlight_model(hazy_tensor).cpu().item()
 
         clear_img = np.ones_like(hazy_img)

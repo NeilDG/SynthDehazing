@@ -24,14 +24,14 @@ from trainers import lightcoords_trainer
 from model import style_transfer_gan as color_gan
 from model import vanilla_cycle_gan as cycle_gan
 import constants
-from utils import dehazing_checker
+from utils import dehazing_proper
 
 parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--airlight_weight', type=float, help="Weight", default="500.0")
+parser.add_option('--airlight_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--d_lr', type=float, help="LR", default="0.005")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--image_size', type=int, help="Weight", default="256")
@@ -93,33 +93,29 @@ def main(argv):
     print("===================================================")
 
     #gt = airlight_trainer.AirlightTrainer(constants.AIRLIGHT_VERSION, constants.ITERATION, device, opts.d_lr)
-    gt = lightcoords_trainer.LightCoordsTrainer(constants.LIGHTS_ESTIMATOR_VERSION, constants.ITERATION, device, opts.d_lr)
+    gt = lightcoords_trainer.LightCoordsTrainer(device, opts.d_lr)
     gt.update_penalties(opts.airlight_weight, opts.comments)
     start_epoch = 0
     iteration = 0
     if (opts.load_previous):
-        checkpoint = torch.load(constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
+        checkpoint = torch.load(constants.LIGHTCOORDS_ESTIMATOR_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1
         iteration = checkpoint['iteration'] + 1
-        gt.load_saved_state(iteration, checkpoint, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.load_saved_state(checkpoint)
 
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.AIRLIGHT_ESTIMATOR_CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.LIGHTCOORDS_ESTIMATOR_CHECKPATH, start_epoch))
         print("===================================================")
 
     # Create the dataloader
     train_loader = dataset_loader.load_model_based_transmission_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_LIGHTCOORDS_PATH_COMPLETE,
                                                                         constants.TEST_IMAGE_SIZE, constants.batch_size, opts.img_to_load)
 
-    # Create dehazing checker
-    #dh_checker = dehazing_checker.DehazingChecker()
-    #dh_checker.check_performance()
-
     # Plot some training images
     if (constants.is_coare == 0):
         _, a, b, _, lights_tensor = next(iter(train_loader))
         show_images(a, "Training - RGB Images")
         show_images(b, "Training - Depth Images")
-        print(np.shape(lights_tensor))
+        print("Training - Lights Tensor", np.shape(lights_tensor))
 
     print("Starting Training Loop...")
     if (constants.is_coare == 0):
@@ -134,12 +130,10 @@ def main(argv):
                 # perform color transfer first
                 rgb_tensor = color_transfer_gan(rgb_tensor)
                 gt.train(rgb_tensor, lights_coord_tensor)
-                #dh_checker.check_performance()
 
                 if ((i + 1) % 400 == 0):
-                    gt.save_states(epoch, iteration, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+                    gt.save_states(epoch, iteration)
                     gt.visdom_report(iteration, rgb_tensor)
-                    #dh_checker.visdom_report(iteration)
 
     else:
         for i, train_data in enumerate(train_loader, 0):
@@ -153,7 +147,7 @@ def main(argv):
             if ((i + 1) % 300 == 0):
                 print("Iterating %d" % i)
 
-        gt.save_states(start_epoch, iteration, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.save_states(start_epoch, iteration)
 
 
 # FIX for broken pipe num_workers issue.

@@ -4,17 +4,9 @@ import os
 from model import dehaze_discriminator as dh
 import constants
 import torch
-import random
 import itertools
-import numpy as np
-import matplotlib.pyplot as plt
 import torch.nn as nn
-import torchvision.utils as vutils
-from utils import logger
 from utils import plot_utils
-from utils import tensor_utils
-import kornia
-from custom_losses import rmse_log_loss
 
 class AirlightTrainer:
     def __init__(self, gan_version, gan_iteration, gpu_device, lr=0.0002):
