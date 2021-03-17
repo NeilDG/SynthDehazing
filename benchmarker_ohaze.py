@@ -1,18 +1,13 @@
 import torch.utils.data
-import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image
-
-from loaders import dataset_loader
 from model import vanilla_cycle_gan as cycle_gan
-from model import style_transfer_gan as style_gan #for TR_V1.02.3 and above.
-from model import ffa_net as ffa
 import constants
 from torchvision import transforms
 import cv2
 from utils import tensor_utils
 from utils import dark_channel_prior
+from utils import dehazing_proper
 import glob
 from skimage.metrics import peak_signal_noise_ratio
 
@@ -111,7 +106,7 @@ def benchmark_ohaze():
                 transmission_blend = dcp_transmission * 0.0 + transmission_img * 1.0
 
                 dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
-                clear_img = tensor_utils.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, tensor_utils.AtmosphereMethod.NETWORK_ESTIMATOR, 0.8)
+                clear_img = dehazing_proper.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR, 0.8)
 
                 #normalize images
                 hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
