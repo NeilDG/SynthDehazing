@@ -38,7 +38,33 @@ class TransmissionDataset_Single(data.Dataset):
             transforms.Normalize((0.5), (0.5))
         ])
 
-        self.airlight_transform_op = transforms.Compose([transforms.ToTensor()])
+        self.light_vector_mean = []
+        self.light_vector_std = []
+
+        self.compute_mean_std()
+
+    def compute_mean_std(self):
+        light_x = []
+        light_z = []
+        print("Computing mean and std of light vectors")
+
+        for i in range(0, len(self.light_list_c)):
+            light_file = open(self.light_list_c[i], "r")
+            light_string = light_file.readline()
+            light_vector = str.split(light_string, ",")
+            light_vector = [float(light_vector[0]), float(light_vector[1])]
+            light_x.append(light_vector[0])
+            light_z.append(light_vector[1])
+            #print("Light vector ",i, " : ", light_vector[0])
+
+        self.light_vector_mean.append(np.mean(light_x))
+        self.light_vector_mean.append(np.mean(light_z))
+
+        self.light_vector_std.append(np.std(light_x))
+        self.light_vector_std.append(np.std(light_z))
+
+        print("X mean: ", self.light_vector_mean[0], " std: ", self.light_vector_std[0])
+        print("Z mean: ", self.light_vector_mean[1], " std: ", self.light_vector_std[1])
 
     def __getitem__(self, idx):
         img_id = self.image_list_a[idx]
@@ -79,10 +105,19 @@ class TransmissionDataset_Single(data.Dataset):
 
         airlight_tensor = torch.tensor(atmosphere, dtype=torch.float32)
 
-        light_file = open(self.light_list_c[idx], "r")
+        light_id = int(img_id.split("/")[3].split(".")[0].split("_")[1]) + 5  # offset
+        light_path = constants.DATASET_LIGHTCOORDS_PATH_COMPLETE + "lights_" + str(light_id) + ".txt"
+
+        #light_file = open(self.light_list_c[idx], "r")
+        light_file = open(light_path, "r")
         light_string = light_file.readline()
         light_vector = str.split(light_string, ",")
         light_vector = [float(light_vector[0]), float(light_vector[1])]
+
+        #normalize data by mean and std
+        light_vector[0] = (light_vector[0] - self.light_vector_mean[0]) / self.light_vector_std[0]
+        light_vector[1] = (light_vector[1] - self.light_vector_mean[1]) / self.light_vector_std[1]
+
         light_coords_tensor = torch.tensor(light_vector, dtype = torch.float32)
 
         return file_name, img_a, img_b, light_coords_tensor, airlight_tensor #hazy img, transmission map, light distance, airlight

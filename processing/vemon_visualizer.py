@@ -198,6 +198,47 @@ def visualize_feature_distribution(path_a, path_b):
 
     plt.show()
 
+def visualize_img_to_light_correlation():
+    img_list = dataset_loader.assemble_unpaired_data(constants.DATASET_HAZY_PATH_COMPLETE, num_image_to_load=100)
+    print("Reading images in ", img_list)
+
+    rgb_list = np.empty((len(img_list), 3), dtype=np.float64)
+    light_list = np.empty((len(img_list), 2), dtype=np.float64)
+    for i in range(len(img_list)):
+        img_id = int(img_list[i].split("/")[3].split(".")[0].split("_")[1]) + 5 #offset
+
+        light_path = constants.DATASET_LIGHTCOORDS_PATH_COMPLETE + "lights_"+str(img_id)+".txt"
+        print("Lights path: ", light_path)
+
+        light_file = open(light_path, "r")
+        light_string = light_file.readline()
+        light_vector = str.split(light_string, ",")
+        light_vector = [float(light_vector[0]), float(light_vector[1])]
+        print("Light vector: ", light_vector)
+
+        img = cv2.imread(img_list[i])
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        red_channel = np.reshape(img[:, :, 0], -1)
+        blue_channel = np.reshape(img[:, :, 1], -1)
+        green_channel = np.reshape(img[:, :, 2], -1)
+
+        rgb_list[i, 0] = np.round(np.mean(red_channel), 4)
+        rgb_list[i, 1] = np.round(np.mean(blue_channel), 4)
+        rgb_list[i, 2] = np.round(np.mean(green_channel), 4)
+
+        light_list[i, 0] = np.round(light_vector[0], 4)
+        light_list[i, 1] = np.round(light_vector[1], 4)
+
+    #x_list = np.random.random(len(img_list))
+    plt.scatter(x=np.arange(0, len(img_list)), y=rgb_list[:, 0], color=(1, 0, 0))
+    plt.scatter(x=np.arange(0, len(img_list)), y=rgb_list[:, 1], color=(0, 1, 0))
+    plt.scatter(x=np.arange(0, len(img_list)), y=rgb_list[:, 2], color=(0, 0, 1))
+    plt.scatter(x=np.arange(0, len(img_list)), y=light_list[:, 0], color=(1, 1, 0))
+    plt.scatter(x=np.arange(0, len(img_list)), y=light_list[:, 1], color=(0, 1, 1))
+    plt.show()
+
+
 def main():
     # visualize_color_distribution(constants.DATASET_VEMON_PATH_PATCH_32, constants.DATASET_DIV2K_PATH_PATCH)
     # visualize_edge_distribution(constants.DATASET_VEMON_PATH_PATCH_32)
@@ -208,8 +249,9 @@ def main():
     # visualize_edge_distribution(constants.DATASET_CLEAN_PATH_PATCH)
     # plt.show()
 
-    visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
+    #visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
     #visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
+    visualize_img_to_light_correlation()
     
 if __name__=="__main__": 
     main()   

@@ -31,11 +31,11 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--airlight_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--d_lr', type=float, help="LR", default="0.005")
+parser.add_option('--airlight_weight', type=float, help="Weight", default="100.0")
+parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--image_size', type=int, help="Weight", default="256")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based airlight estimation network")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Light coords estimation network")
 
 #--img_to_load=-1 --load_previous=0
 # Update config if on COARE
@@ -46,17 +46,13 @@ def update_config(opts):
         print("Using COARE configuration.")
         constants.TEST_IMAGE_SIZE = (opts.image_size, opts.image_size)
         constants.batch_size = opts.batch_size
-
         constants.ITERATION = str(opts.iteration)
         constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
-        constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
-        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/clean/"
-
-        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
-        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
-
+        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/hazy/"
+        constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/depth/"
+        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/clean/"
+        constants.DATASET_LIGHTCOORDS_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/light/"
         constants.num_workers = 4
 
 def show_images(img_tensor, caption):
@@ -112,10 +108,11 @@ def main(argv):
 
     # Plot some training images
     if (constants.is_coare == 0):
-        _, a, b, _, lights_tensor = next(iter(train_loader))
+        _, a, b, light_coords_tensor, _ = next(iter(train_loader))
         show_images(a, "Training - RGB Images")
         show_images(b, "Training - Depth Images")
-        print("Training - Lights Tensor", np.shape(lights_tensor))
+        print("Training - Lights Tensor", np.shape(light_coords_tensor))
+        print("Values: ",light_coords_tensor.numpy())
 
     print("Starting Training Loop...")
     if (constants.is_coare == 0):
@@ -124,27 +121,28 @@ def main(argv):
             for i, train_data in enumerate(train_loader, 0):
                 _, rgb_batch, _, light_batch, airlight_batch = train_data
                 rgb_tensor = rgb_batch.to(device).float()
-                airlight_tensor = airlight_batch.to(device).float()
-                lights_coord_tensor =light_batch.to(device).float()
+                #airlight_tensor = airlight_batch.to(device).float()
+                lights_coord_tensor = light_batch.to(device).float()
 
                 # perform color transfer first
                 rgb_tensor = color_transfer_gan(rgb_tensor)
                 gt.train(rgb_tensor, lights_coord_tensor)
 
-                if ((i + 1) % 400 == 0):
+                if ((i + 1) % 500 == 0):
                     gt.save_states(epoch, iteration)
                     gt.visdom_report(iteration, rgb_tensor)
 
     else:
         for i, train_data in enumerate(train_loader, 0):
-            _, rgb_batch, _, airlight_batch = train_data
+            _, rgb_batch, _, light_batch, airlight_batch = train_data
             rgb_tensor = rgb_batch.to(device).float()
-            airlight_tensor = airlight_batch.to(device).float()
+            #airlight_tensor = airlight_batch.to(device).float()
+            lights_coord_tensor = light_batch.to(device).float()
 
             # perform color transfer first
             rgb_tensor = color_transfer_gan(rgb_tensor)
-            gt.train(rgb_tensor, airlight_tensor)
-            if ((i + 1) % 300 == 0):
+            gt.train(rgb_tensor, lights_coord_tensor)
+            if ((i + 1) % 400 == 0):
                 print("Iterating %d" % i)
 
         gt.save_states(start_epoch, iteration)

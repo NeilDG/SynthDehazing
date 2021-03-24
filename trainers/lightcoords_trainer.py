@@ -14,13 +14,13 @@ from utils import logger
 from utils import plot_utils
 from utils import tensor_utils
 import kornia
-from custom_losses import rmse_log_loss
+from loaders import dataset_loader
 
 class LightCoordsTrainer:
     def __init__(self, gpu_device, lr=0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
-        self.D_A = dh.LightCoordsEstimator_V2(input_nc = 3, num_layers = 5).to(self.gpu_device)
+        self.D_A = dh.LightCoordsEstimator_V2(input_nc = 3, num_layers = 4).to(self.gpu_device)
 
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
@@ -38,7 +38,7 @@ class LightCoordsTrainer:
 
 
     def network_loss(self, pred, target):
-        loss = nn.L1Loss()
+        loss = nn.MSELoss()
         return loss(pred, target)
 
     def update_penalties(self, loss_weight, comments):
@@ -61,11 +61,10 @@ class LightCoordsTrainer:
         #train
         D_A_loss = self.network_loss(self.D_A(rgb_tensor), light_coords_tensor) * self.loss_weight
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(D_A_loss.item())
-        errD = D_A_loss
-        errD.backward()
+        D_A_loss.backward()
 
         self.optimizerDA.step()
-        self.schedulerDA.step(errD)
+        self.schedulerDA.step(D_A_loss)
 
     def visdom_report(self, iteration, train_tensor):
         # report to visdom

@@ -51,7 +51,7 @@ AIRLIGHT_VERSION = "airlight_estimator_v1.00"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "2"
+ITERATION = "13"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -93,7 +93,7 @@ num_epochs = 500
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 2
+batch_size = 16
 infer_size = 16
 
 brightness_enhance = 1.0

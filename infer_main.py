@@ -358,10 +358,6 @@ def visdom_preview():
     gt.visdom_plot_test_image(view_rgb_batch_2, view_gray_batch_2, 3)
 
 def main():
-    VERSION = "dehazer_v1.08"
-    ITERATION = "1"
-    CHECKPATH = 'checkpoint/' + VERSION + "_" + ITERATION +'.pt'
-    #visdom_preview(
     #monet_perceptual_loss()
     color_transfer()
 

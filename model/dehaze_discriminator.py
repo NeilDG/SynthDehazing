@@ -16,7 +16,7 @@ def weights_init(m):
         elif classname.find('BatchNorm') != -1:
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
-            
+
 class Discriminator(nn.Module):
     def __init__(self, input_nc = 3):
         super(Discriminator, self).__init__()
@@ -98,14 +98,14 @@ class LightCoordsEstimator(nn.Module):
         return y
 
 class LightCoordsEstimator_V2(nn.Module):
-    def __init__(self, input_nc = 3, num_layers = 2):
+    def __init__(self, input_nc, num_layers):
         super(LightCoordsEstimator_V2, self).__init__()
 
         # A bunch of convolutions one after another
-        model = [nn.Conv2d(input_nc, 64, 4, stride=3, padding=1),
+        model = [nn.Conv2d(input_nc, 64, 4, stride=2, padding=1),
                  nn.LeakyReLU(0.2, inplace=True)]
 
-        model += [nn.Conv2d(64, 128, 4, stride=3, padding=1),
+        model += [nn.Conv2d(64, 128, 4, stride=2, padding=1),
                   nn.InstanceNorm2d(128),
                   nn.LeakyReLU(0.2, inplace=True)]
 
@@ -114,38 +114,41 @@ class LightCoordsEstimator_V2(nn.Module):
 
         for i in range(0, num_layers):
             model += [nn.Conv2d(in_filters, out_filters, 4, stride=1, padding=1),
-                      nn.InstanceNorm2d(out_filters),
+                      #nn.InstanceNorm2d(out_filters),
+                      nn.AvgPool2d(2, 2),
                       nn.LeakyReLU(0.2, inplace=True)]
 
             in_filters = out_filters
-            out_filters = in_filters * 2
+            out_filters = max(in_filters * 2, 512)
 
 
-        out_filters = int(in_filters / 2)
-
-        for i in range(0, num_layers):
-            model += [nn.Conv2d(in_filters, out_filters, 4, stride=1, padding=1),
-                      nn.InstanceNorm2d(out_filters),
-                      nn.LeakyReLU(0.2, inplace=True)]
-
-            in_filters = out_filters
-            out_filters = int(in_filters / 2)
+        # out_filters = int(in_filters / 2)
+        #
+        # for i in range(0, num_layers):
+        #     model += [nn.Conv2d(in_filters, out_filters, 4, stride=1, padding=1),
+        #               #nn.InstanceNorm2d(out_filters),
+        #               nn.AvgPool2d(2, 1),
+        #               nn.LeakyReLU(0.2, inplace=True)]
+        #
+        #     in_filters = out_filters
+        #     out_filters = int(in_filters / 2)
 
         # FCN classification layer
-        model += nn.Sequential(nn.Conv2d(in_channels = in_filters, out_channels = 64, kernel_size=4, stride=1, padding=0),
-                               nn.Sigmoid())
+        model += nn.Sequential(nn.Conv2d(in_channels = in_filters, out_channels = 64, kernel_size=2, stride=1, padding=0),
+                               nn.AvgPool2d(2, 2),
+                               nn.LeakyReLU())
         self.image_features = nn.Sequential(*model)
+
         self.fully_connected = nn.Sequential(nn.Flatten(),
-                                             nn.Linear(in_features=64 * 15 * 15, out_features=32),
-                                             # the feature map size after sigmoid
-                                             nn.ReLU(True),
-                                             nn.Linear(in_features=32, out_features=32),
-                                             nn.ReLU(True),
-                                             nn.Linear(in_features=32, out_features=16),
-                                             nn.ReLU(True),
-                                             nn.Linear(in_features=16, out_features=8),
-                                             nn.ReLU(True),
-                                             nn.Linear(in_features=8, out_features=2))  # outputs X and Z coordinates)
+                                             nn.Linear(in_features=64 * 1 * 1, out_features=64),
+                                             nn.LeakyReLU(),
+                                             nn.Linear(in_features=64, out_features=64),
+                                             nn.LeakyReLU(),
+                                             nn.Linear(in_features=64, out_features=64),
+                                             nn.LeakyReLU(),
+                                             nn.Linear(in_features=64, out_features=64),
+                                             nn.LeakyReLU(),
+                                             nn.Linear(in_features=64, out_features=2))  # outputs X and Z coordinates)
 
         self.apply(weights_init)
 

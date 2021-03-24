@@ -263,13 +263,13 @@ def create_gta_noisy_data():
         count = count + 1
 
 def create_hazy_data(offset):
-    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_8_clean.mp4"
-    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_8_haze.mp4"
-    depth_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_8_depth.mp4"
+    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_11_clean.mp4"
+    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_11_haze.mp4"
+    depth_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_11_depth.mp4"
 
-    CLEAN_SAVE_PATH = "E:/Synth Hazy 2/clean/"
-    HAZY_SAVE_PATH = "E:/Synth Hazy 2/hazy/"
-    DEPTH_SAVE_PATH = "E:/Synth Hazy 2/depth/"
+    CLEAN_SAVE_PATH = "E:/Synth Hazy 3/clean/"
+    HAZY_SAVE_PATH = "E:/Synth Hazy 3/hazy/"
+    DEPTH_SAVE_PATH = "E:/Synth Hazy 3/depth/"
     
     vidcap = cv2.VideoCapture(clean_video_path)
     count = offset
