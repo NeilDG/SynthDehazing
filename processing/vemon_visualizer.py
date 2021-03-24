@@ -17,49 +17,8 @@ import torchvision.models as models
 from utils import tensor_utils
 from utils import plot_utils
 from loaders import dataset_loader
-
-# def visualize_color_distribution(batch_size):
-#     count = 2000
-#     dataloader = dataset_loader.load_debug_dataset(batch_size, count)
-#
-#     # Plot some training images
-#     name_batch, normal_batch, homog_batch, topdown_batch = next(iter(dataloader))
-#     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
-#     plt.axis("off")
-#     plt.title("Training - Normal Images")
-#     plt.imshow(np.transpose(vutils.make_grid(normal_batch[:batch_size], nrow = 16, padding=2, normalize=True),(1,2,0)))
-#     plt.show()
-#
-#     plt.figure(figsize=(constants.FIG_SIZE,constants.FIG_SIZE))
-#     plt.axis("off")
-#     plt.title("Training - Homog Images")
-#     plt.imshow(np.transpose(vutils.make_grid(homog_batch[:batch_size], nrow = 16, padding=2, normalize=True),(1,2,0)))
-#     plt.show()
-#
-#     rgb_count = np.empty((count, 3), dtype=np.int32)
-#     index = 0
-#     for i, (name, normal_batch, homog_batch, topdown_batch) in enumerate(dataloader, 0):
-#         for n, normal_tensor, homog_tensor, topdown_tensor in zip(name, normal_batch, homog_batch, topdown_batch):
-#             normal_img = tensor_utils.convert_to_opencv(normal_tensor)
-#             homog_img = tensor_utils.convert_to_opencv(homog_tensor)
-#             topdown_img = tensor_utils.convert_to_opencv(topdown_tensor)
-#
-#             rgb_count[index, 0] += np.mean(normal_img[:,:,0] * 255.0)
-#             rgb_count[index, 1] += np.mean(normal_img[:,:,1] * 255.0)
-#             rgb_count[index, 2] += np.mean(normal_img[:,:,2] * 255.0)
-#
-#             if(np.mean(normal_img[:,:,0] * 255.0) < 120.0 or np.mean(normal_img[:,:,1] * 255.0) < 120.0 or
-#                np.mean(normal_img[:,:,2] * 255.0) < 120.0):
-#                 plt.imshow(normal_img)
-#                 plt.show()
-#                 print(n)
-#
-#             index = index + 1
-#
-#     plt.scatter(np.random.normal(0, 1.0, count), rgb_count[:,0], color=(1,0,0))
-#     plt.scatter(np.random.normal(0, 1.0, count), rgb_count[:,1], color=(0,1,0))
-#     plt.scatter(np.random.normal(0, 1.0, count), rgb_count[:,2], color=(0,0,1))
-#     plt.show()
+from model import dehaze_discriminator as dh
+from model import vanilla_cycle_gan as cycle_gan
 
 def visualize_color_distribution(img_dir_path_a, img_dir_path_b):
     img_list = dataset_loader.assemble_unpaired_data(img_dir_path_a, 500)
@@ -238,6 +197,94 @@ def visualize_img_to_light_correlation():
     plt.scatter(x=np.arange(0, len(img_list)), y=light_list[:, 1], color=(0, 1, 1))
     plt.show()
 
+def mse(predictions, targets):
+    return ((predictions - targets) ** 2).mean()
+
+def perform_lightcoord_predictions():
+    img_list = dataset_loader.assemble_unpaired_data(constants.DATASET_CLEAN_PATH_COMPLETE, num_image_to_load=1000)
+    print("Reading images in ", img_list)
+
+    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
+    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    MODEL_CHECKPOINT = "lightcoords_estimator_V1.00_13"
+    PATH_TO_FILE = ABS_PATH_RESULTS + str(MODEL_CHECKPOINT) + ".txt"
+
+    LIGHT_MEAN = [150.29387908289183, 97.35015686388994]
+    LIGHT_STD = [108.93871124236733, 72.016361696062]
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    light_estimator = dh.LightCoordsEstimator_V2(input_nc=3, num_layers=4).to(device)
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + MODEL_CHECKPOINT+ '.pt')
+    light_estimator.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY])
+    print("Light estimator network loaded")
+    print("===================================================")
+
+    # load color transfer
+    color_transfer_checkpt = torch.load(ABS_PATH_CHECKPOINT + 'color_transfer_v1.11_2.pt')
+    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    color_transfer_gan.eval()
+    print("Color transfer GAN model loaded.")
+    print("===================================================")
+
+    img_op = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5), (0.5))
+    ])
+
+    average_mse = 0.0
+    with open(PATH_TO_FILE, "w") as f, torch.no_grad():
+        for i in range(len(img_list)):
+            img_name = img_list[i].split("/")[3].split(".")[0]
+            img_id = int(img_name.split("_")[1]) + 5  # offset
+
+            light_path = constants.DATASET_LIGHTCOORDS_PATH_COMPLETE + "lights_" + str(img_id) + ".txt"
+
+            light_file = open(light_path, "r")
+            light_string = light_file.readline()
+            light_vector = str.split(light_string, ",")
+            light_vector = [float(light_vector[0]), float(light_vector[1])]
+
+            img = cv2.imread(img_list[i])
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+            # img_b = cv2.imread(constants.DATASET_DEPTH_PATH_COMPLETE + img_name+".png")
+            # img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
+            # img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+            # T = tensor_utils.generate_transmission(1 - img_b, np.random.uniform(0.0, 2.5))
+            #
+            # # formulate hazy img
+            # atmosphere = np.random.uniform(0.5, 1.2)
+            # hazy_img_like = np.zeros_like(clear_img)
+            # T = np.resize(T, np.shape(clear_img[:, :, 0]))
+            # hazy_img_like[:, :, 0] = (T * clear_img[:, :, 0]) + atmosphere * (1 - T)
+            # hazy_img_like[:, :, 1] = (T * clear_img[:, :, 1]) + atmosphere * (1 - T)
+            # hazy_img_like[:, :, 2] = (T * clear_img[:, :, 2]) + atmosphere * (1 - T)
+            # img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+            # img_tensor = img_op(img_a).to(device)
+
+            img_tensor = img_op(img).to(device)
+
+            light_preds = light_estimator(color_transfer_gan(torch.unsqueeze(img_tensor, 0)))
+            light_preds = torch.squeeze(light_preds).cpu().numpy()
+
+            light_preds[0] = (light_preds[0] * LIGHT_STD[0]) + LIGHT_MEAN[0]
+            light_preds[1] = (light_preds[1] * LIGHT_STD[1]) + LIGHT_MEAN[1]
+
+            mse_result = mse(light_vector, light_preds)
+            average_mse += mse_result
+
+            print("Img id: " + str(img_id) + " GT light vector: " + str(light_vector) + " Pred light vector: " +str(light_preds)+
+                   " MSE: " +str(mse_result), file=f)
+            print("Img id: " + str(img_id) + " GT light vector: " + str(light_vector) + " Pred light vector: " + str(light_preds) +
+                  " MSE: " + str(mse_result))
+
+        average_mse = np.round(average_mse / len(img_list) * 1.0, 5)
+        print("Overall MSE: " + str(average_mse), file = f)
+
+
 
 def main():
     # visualize_color_distribution(constants.DATASET_VEMON_PATH_PATCH_32, constants.DATASET_DIV2K_PATH_PATCH)
@@ -251,7 +298,8 @@ def main():
 
     #visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
     #visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
-    visualize_img_to_light_correlation()
+    #visualize_img_to_light_correlation()
+    perform_lightcoord_predictions()
     
 if __name__=="__main__": 
     main()   
