@@ -17,6 +17,10 @@ module load cuda/10.1_cudnn-7.6.5
 conda create --name NeilGAN_V2 python=3.9
 source activate NeilGAN_V2
 conda update python
+
+#do fresh install
+conda uninstall pytorch
+
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 conda install -c conda-forge scikit-image
 conda install -c conda-forge kornia
