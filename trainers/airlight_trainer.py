@@ -4,24 +4,14 @@ import os
 from model import dehaze_discriminator as dh
 import constants
 import torch
-import random
 import itertools
-import numpy as np
-import matplotlib.pyplot as plt
 import torch.nn as nn
-import torchvision.utils as vutils
-from utils import logger
 from utils import plot_utils
-from utils import tensor_utils
-import kornia
-from custom_losses import rmse_log_loss
 
 class AirlightTrainer:
-    def __init__(self, gan_version, gan_iteration, gpu_device, lr=0.0002):
+    def __init__(self, gpu_device, lr=0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
-        self.gan_version = gan_version
-        self.gan_iteration = gan_iteration
         self.D_A = dh.AirlightEstimator(input_nc=3, num_layers = 2).to(self.gpu_device)
         self.D_B = dh.AirlightEstimator_V2(input_nc=3, num_layers = 2).to(self.gpu_device)
 
@@ -34,19 +24,17 @@ class AirlightTrainer:
         self.optimizerDB = torch.optim.Adam(itertools.chain(self.D_B.parameters()), lr=self.lr)
         self.schedulerDB = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDB, patience=1000, threshold=0.00005)
 
-
-
     def initialize_dict(self):
-        self.AIRLOSS_B_KEY = "AIRLOSS_B_KEY"
 
+        self.AIRLOSS_B_KEY = "AIRLOSS_B_KEY"
         # what to store in visdom?
         self.losses_dict = {}
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
         self.losses_dict[self.AIRLOSS_B_KEY] = []
 
         self.caption_dict = {}
-        self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D(A) loss per iteration"
-        self.caption_dict[self.AIRLOSS_B_KEY] = "D(B) loss per iteration"
+        self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "Airlight loss per iteration"
+        self.caption_dict[self.AIRLOSS_B_KEY] = "Airlight (with light coords) loss per iteration"
 
 
     def network_loss(self, pred, target):
@@ -94,18 +82,17 @@ class AirlightTrainer:
         self.visdom_reporter.plot_finegrain_loss("Train loss", iteration, self.losses_dict, self.caption_dict)
         self.visdom_reporter.plot_image((train_tensor), "Training RGB images")
 
-    def load_saved_state(self, iteration, checkpoint, model_key, optimizer_key):
-        self.gan_iteration = iteration
-        self.D_A.load_state_dict(checkpoint[model_key + "A"])
-        self.optimizerDA.load_state_dict(checkpoint[model_key + optimizer_key + "A"])
-        self.schedulerDA.load_state_dict(checkpoint[model_key + "scheduler" + "A"])
+    def load_saved_state(self, checkpoint):
+        self.D_A.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "A"])
+        self.optimizerDA.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY + "A"])
+        self.schedulerDA.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "scheduler" + "A"])
 
-        self.D_B.load_state_dict(checkpoint[model_key + "B"])
-        self.optimizerDB.load_state_dict(checkpoint[model_key + optimizer_key + "B"])
-        self.schedulerDB.load_state_dict(checkpoint[model_key + "scheduler" + "B"])
+        self.D_B.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "B"])
+        self.optimizerDB.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY + "B"])
+        self.schedulerDB.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "scheduler" + "B"])
 
 
-    def save_states(self, epoch, iteration, model_key, optimizer_key):
+    def save_states(self, epoch, iteration):
         save_dict = {'epoch': epoch, 'iteration': iteration}
         netDA_state_dict = self.D_A.state_dict()
         netDB_state_dict = self.D_B.state_dict()
@@ -115,13 +102,13 @@ class AirlightTrainer:
         optimizerDB_state_dict = self.optimizerDB.state_dict()
         schedulerDB_state_dict = self.schedulerDB.state_dict()
 
-        save_dict[model_key + "A"] = netDA_state_dict
-        save_dict[model_key + optimizer_key + "A"] = optimizerDA_state_dict
-        save_dict[model_key + "scheduler" + "A"] = schedulerDA_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "A"] = netDA_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY + "A"] = optimizerDA_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "scheduler" + "A"] = schedulerDA_state_dict
 
-        save_dict[model_key + "B"] = netDB_state_dict
-        save_dict[model_key + optimizer_key + "B"] = optimizerDB_state_dict
-        save_dict[model_key + "scheduler" + "B"] = schedulerDB_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "B"] = netDB_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY + "B"] = optimizerDB_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "scheduler" + "B"] = schedulerDB_state_dict
 
         torch.save(save_dict, constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))

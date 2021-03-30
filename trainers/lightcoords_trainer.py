@@ -14,15 +14,13 @@ from utils import logger
 from utils import plot_utils
 from utils import tensor_utils
 import kornia
-from custom_losses import rmse_log_loss
+from loaders import dataset_loader
 
 class LightCoordsTrainer:
-    def __init__(self, gan_version, gan_iteration, gpu_device, lr=0.0002):
+    def __init__(self, gpu_device, lr=0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
-        self.gan_version = gan_version
-        self.gan_iteration = gan_iteration
-        self.D_A = dh.LightCoordsEstimator(input_nc=3).to(self.gpu_device)
+        self.D_A = dh.LightCoordsEstimator_V2(input_nc = 3, num_layers = 4).to(self.gpu_device)
 
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
@@ -40,7 +38,7 @@ class LightCoordsTrainer:
 
 
     def network_loss(self, pred, target):
-        loss = nn.L1Loss()
+        loss = nn.MSELoss()
         return loss(pred, target)
 
     def update_penalties(self, loss_weight, comments):
@@ -63,38 +61,32 @@ class LightCoordsTrainer:
         #train
         D_A_loss = self.network_loss(self.D_A(rgb_tensor), light_coords_tensor) * self.loss_weight
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(D_A_loss.item())
-        errD = D_A_loss
-        errD.backward()
+        D_A_loss.backward()
 
         self.optimizerDA.step()
-        self.schedulerDA.step(errD)
+        self.schedulerDA.step(D_A_loss)
 
     def visdom_report(self, iteration, train_tensor):
         # report to visdom
         self.visdom_reporter.plot_finegrain_loss("Train loss", iteration, self.losses_dict, self.caption_dict)
         self.visdom_reporter.plot_image((train_tensor), "Training RGB images")
 
-    def load_saved_state(self, iteration, checkpoint, model_key, optimizer_key):
-        self.gan_iteration = iteration
-        self.D_A.load_state_dict(checkpoint[model_key + "A"])
-        self.optimizerDA.load_state_dict(checkpoint[model_key + optimizer_key + "A"])
-        self.schedulerDA.load_state_dict(checkpoint[model_key + "scheduler" + "A"])
-
-        self.D_B.load_state_dict(checkpoint[model_key + "B"])
-        self.optimizerDB.load_state_dict(checkpoint[model_key + optimizer_key + "B"])
-        self.schedulerDB.load_state_dict(checkpoint[model_key + "scheduler" + "B"])
+    def load_saved_state(self, checkpoint):
+        self.D_A.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY])
+        self.optimizerDA.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY])
+        self.schedulerDA.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "scheduler"])
 
 
-    def save_states(self, epoch, iteration, model_key, optimizer_key):
+    def save_states(self, epoch, iteration):
         save_dict = {'epoch': epoch, 'iteration': iteration}
         netDA_state_dict = self.D_A.state_dict()
 
         optimizerDA_state_dict = self.optimizerDA.state_dict()
         schedulerDA_state_dict = self.schedulerDA.state_dict()
 
-        save_dict[model_key] = netDA_state_dict
-        save_dict[model_key + optimizer_key] = optimizerDA_state_dict
-        save_dict[model_key + "scheduler"] = schedulerDA_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY] = netDA_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY] = optimizerDA_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "scheduler"] = schedulerDA_state_dict
 
         torch.save(save_dict, constants.LIGHTCOORDS_ESTIMATOR_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
