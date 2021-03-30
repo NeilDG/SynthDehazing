@@ -15,7 +15,8 @@ import visdom
 class VisdomReporter:
     def __init__(self):
         if(constants.is_coare == 1):
-            self.vis = None
+            LOG_PATH = "checkpoint/visdom_log_iteration_"+ str(constants.ITERATION) + ".visdom"
+            self.vis = visdom.Visdom(offline = True, log_to_filename = LOG_PATH)
         else:
             self.vis= visdom.Visdom()
         
@@ -23,8 +24,8 @@ class VisdomReporter:
         self.loss_windows = {}
     
     def plot_image(self, img_tensor, caption):
-        if(constants.is_coare == 1):
-            return
+        # if(constants.is_coare == 1):
+        #     return
         
         img_group = vutils.make_grid(img_tensor[:constants.display_size], nrow = 8, padding=2, normalize=True).cpu()
         if hash(caption) not in self.image_windows:
@@ -66,9 +67,9 @@ class VisdomReporter:
             self.vis.matplot(plt, win = self.loss_windows[hash(caption)], opts = dict(caption = caption))
 
     def plot_finegrain_loss(self, loss_key, iteration, losses_dict, caption_dict):
-        if(constants.is_coare == 1):
-            #TODO: fix issue on matplot user permission for COARE
-            return
+        # if(constants.is_coare == 1):
+        #     #TODO: fix issue on matplot user permission for COARE
+        #     return
         
         loss_keys = list(losses_dict.keys())
         caption_keys = list(caption_dict.keys())
@@ -98,9 +99,9 @@ class VisdomReporter:
         plt.show()
 
     def plot_psnr_ssim_loss(self, loss_key, iteration, losses_dict, caption_dict, base_key):
-        if (constants.is_coare == 1):
-            # TODO: fix issue on matplot user permission for COARE
-            return
+        # if (constants.is_coare == 1):
+        #     # TODO: fix issue on matplot user permission for COARE
+        #     return
 
         loss_keys = list(losses_dict.keys())
         caption_keys = list(caption_dict.keys())

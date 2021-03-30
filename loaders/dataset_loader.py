@@ -152,7 +152,7 @@ def load_model_based_transmission_dataset(img_a, img_b, light_path, crop_size, b
     data_loader = torch.utils.data.DataLoader(
         image_dataset.TransmissionDataset_Single(a_list, b_list, light_list, crop_size),
         batch_size=batch_size,
-        num_workers=4,
+        num_workers=6,
         shuffle=True
     )
     return data_loader

@@ -97,7 +97,7 @@ def benchmark_ohaze():
                 # remove 0.5 normalization for dehazing equation
                 transmission_img = ((transmission_img * 0.5) + 0.5)
 
-                hazy_img = ((hazy_img * 0.5) + 0.5)
+
                 dark_channel = dark_channel_prior.get_dark_channel(hazy_img, 15)
                 dcp_transmission = dark_channel_prior.estimate_transmission(hazy_img, dark_channel_prior.estimate_atmosphere(hazy_img, dark_channel),
                                                                             dark_channel)

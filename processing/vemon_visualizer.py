@@ -200,22 +200,23 @@ def visualize_img_to_light_correlation():
 def mse(predictions, targets):
     return ((predictions - targets) ** 2).mean()
 
-def perform_lightcoord_predictions():
-    img_list = dataset_loader.assemble_unpaired_data(constants.DATASET_CLEAN_PATH_COMPLETE, num_image_to_load=1000)
+def perform_lightcoord_predictions(model_checkpt_name):
+    img_list = dataset_loader.assemble_unpaired_data(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED, num_image_to_load=1000)
     print("Reading images in ", img_list)
 
     ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
     ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
-    MODEL_CHECKPOINT = "lightcoords_estimator_V1.00_13"
-    PATH_TO_FILE = ABS_PATH_RESULTS + str(MODEL_CHECKPOINT) + ".txt"
+    #MODEL_CHECKPOINT = "lightcoords_estimator_V1.00_6"
+    PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     LIGHT_MEAN = [150.29387908289183, 97.35015686388994]
     LIGHT_STD = [108.93871124236733, 72.016361696062]
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     light_estimator = dh.LightCoordsEstimator_V2(input_nc=3, num_layers=4).to(device)
-    checkpoint = torch.load(ABS_PATH_CHECKPOINT + MODEL_CHECKPOINT+ '.pt')
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name+ '.pt')
     light_estimator.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY])
+    light_estimator.eval()
     print("Light estimator network loaded")
     print("===================================================")
 
@@ -299,7 +300,15 @@ def main():
     #visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
     #visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
     #visualize_img_to_light_correlation()
-    perform_lightcoord_predictions()
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_5")
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_6")
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_8")
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_9")
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_13")
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_14")
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_15")
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_16")
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_17")
     
 if __name__=="__main__": 
     main()   

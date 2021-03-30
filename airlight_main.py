@@ -20,9 +20,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import airlight_trainer
-from trainers import lightcoords_trainer
-from model import style_transfer_gan as color_gan
 from model import vanilla_cycle_gan as cycle_gan
+from model import dehaze_discriminator as dh
 import constants
 from utils import dehazing_proper
 
@@ -31,11 +30,11 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--airlight_weight', type=float, help="Weight", default="100.0")
-parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
+parser.add_option('--airlight_weight', type=float, help="Weight", default="1000.0")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--image_size', type=int, help="Weight", default="256")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Light coords estimation network")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network")
 
 #--img_to_load=-1 --load_previous=0
 # Update config if on COARE
@@ -47,11 +46,12 @@ def update_config(opts):
         constants.TEST_IMAGE_SIZE = (opts.image_size, opts.image_size)
         constants.batch_size = opts.batch_size
         constants.ITERATION = str(opts.iteration)
-        constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_VERSION + "_" + constants.ITERATION + '.pt'
+        constants.LIGHTCOORDS_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.LIGHTS_ESTIMATOR_VERSION + "_" + constants.ITERATION + '.pt'
 
         constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/hazy/"
         constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/depth/"
         constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/clean/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/clean - styled/"
         constants.DATASET_LIGHTCOORDS_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/light/"
         constants.num_workers = 4
 
@@ -69,11 +69,11 @@ def main(argv):
     (opts, args) = parser.parse_args(argv)
     update_config(opts)
     print("=====================BEGIN============================")
-    print("Is Coare? %d Has GPU available? %d Count: %d" % (
-        constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
-    print("Torch CUDA version: %s" % torch.version.cuda)
+    print("Is Coare? %d Has GPU available? %d Count: %d Torch CUDA version: %s"
+          % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count(), torch.version.cuda))
 
-    manualSeed = random.randint(1, 10000)  # use if you want new results
+    #manualSeed = random.randint(1, 10000)  # use if you want new results
+    manualSeed = 1 #set this for experiments and promoting fixed results
     random.seed(manualSeed)
     torch.manual_seed(manualSeed)
 
@@ -88,22 +88,30 @@ def main(argv):
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
-    #gt = airlight_trainer.AirlightTrainer(constants.AIRLIGHT_VERSION, constants.ITERATION, device, opts.d_lr)
-    gt = lightcoords_trainer.LightCoordsTrainer(device, opts.d_lr)
+    #load light coords estimation network
+    light_coords_checkpt = torch.load('checkpoint/lightcoords_estimator_V1.00_8.pt')
+    light_estimator = dh.LightCoordsEstimator_V2(input_nc = 3, num_layers = 4).to(device)
+    light_estimator.load_state_dict(light_coords_checkpt[constants.DISCRIMINATOR_KEY])
+    light_estimator.eval()
+    print("Light estimator network loaded")
+    print("===================================================")
+
+    gt = airlight_trainer.AirlightTrainer(device, opts.d_lr)
     gt.update_penalties(opts.airlight_weight, opts.comments)
     start_epoch = 0
+
     iteration = 0
     if (opts.load_previous):
-        checkpoint = torch.load(constants.LIGHTCOORDS_ESTIMATOR_CHECKPATH)
+        checkpoint = torch.load(constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1
         iteration = checkpoint['iteration'] + 1
         gt.load_saved_state(checkpoint)
 
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.LIGHTCOORDS_ESTIMATOR_CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.AIRLIGHT_ESTIMATOR_CHECKPATH, start_epoch))
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_model_based_transmission_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_LIGHTCOORDS_PATH_COMPLETE,
+    train_loader = dataset_loader.load_model_based_transmission_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_LIGHTCOORDS_PATH_COMPLETE,
                                                                         constants.TEST_IMAGE_SIZE, constants.batch_size, opts.img_to_load)
 
     # Plot some training images
@@ -118,19 +126,30 @@ def main(argv):
     if (constants.is_coare == 0):
         for epoch in range(start_epoch, constants.num_epochs):
             # For each batch in the dataloader
+            print("Feeding ground truth light data. Epoch: ", epoch)
             for i, train_data in enumerate(train_loader, 0):
                 _, rgb_batch, _, light_batch, airlight_batch = train_data
                 rgb_tensor = rgb_batch.to(device).float()
-                #airlight_tensor = airlight_batch.to(device).float()
+                airlight_tensor = airlight_batch.to(device).float()
                 lights_coord_tensor = light_batch.to(device).float()
 
                 # perform color transfer first
-                rgb_tensor = color_transfer_gan(rgb_tensor)
-                gt.train(rgb_tensor, lights_coord_tensor)
+                #rgb_tensor = color_transfer_gan(rgb_tensor)
 
-                if ((i + 1) % 500 == 0):
-                    gt.save_states(epoch, iteration)
-                    gt.visdom_report(iteration, rgb_tensor)
+                gt.train(rgb_tensor, lights_coord_tensor, airlight_tensor)
+
+            #For each batch, use pretrained light coord network to account for errors
+            print("Feeding light estimator training data. Epoch: ", epoch)
+            for i, train_data in enumerate(train_loader, 0):
+                _, rgb_batch, _, _, airlight_batch = train_data
+                rgb_tensor = rgb_batch.to(device).float()
+                airlight_tensor = airlight_batch.to(device).float()
+
+                light_estimator.eval()
+                gt.train(rgb_tensor, light_estimator(rgb_tensor), airlight_tensor)
+
+            gt.save_states(epoch, iteration)
+            gt.visdom_report(iteration, rgb_tensor)
 
     else:
         for i, train_data in enumerate(train_loader, 0):

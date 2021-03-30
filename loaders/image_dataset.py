@@ -30,12 +30,12 @@ class TransmissionDataset_Single(data.Dataset):
 
         self.final_transform_op = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5), (0.5))
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
         self.depth_transform_op = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5), (0.5))
+            transforms.Normalize((0.5,), (0.5,))
         ])
 
         self.light_vector_mean = []
@@ -76,8 +76,9 @@ class TransmissionDataset_Single(data.Dataset):
         clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         img_id = self.image_list_b[idx]
-        img_b = cv2.imread(img_id);
+        img_b = cv2.imread(img_id)
         img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
+        img_b = cv2.resize(img_b, np.shape(clear_img[:, :, 0]))
         img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         T = tensor_utils.generate_transmission(1 - img_b, np.random.uniform(0.0, 2.5)) #also include clear samples
         img_b = cv2.normalize(T, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
@@ -105,7 +106,11 @@ class TransmissionDataset_Single(data.Dataset):
 
         airlight_tensor = torch.tensor(atmosphere, dtype=torch.float32)
 
-        light_id = int(img_id.split("/")[3].split(".")[0].split("_")[1]) + 5  # offset
+        if(constants.is_coare == 0):
+            light_id = int(img_id.split("/")[3].split(".")[0].split("_")[1]) + 5  # offset
+        else:
+            light_id = int(img_id.split("/")[6].split(".")[0].split("_")[1]) + 5  # offset
+
         light_path = constants.DATASET_LIGHTCOORDS_PATH_COMPLETE + "lights_" + str(light_id) + ".txt"
 
         #light_file = open(self.light_list_c[idx], "r")

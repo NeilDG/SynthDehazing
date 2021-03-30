@@ -8,6 +8,7 @@ DATASET_VEMON_PATH_PATCH_128 = "E:/VEMON_Transfer/train/128_patch/"
 
 DATASET_HAZY_PATH_COMPLETE = "E:/Synth Hazy 2/hazy/"
 DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy 2/clean/"
+DATASET_CLEAN_PATH_COMPLETE_STYLED = "E:/Synth Hazy 2/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE = "E:/Synth Hazy 2/depth/"
 DATASET_LIGHTCOORDS_PATH_COMPLETE = "E:/Synth Hazy 2/light/"
 
@@ -47,11 +48,11 @@ DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "color_transfer_v1.11"
 TRANSMISSION_VERSION = "transmission_estimator_v1.02"
-AIRLIGHT_VERSION = "airlight_estimator_v1.00"
+AIRLIGHT_VERSION = "airlight_estimator_v1.01"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "13"
+ITERATION = "1"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -89,11 +90,11 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 500
+num_epochs = 30
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 16
+batch_size = 128
 infer_size = 16
 
 brightness_enhance = 1.0

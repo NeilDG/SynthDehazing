@@ -201,6 +201,52 @@ def color_transfer():
             show_images(input_tensor, "Input images: " +str(item_number))
             show_images(result, "Color transfer: " + str(item_number))
 
+def save_color_images():
+    SAVE_PATH = "E:/Synth Hazy 2/clean - styled/"
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+
+    # load color transfer
+    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_2.pt')
+    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    color_transfer_gan.eval()
+    print("Color transfer GAN model loaded.")
+    print("===================================================")
+
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
+
+    # Plot some training images
+    name_batch, dirty_batch, clean_batch = next(iter(dataloader))
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Training - Old Images")
+    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.show()
+
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Training - New Images")
+    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.show()
+
+    item_number = 0
+    for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
+        with torch.no_grad():
+            input_tensor = dirty_batch.to(device)
+            item_number = item_number + 1
+            result = color_transfer_gan(input_tensor)
+
+            for i in range(0, len(result)):
+                img_name = name[i].split(".")[0]
+                style_img = result[i].cpu().numpy()
+                style_img = ((style_img * 0.5) + 0.5) #remove normalization
+                style_img = np.rollaxis(style_img, 0, 3)
+                style_img = cv2.normalize(style_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                style_img = cv2.cvtColor(style_img, cv2.COLOR_BGR2RGB)
+
+                cv2.imwrite(SAVE_PATH + img_name + ".png", style_img)
+                print("Saved styled image: ", img_name)
+
 def produce_video_batch():
     VIDEO_FOLDER_PATH = "E:/VEMON Dataset/vemon videos/"
     #VIDEO_FOLDER_PATH = "E:/VEMON Dataset/mmda videos/"
@@ -331,35 +377,10 @@ def benchmark_reside():
                 fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
                 column = 0
 
-def visdom_preview():
-    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    gt = transmission_trainer.TransmissionTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, 0.0002, 0.0002)
-    checkpoint = torch.load(constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
-    start_epoch = checkpoint['epoch'] + 1
-    iteration = checkpoint['iteration'] + 1
-    gt.load_saved_state(iteration, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY,
-                        constants.OPTIMIZER_KEY)
-
-    print("Loaded checkpt: %s Current epoch: %d" % (constants.TRANSMISSION_ESTIMATOR_CHECKPATH, start_epoch))
-    print("===================================================")
-
-    ohaze_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.display_size, 500)
-    reside_loader = dataset_loader.load_transmision_test_dataset(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, constants.display_size, 500)
-
-    __, view_rgb_batch_1, view_gray_batch_1 = next(iter(ohaze_loader))
-    ___, view_rgb_batch_2, view_gray_batch_2 = next(iter(reside_loader))
-
-    view_rgb_batch_1 = view_rgb_batch_1.to(device).float()
-    view_gray_batch_1 = view_gray_batch_1.to(device).float()
-    gt.visdom_plot_test_image(view_rgb_batch_1, view_gray_batch_1, 2)
-
-    view_rgb_batch_2 = view_rgb_batch_2.to(device).float()
-    view_gray_batch_2 = view_gray_batch_2.to(device).float()
-    gt.visdom_plot_test_image(view_rgb_batch_2, view_gray_batch_2, 3)
-
 def main():
     #monet_perceptual_loss()
-    color_transfer()
+    #color_transfer()
+    save_color_images()
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__":
