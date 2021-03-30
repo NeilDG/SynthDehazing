@@ -26,6 +26,7 @@ conda install -c conda-forge scikit-image
 conda install -c conda-forge kornia
 pip install opencv-python
 pip install visdom
+pip install requests
 
 conda list
 
