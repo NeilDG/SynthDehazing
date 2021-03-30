@@ -10,17 +10,14 @@ parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--image_size', type=int, help="Weight", default="256")
+parser.add_option('--batch_size', type=int, help="Weight", default="64")
 
 def update_config(opts):
     constants.is_coare = opts.coare
 
     if (constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.TEST_IMAGE_SIZE = (opts.image_size, opts.image_size)
-        constants.batch_size = opts.batch_size
-        constants.ITERATION = str(opts.iteration)
         constants.LIGHTCOORDS_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.LIGHTS_ESTIMATOR_VERSION + "_" + constants.ITERATION + '.pt'
-
         constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/hazy/"
         constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/depth/"
         constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/clean/"
