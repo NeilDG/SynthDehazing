@@ -298,14 +298,14 @@ def main():
     # visualize_edge_distribution(constants.DATASET_CLEAN_PATH_PATCH)
     # plt.show()
 
-    #visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
+    visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
     #visualize_feature_distribution(constants.DATASET
     # _HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
     #visualize_img_to_light_correlation()
     #perform_lightcoord_predictions("lightcoords_estimator_V1.00_5")
     #perform_lightcoord_predictions("lightcoords_estimator_V1.00_6")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_8")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_9")
+    #perform_lightcoord_predictions("lightcoords_estimator_V1.00_8")
+    #perform_lightcoord_predictions("lightcoords_estimator_V1.00_9")
     # perform_lightcoord_predictions("lightcoords_estimator_V1.00_13")
     # perform_lightcoord_predictions("lightcoords_estimator_V1.00_14")
     # perform_lightcoord_predictions("lightcoords_estimator_V1.00_15")

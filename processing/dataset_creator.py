@@ -322,10 +322,10 @@ def create_hazy_data(offset):
 def main():
     VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_1.mp4"
     SAVE_PATH = "E:/Synth Hazy 2/directionality/"
-    create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (1024, 768), (256, 256), offset = 0, repeats = 7)
+    create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (512, 512), (256, 256), offset = 0, repeats = 7)
 
     VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_2.mp4"
-    create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (1024, 768), (256, 256), offset=0, repeats=7)
+    create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (512, 512), (256, 256), offset=0, repeats=7)
 
     # PATH_A = constants.DATASET_DIV2K_PATH
     # SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH

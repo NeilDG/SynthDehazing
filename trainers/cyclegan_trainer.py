@@ -18,6 +18,7 @@ from utils import logger
 from utils import plot_utils
 from utils import pytorch_colors
 from utils import tensor_utils
+import torch.cuda.amp as amp
 
 class CycleGANTrainer:
     
@@ -34,6 +35,8 @@ class CycleGANTrainer:
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr = self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters(), self.D_B.parameters()), lr = self.d_lr)
         self.initialize_dict()
+
+        self.fp16_scaler = amp.GradScaler() #for automatic mixed precision
         
     
     def initialize_dict(self):
@@ -136,61 +139,67 @@ class CycleGANTrainer:
         return loss(pred, target)
 
     def train(self, dirty_tensor, clean_tensor):
-        clean_like = self.G_A(dirty_tensor)
-        dirty_like = self.G_B(clean_tensor)
-        
-        self.D_A.train()
-        self.D_B.train()
-        self.optimizerD.zero_grad()
-        
-        prediction = self.D_A(clean_tensor)
-        real_tensor = torch.ones_like(prediction)
-        fake_tensor = torch.zeros_like(prediction)
-        
-        D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor), real_tensor) * self.adv_weight
-        D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach()), fake_tensor) * self.adv_weight
-        
-        prediction = self.D_B(dirty_tensor)
-        real_tensor = torch.ones_like(prediction)
-        fake_tensor = torch.zeros_like(prediction)
-        
-        D_B_real_loss = self.adversarial_loss(self.D_B(dirty_tensor), real_tensor) * self.adv_weight
-        D_B_fake_loss = self.adversarial_loss(self.D_B(dirty_like.detach()), fake_tensor) * self.adv_weight
-        
-        errD = D_A_real_loss + D_A_fake_loss + D_B_real_loss + D_B_fake_loss
-        if(errD.item() > 0.1):
-            errD.backward()
-            self.optimizerD.step()
-        
-        self.G_A.train()
-        self.G_B.train()
-        self.optimizerG.zero_grad()
-        
-        identity_like = self.G_A(clean_tensor)
-        clean_like = self.G_A(dirty_tensor)
-        dirty_like = self.G_B(clean_like)
-        
-        identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
-        A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
-        A_color_shift_loss = self.color_shift_loss(clean_like, clean_tensor) * self.color_shift_weight
-        A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
-    
-        dirty_like = self.G_B(clean_tensor)
-        B_likeness_loss = self.likeness_loss(dirty_like, dirty_tensor) * self.likeness_weight
-        B_color_shift_loss = self.color_shift_loss(dirty_like, dirty_like) * self.color_shift_weight
-        B_cycle_loss = self.cycle_loss(self.G_A(dirty_like), clean_tensor) * self.cycle_weight
-        
-        prediction = self.D_A(clean_like)
-        real_tensor = torch.ones_like(prediction)
-        A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
-        
-        prediction = self.D_B(dirty_like)
-        real_tensor = torch.ones_like(prediction)
-        B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
-        
-        errG = identity_loss + B_likeness_loss + A_color_shift_loss + B_color_shift_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
-        errG.backward()
-        self.optimizerG.step()
+        with amp.autocast():
+            clean_like = self.G_A(dirty_tensor)
+            dirty_like = self.G_B(clean_tensor)
+
+            self.D_A.train()
+            self.D_B.train()
+            self.optimizerD.zero_grad()
+
+            prediction = self.D_A(clean_tensor)
+            real_tensor = torch.ones_like(prediction)
+            fake_tensor = torch.zeros_like(prediction)
+
+            D_A_real_loss = self.adversarial_loss(self.D_A(clean_tensor), real_tensor) * self.adv_weight
+            D_A_fake_loss = self.adversarial_loss(self.D_A(clean_like.detach()), fake_tensor) * self.adv_weight
+
+            prediction = self.D_B(dirty_tensor)
+            real_tensor = torch.ones_like(prediction)
+            fake_tensor = torch.zeros_like(prediction)
+
+            D_B_real_loss = self.adversarial_loss(self.D_B(dirty_tensor), real_tensor) * self.adv_weight
+            D_B_fake_loss = self.adversarial_loss(self.D_B(dirty_like.detach()), fake_tensor) * self.adv_weight
+
+            errD = D_A_real_loss + D_A_fake_loss + D_B_real_loss + D_B_fake_loss
+            #errD.backward()
+            #self.optimizerD.step()
+            self.fp16_scaler.scale(errD).backward()
+            self.fp16_scaler.step(self.optimizerD)
+
+            self.G_A.train()
+            self.G_B.train()
+            self.optimizerG.zero_grad()
+
+            identity_like = self.G_A(clean_tensor)
+            clean_like = self.G_A(dirty_tensor)
+            dirty_like = self.G_B(clean_like)
+
+            identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
+            A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
+            A_color_shift_loss = self.color_shift_loss(clean_like, clean_tensor) * self.color_shift_weight
+            A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
+
+            dirty_like = self.G_B(clean_tensor)
+            B_likeness_loss = self.likeness_loss(dirty_like, dirty_tensor) * self.likeness_weight
+            B_color_shift_loss = self.color_shift_loss(dirty_like, dirty_like) * self.color_shift_weight
+            B_cycle_loss = self.cycle_loss(self.G_A(dirty_like), clean_tensor) * self.cycle_weight
+
+            prediction = self.D_A(clean_like)
+            real_tensor = torch.ones_like(prediction)
+            A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
+
+            prediction = self.D_B(dirty_like)
+            real_tensor = torch.ones_like(prediction)
+            B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
+
+            errG = identity_loss + B_likeness_loss + A_color_shift_loss + B_color_shift_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
+            # errG.backward()
+            # self.optimizerG.step()
+            self.fp16_scaler.scale(errG).backward()
+            self.fp16_scaler.step(self.optimizerG)
+
+            self.fp16_scaler.update()
         
         #what to put to losses dict for visdom reporting?
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
