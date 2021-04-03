@@ -21,12 +21,10 @@ from utils import tensor_utils
 
 class Div2kTrainer:
     
-    def __init__(self, gan_version, gan_iteration, gpu_device, g_lr, d_lr):
+    def __init__(self, gpu_device, g_lr, d_lr):
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
-        self.gan_version = gan_version
-        self.gan_iteration = gan_iteration
         self.G_A = discrim_gan.Generator(n_residual_blocks=10).to(self.gpu_device)
         self.G_B = discrim_gan.Generator(n_residual_blocks=10).to(self.gpu_device)
         self.D_A = discrim_gan.Discriminator().to(self.gpu_device) #use CycleGAN's discriminator
@@ -172,7 +170,7 @@ class Div2kTrainer:
         dirty_like = self.G_B(clean_like)
         
         identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
-        #A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
+        A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
         A_color_shift_loss = self.color_shift_loss(clean_like, clean_tensor) * self.color_shift_weight
         A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
     
@@ -256,15 +254,15 @@ class Div2kTrainer:
         plt.savefig(LOCATION + "result_" + str(file_number) + ".png")
         plt.show()
         
-    def load_saved_state(self, iteration, checkpoint, generator_key, discriminator_key, optimizer_key):
-        self.G_A.load_state_dict(checkpoint[generator_key + "A"])
-        self.G_B.load_state_dict(checkpoint[generator_key + "B"])
-        self.D_A.load_state_dict(checkpoint[discriminator_key + "A"])
-        self.D_B.load_state_dict(checkpoint[discriminator_key + "B"])
-        self.optimizerG.load_state_dict(checkpoint[generator_key + optimizer_key])
-        self.optimizerD.load_state_dict(checkpoint[discriminator_key + optimizer_key])
+    def load_saved_state(self, checkpoint):
+        self.G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
+        self.G_B.load_state_dict(checkpoint[constants.GENERATOR_KEY + "B"])
+        self.D_A.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "A"])
+        self.D_B.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "B"])
+        self.optimizerG.load_state_dict(checkpoint[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY])
+        self.optimizerD.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY])
     
-    def save_states(self, epoch, iteration, path, generator_key, disriminator_key, optimizer_key):
+    def save_states(self, epoch, iteration):
         save_dict = {'epoch': epoch, 'iteration': iteration}
         netGA_state_dict = self.G_A.state_dict()
         netGB_state_dict = self.G_B.state_dict()
@@ -274,13 +272,13 @@ class Div2kTrainer:
         optimizerG_state_dict = self.optimizerG.state_dict()
         optimizerD_state_dict = self.optimizerD.state_dict()
         
-        save_dict[generator_key + "A"] = netGA_state_dict
-        save_dict[generator_key + "B"] = netGB_state_dict
-        save_dict[disriminator_key + "A"] = netDA_state_dict
-        save_dict[disriminator_key + "B"] = netDB_state_dict
+        save_dict[constants.GENERATOR_KEY + "A"] = netGA_state_dict
+        save_dict[constants.GENERATOR_KEY + "B"] = netGB_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "A"] = netDA_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "B"] = netDB_state_dict
         
-        save_dict[generator_key + optimizer_key] = optimizerG_state_dict
-        save_dict[disriminator_key + optimizer_key] = optimizerD_state_dict
+        save_dict[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY] = optimizerG_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY] = optimizerD_state_dict
     
-        torch.save(save_dict, path)
+        torch.save(save_dict, constants.COLOR_TRANSFER_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))

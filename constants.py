@@ -11,6 +11,12 @@ DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy 2/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED = "E:/Synth Hazy 2/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE = "E:/Synth Hazy 2/depth/"
 DATASET_LIGHTCOORDS_PATH_COMPLETE = "E:/Synth Hazy 2/light/"
+DATASET_LIGHTDIRECTIONS_PATH_COMPLETE = "E:/Synth Hazy 2/directionality/"
+
+DATASET_CLEAN_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/clean/"
+DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "E:/Synth Hazy - Test Set/clean - styled/"
+DATASET_DEPTH_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/depth/"
+DATASET_LIGHTCOORDS_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/light/"
 
 DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
@@ -46,7 +52,7 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
-COLOR_TRANSFER_VERSION = "color_transfer_v1.11"
+COLOR_TRANSFER_VERSION = "color_transfer_v2.00"
 TRANSMISSION_VERSION = "transmission_estimator_v1.02"
 AIRLIGHT_VERSION = "airlight_estimator_v1.01"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
@@ -90,11 +96,11 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 30
+num_epochs = 40
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 128
+batch_size = 256
 infer_size = 16
 
 brightness_enhance = 1.0
