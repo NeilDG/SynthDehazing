@@ -202,7 +202,7 @@ def color_transfer():
             show_images(result, "Color transfer: " + str(item_number))
 
 def save_color_images():
-    SAVE_PATH = "E:/Synth Hazy 2/clean - styled/"
+    SAVE_PATH = "E:/Synth Hazy - Test Set/clean - styled/"
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
     # load color transfer
@@ -213,7 +213,7 @@ def save_color_images():
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
 
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))

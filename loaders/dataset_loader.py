@@ -157,6 +157,19 @@ def load_model_based_transmission_dataset(img_a, img_b, light_path, crop_size, b
     )
     return data_loader
 
+def load_model_based_transmission_dataset_test(img_a, img_b, light_path, crop_size, batch_size=8, num_image_to_load=-1):
+    a_list, b_list = assemble_paired_data(img_a, img_b, num_image_to_load)
+    light_list = assemble_unpaired_data(light_path, num_image_to_load=num_image_to_load)
+    print("Length of test transmission dataset: %d, %d %d" % (len(a_list), len(b_list), len(light_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.TransmissionDataset_Single(a_list, b_list, light_list, crop_size),
+        batch_size=batch_size,
+        num_workers=2,
+        shuffle=True
+    )
+    return data_loader
+
 def load_transmission_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
     a_list, b_list = assemble_paired_data(path_a, path_b, num_image_to_load)
     print("Length of training transmission dataset: %d, %d" % (len(a_list), len(b_list)))
@@ -223,11 +236,26 @@ def load_color_test_dataset(path_a, batch_size=8, num_image_to_load=-1):
     return rgb_data_loader
 
 
-def load_color_train_dataset(path_a, path_b, path_c, batch_size=8, num_image_to_load=-1):
+# def load_color_train_dataset(path_a, path_b, path_c, batch_size=8, num_image_to_load=-1):
+#     a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
+#     b_list = assemble_unpaired_data(path_b, num_image_to_load / 2)
+#     # specific for Hazy dataset. Combine synth and real data
+#     a_list = a_list + b_list
+#     c_list = assemble_unpaired_data(path_c, len(a_list), True)
+#
+#     print("Length of images: %d, %d." % (len(a_list), len(c_list)))
+#
+#     data_loader = torch.utils.data.DataLoader(
+#         image_dataset.ColorTransferDataset(a_list, c_list),
+#         batch_size=batch_size,
+#         num_workers=6,
+#         shuffle=True
+#     )
+#
+#     return data_loader
+
+def load_color_train_dataset(path_a, path_c, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
-    b_list = assemble_unpaired_data(path_b, num_image_to_load / 2)
-    # specific for Hazy dataset. Combine synth and real data
-    a_list = a_list + b_list
     c_list = assemble_unpaired_data(path_c, len(a_list), True)
 
     print("Length of images: %d, %d." % (len(a_list), len(c_list)))

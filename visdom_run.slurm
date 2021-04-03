@@ -12,8 +12,8 @@
 module load anaconda
 
 # activate your python environment
-source activate NeilGAN
-visdom -env_path "/scratch1/scratch2/neil.delgallego/Visdom/"
+source activate NeilGAN_V2
+visdom -env_path "/scratch1/scratch2/neil.delgallego/Visdom/" -p 1193 --hostname 'saliksik.asti.dost.gov.ph'
 source deactivate
 
 module unload anaconda

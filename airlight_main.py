@@ -23,18 +23,20 @@ from trainers import airlight_trainer
 from model import vanilla_cycle_gan as cycle_gan
 from model import dehaze_discriminator as dh
 import constants
-from utils import dehazing_proper
+import itertools
 
 parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--airlight_weight', type=float, help="Weight", default="1000.0")
-parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--airlight_weight', type=float, help="Weight", default="100.0")
+parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--image_size', type=int, help="Weight", default="256")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network using same architecture for A and B. \n "
+                                                                                     "Light estimates from coord network are included in training. \n"
+                                                                                     "New architecture based on CycleGAN.")
 
 #--img_to_load=-1 --load_previous=0
 # Update config if on COARE
@@ -89,7 +91,7 @@ def main(argv):
     print("===================================================")
 
     #load light coords estimation network
-    light_coords_checkpt = torch.load('checkpoint/lightcoords_estimator_V1.00_8.pt')
+    light_coords_checkpt = torch.load('checkpoint/lightcoords_estimator_V1.00_9.pt')
     light_estimator = dh.LightCoordsEstimator_V2(input_nc = 3, num_layers = 4).to(device)
     light_estimator.load_state_dict(light_coords_checkpt[constants.DISCRIMINATOR_KEY])
     light_estimator.eval()
@@ -114,6 +116,9 @@ def main(argv):
     train_loader = dataset_loader.load_model_based_transmission_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_LIGHTCOORDS_PATH_COMPLETE,
                                                                         constants.TEST_IMAGE_SIZE, constants.batch_size, opts.img_to_load)
 
+    test_loader = dataset_loader.load_model_based_transmission_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, constants.DATASET_LIGHTCOORDS_PATH_COMPLETE_TEST,
+                                                                        constants.TEST_IMAGE_SIZE, constants.batch_size, 500)
+
     # Plot some training images
     if (constants.is_coare == 0):
         _, a, b, light_coords_tensor, _ = next(iter(train_loader))
@@ -122,12 +127,16 @@ def main(argv):
         print("Training - Lights Tensor", np.shape(light_coords_tensor))
         print("Values: ",light_coords_tensor.numpy())
 
+        _, a, b, _, _ = next(iter(test_loader))
+        show_images(a, "Test - RGB Images")
+        show_images(b, "Test - Depth Images")
+
     print("Starting Training Loop...")
     if (constants.is_coare == 0):
         for epoch in range(start_epoch, constants.num_epochs):
             # For each batch in the dataloader
             print("Feeding ground truth light data. Epoch: ", epoch)
-            for i, train_data in enumerate(train_loader, 0):
+            for i, (train_data, test_data) in enumerate(zip(train_loader, itertools.cycle(test_loader))):
                 _, rgb_batch, _, light_batch, airlight_batch = train_data
                 rgb_tensor = rgb_batch.to(device).float()
                 airlight_tensor = airlight_batch.to(device).float()
@@ -135,21 +144,39 @@ def main(argv):
 
                 # perform color transfer first
                 #rgb_tensor = color_transfer_gan(rgb_tensor)
+                
+                gt.train(rgb_tensor, lights_coord_tensor, airlight_tensor, i)
 
-                gt.train(rgb_tensor, lights_coord_tensor, airlight_tensor)
+                #check test set
+                _, rgb_batch, _, light_batch, airlight_batch = test_data
+                rgb_tensor_test = rgb_batch.to(device).float()
+                airlight_tensor = airlight_batch.to(device).float()
+                lights_coord_tensor = light_batch.to(device).float()
+                
+                gt.test(rgb_tensor_test, lights_coord_tensor, airlight_tensor, i)
+
+            gt.save_states(epoch, iteration)
+            gt.visdom_report(iteration, rgb_tensor, rgb_tensor_test)
 
             #For each batch, use pretrained light coord network to account for errors
             print("Feeding light estimator training data. Epoch: ", epoch)
-            for i, train_data in enumerate(train_loader, 0):
+            for i, (train_data, test_data) in enumerate(zip(train_loader, itertools.cycle(test_loader))):
                 _, rgb_batch, _, _, airlight_batch = train_data
                 rgb_tensor = rgb_batch.to(device).float()
                 airlight_tensor = airlight_batch.to(device).float()
 
                 light_estimator.eval()
-                gt.train(rgb_tensor, light_estimator(rgb_tensor), airlight_tensor)
+                gt.train(rgb_tensor, light_estimator(rgb_tensor), airlight_tensor, i)
+
+                # check test set
+                _, rgb_batch, _, _, airlight_batch = test_data
+                rgb_tensor_test = rgb_batch.to(device).float()
+                airlight_tensor = airlight_batch.to(device).float()
+
+                gt.test(rgb_tensor_test, light_estimator(rgb_tensor_test), airlight_tensor, i)
 
             gt.save_states(epoch, iteration)
-            gt.visdom_report(iteration, rgb_tensor)
+            gt.visdom_report(iteration, rgb_tensor, rgb_tensor_test)
 
     else:
         for i, train_data in enumerate(train_loader, 0):

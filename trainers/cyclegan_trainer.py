@@ -19,7 +19,7 @@ from utils import plot_utils
 from utils import pytorch_colors
 from utils import tensor_utils
 
-class Div2kTrainer:
+class CycleGANTrainer:
     
     def __init__(self, gpu_device, g_lr, d_lr):
         self.gpu_device = gpu_device
@@ -65,7 +65,7 @@ class Div2kTrainer:
         self.caption_dict[constants.CYCLE_LOSS_KEY] = "Cycle loss per iteration"
         
     
-    def update_penalties(self, adv_weight, id_weight, likeness_weight, cycle_weight, color_shift_weight):
+    def update_penalties(self, adv_weight, id_weight, likeness_weight, cycle_weight, color_shift_weight, comments):
         #what penalties to use for losses?
         self.adv_weight = adv_weight
         self.id_weight = id_weight
@@ -77,6 +77,7 @@ class Div2kTrainer:
         HYPERPARAMS_PATH = "checkpoint/" + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
             print("Version: ", constants.COLOR_TRANSFER_CHECKPATH, file = f)
+            print("Comment: ", comments, file = f)
             print("Learning rate for G: ", str(self.g_lr), file = f)
             print("Learning rate for D: ", str(self.d_lr), file = f)
             print("====================================", file = f)

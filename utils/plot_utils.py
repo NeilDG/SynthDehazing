@@ -98,6 +98,23 @@ class VisdomReporter:
           
         plt.show()
 
+    def plot_train_test_loss(self, loss_key, iteration, train_losses, test_losses, train_caption, test_caption):
+        colors = ['r', 'g', 'black', 'darkorange', 'olive', 'palevioletred', 'rosybrown', 'cyan', 'slategray', 'darkmagenta', 'linen', 'chocolate']
+
+        x1 = [i for i in range(iteration, iteration + len(train_losses))]
+        x2 = [i for i in range(iteration, iteration + len(test_losses))]
+
+        plt.plot(x1, train_losses, color=colors[0], label=str(train_caption))
+        plt.plot(x2, test_losses, color=colors[1], label=str(test_caption))
+        plt.legend(loc='lower right')
+
+        if loss_key not in self.loss_windows:
+            self.loss_windows[loss_key] = self.vis.matplot(plt, opts=dict(caption="Losses" + " " + str(constants)))
+        else:
+            self.vis.matplot(plt, win=self.loss_windows[loss_key], opts=dict(caption="Losses" + " " + str(constants)))
+
+        plt.show()
+
     def plot_psnr_ssim_loss(self, loss_key, iteration, losses_dict, caption_dict, base_key):
         # if (constants.is_coare == 1):
         #     # TODO: fix issue on matplot user permission for COARE

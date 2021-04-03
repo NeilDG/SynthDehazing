@@ -221,12 +221,12 @@ def perform_lightcoord_predictions(model_checkpt_name):
     print("===================================================")
 
     # load color transfer
-    color_transfer_checkpt = torch.load(ABS_PATH_CHECKPOINT + 'color_transfer_v1.11_2.pt')
-    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
-    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
-    color_transfer_gan.eval()
-    print("Color transfer GAN model loaded.")
-    print("===================================================")
+    # color_transfer_checkpt = torch.load(ABS_PATH_CHECKPOINT + 'color_transfer_v1.11_2.pt')
+    # color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    # color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    # color_transfer_gan.eval()
+    # print("Color transfer GAN model loaded.")
+    # print("===================================================")
 
     img_op = transforms.Compose([
         transforms.ToPILImage(),
@@ -268,7 +268,8 @@ def perform_lightcoord_predictions(model_checkpt_name):
 
             img_tensor = img_op(img).to(device)
 
-            light_preds = light_estimator(color_transfer_gan(torch.unsqueeze(img_tensor, 0)))
+            #light_preds = light_estimator(color_transfer_gan(torch.unsqueeze(img_tensor, 0)))
+            light_preds = light_estimator(torch.unsqueeze(img_tensor, 0))
             light_preds = torch.squeeze(light_preds).cpu().numpy()
 
             light_preds[0] = (light_preds[0] * LIGHT_STD[0]) + LIGHT_MEAN[0]
@@ -298,17 +299,18 @@ def main():
     # plt.show()
 
     #visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
-    #visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
+    #visualize_feature_distribution(constants.DATASET
+    # _HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
     #visualize_img_to_light_correlation()
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_5")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_6")
+    #perform_lightcoord_predictions("lightcoords_estimator_V1.00_5")
+    #perform_lightcoord_predictions("lightcoords_estimator_V1.00_6")
     perform_lightcoord_predictions("lightcoords_estimator_V1.00_8")
     perform_lightcoord_predictions("lightcoords_estimator_V1.00_9")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_13")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_14")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_15")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_16")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_17")
+    # perform_lightcoord_predictions("lightcoords_estimator_V1.00_13")
+    # perform_lightcoord_predictions("lightcoords_estimator_V1.00_14")
+    # perform_lightcoord_predictions("lightcoords_estimator_V1.00_15")
+    # perform_lightcoord_predictions("lightcoords_estimator_V1.00_16")
+    # perform_lightcoord_predictions("lightcoords_estimator_V1.00_17")
     
 if __name__=="__main__": 
     main()   

@@ -48,6 +48,38 @@ def unsharp_mask(div2k_img):
     
     return unsharp_image
 
+def create_data_from_video(video_path, save_path, filename_format, img_size, patch_size, offset, repeats):
+    vidcap = cv2.VideoCapture(video_path)
+    count = offset
+    success = True
+
+    final_op = transforms.Compose([transforms.ToPILImage(),
+                                   transforms.RandomHorizontalFlip(),
+                                   transforms.Resize(img_size),
+                                   transforms.RandomCrop(patch_size),
+                                   transforms.ToTensor()])
+
+    while success:
+        success, image = vidcap.read()
+        if (success):
+            w, h, c = np.shape(image)
+            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation=cv2.INTER_CUBIC)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+            for i in range(repeats):
+                file_name = save_path + filename_format % count
+
+                new_img = final_op(image).numpy()
+                new_img = np.moveaxis(new_img, -1, 0)
+                new_img = np.moveaxis(new_img, -1, 0)
+
+                #plt.imshow(new_img)
+                #plt.show()
+
+                cv2.imwrite(file_name, cv2.cvtColor(cv2.convertScaleAbs(new_img, alpha=255.0), cv2.COLOR_BGR2RGB))
+                print("Saved: ", file_name)
+                count = count + 1
+
 def create_img_data(dataset_path, save_path, filename_format, img_size, patch_size, repeats):
     img_list = assemble_img_list(dataset_path)
     count = 0
@@ -237,30 +269,6 @@ def create_tri_img_data(dataset_path_a, dataset_path_b, dataset_path_c, save_pat
 
             print("Saved: ", file_name_a, file_name_b, file_name_c)
             count = count + 1
-  
-def create_gta_noisy_data():
-    NOISY_SAVE_PATH = "E:/Noisy GTA/noisy/"
-    CLEAN_SAVE_PATH = "E:/Noisy GTA/clean/"
-    gta_clean_data = assemble_img_list(constants.DATASET_GTA_PATH_2)
-    count = 0
-    for k in range(len(gta_clean_data)):
-        normal_img = cv2.imread(gta_clean_data[k])
-        normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB)
-        transform_op = transforms.Compose([transforms.ToPILImage(),
-                                           transforms.ColorJitter(brightness=(1.25, 1.8)),
-                                           transforms.ToTensor(),
-                                           AddGaussianNoise(std=0.15)]
-                                          )
-        
-        final_img = transform_op(normal_img)
-        file_name = NOISY_SAVE_PATH + "gta_noisy_%d.png" % count
-        save_image(final_img, file_name)
-        print("Saved: ", file_name)
-        
-        file_name = CLEAN_SAVE_PATH + "gta_clean_%d.png" % count
-        save_image(transforms.ToTensor()(normal_img), file_name)
-        
-        count = count + 1
 
 def create_hazy_data(offset):
     clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_11_clean.mp4"
@@ -312,11 +320,12 @@ def create_hazy_data(offset):
             count += 1
     
 def main():
-    # PATH_A = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
-    # SAVE_PATH_A = "E:/O-Haze - Crop/hazy/"
-    # PATH_B = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
-    # SAVE_PATH_B = "E:/O-Haze - Crop/clean/"
-    # create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", (960, 960), (256, 256), 1000, 500, offset = 45000)
+    VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_1.mp4"
+    SAVE_PATH = "E:/Synth Hazy 2/directionality/"
+    create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (1024, 768), (256, 256), offset = 0, repeats = 7)
+
+    VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_2.mp4"
+    create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (1024, 768), (256, 256), offset=0, repeats=7)
 
     # PATH_A = constants.DATASET_DIV2K_PATH
     # SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
@@ -328,7 +337,7 @@ def main():
     # SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
     # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (64, 64), 10, 0)
 
-    create_hazy_data(0)
+    #create_hazy_data(0)
 
 if __name__=="__main__": 
     main()   

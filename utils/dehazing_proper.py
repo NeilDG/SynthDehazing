@@ -143,10 +143,10 @@ def perform_dehazing_equation_with_transmission(hazy_img, T, atmosphere_method, 
 
     elif (atmosphere_method == AtmosphereMethod.NETWORK_ESTIMATOR_V1):
         device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-        airlight_model = dh.AirlightEstimator(input_nc=3, num_layers=2).to(device)
-        #airlight_model = dh.AirlightEstimator_V0().to(device)
+        airlight_model = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 3).to(device)
+        #airlight_model = dh.AirlightEstimator(input_nc=3, num_layers=2).to(device)
 
-        checkpt = torch.load("checkpoint/airlight_estimator_v1.00_1.pt")
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.01_4.pt")
         airlight_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
         #airlight_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY])
 
@@ -171,13 +171,13 @@ def perform_dehazing_equation_with_transmission(hazy_img, T, atmosphere_method, 
 
     elif(atmosphere_method == AtmosphereMethod.NETWORK_ESTIMATOR_V2):
         device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-        airlight_model = dh.AirlightEstimator_V2(input_nc=3, num_layers = 2).to(device)
-        #airlight_model = dh.AirlightEstimator(input_nc=3, num_layers=2).to(device)
-        lightcoord_model = dh.LightCoordsEstimator_V2(num_layers = 3).to(device)
+        airlight_model = dh.AirlightEstimator_V2(input_nc=3, downsampling_layers=3, residual_blocks=3).to(device)
+        #airlight_model = dh.AirlightEstimator_V2(input_nc=3, num_layers = 2).to(device)
+        lightcoord_model = dh.LightCoordsEstimator_V2(input_nc = 3, num_layers = 4).to(device)
 
-        checkpt = torch.load("checkpoint/airlight_estimator_v1.00_1.pt")
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.01_4.pt")
         airlight_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "B"])
-        checkpt = torch.load("checkpoint/lightcoords_estimator_V1.00_4.pt")
+        checkpt = torch.load("checkpoint/lightcoords_estimator_V1.00_9.pt")
         lightcoord_model.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY])
 
         transform_op = transforms.Compose([transforms.ToTensor(),
