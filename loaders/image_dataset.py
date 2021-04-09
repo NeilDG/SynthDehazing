@@ -15,6 +15,103 @@ import torchvision.transforms as transforms
 import constants
 from utils import tensor_utils
 
+class TransmissionAlbedoDataset(data.Dataset):
+    def __init__(self, image_list_a, depth_dir, crop_size, should_crop):
+        self.image_list_a = image_list_a
+        self.depth_dir = depth_dir
+        self.crop_size = crop_size
+        self.should_crop = should_crop
+
+        self.initial_img_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((256, 256))
+        ])
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+        self.depth_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5), (0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        clear_img = cv2.imread(img_id);
+        clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        img_id = self.depth_dir + file_name
+        img_b = cv2.imread(img_id)
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
+        img_b = cv2.resize(img_b, np.shape(clear_img[:, :, 0]))
+        img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        T = tensor_utils.generate_transmission(1 - img_b, np.random.uniform(0.0, 2.5)) #also include clear samples
+        img_b = cv2.normalize(T, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        #formulate hazy img
+        atmosphere = np.random.uniform(0.5, 1.2)
+        hazy_img_like = np.zeros_like(clear_img)
+        T = np.resize(T, np.shape(clear_img[:, :, 0]))
+        hazy_img_like[:, :, 0] = (T * clear_img[:, :, 0]) + atmosphere * (1 - T)
+        hazy_img_like[:, :, 1] = (T * clear_img[:, :, 1]) + atmosphere * (1 - T)
+        hazy_img_like[:, :, 2] = (T * clear_img[:, :, 2]) + atmosphere * (1 - T)
+
+        img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        img_a = self.initial_img_op(img_a)
+        img_b = self.initial_img_op(img_b)
+
+        if(self.should_crop):
+            crop_indices = transforms.RandomCrop.get_params(img_a, output_size=self.crop_size)
+            i, j, h, w = crop_indices
+
+            img_a = transforms.functional.crop(img_a, i, j, h, w)
+            img_b = transforms.functional.crop(img_b, i, j, h, w)
+
+        img_a = self.final_transform_op(img_a)
+        img_b = self.depth_transform_op(img_b)
+
+        airlight_tensor = torch.tensor(atmosphere, dtype=torch.float32)
+        return file_name, img_a, img_b, airlight_tensor #hazy albedo img, transmission map, airlight
+
+    def __len__(self):
+        return len(self.image_list_a)
+
+class TransmissionAlbedoDatasetTest(data.Dataset):
+    def __init__(self, image_list_a):
+        self.image_list_a = image_list_a
+
+        self.initial_img_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((256, 256))
+        ])
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id);
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        img_a = cv2.normalize(img_a, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        img_a = self.initial_img_op(img_a)
+        img_a = self.final_transform_op(img_a)
+
+        return file_name, img_a
+
+    def __len__(self):
+        return len(self.image_list_a)
+
 #model-based transmission dataset. Only accepts the clear RGB image and depth image.
 class TransmissionDataset_Single(data.Dataset):
     def __init__(self, image_list_a, image_list_b, light_list_c, crop_size):
@@ -587,7 +684,7 @@ class ColorDataset(data.Dataset):
         self.rgb_transform_op = transforms.Compose([
                                     transforms.ToPILImage(),
                                     transforms.ToTensor(),
-                                    transforms.Normalize((0.5), (0.5), (0.5))
+                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                                     ])  
         
         self.gray_transform_op = transforms.Compose([
@@ -660,6 +757,84 @@ class LatentDataset(data.Dataset):
         img_a = self.final_transform_op(img_a)
 
         return file_name, img_a
+
+    def __len__(self):
+        return len(self.image_list_a)
+
+
+class ColorAlbedoDataset(data.Dataset):
+    def __init__(self, image_list_a, image_list_b):
+        self.image_list_a = image_list_a
+        self.image_list_b = image_list_b
+
+        self.initial_transform_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(constants.TEST_IMAGE_SIZE),
+            transforms.CenterCrop(constants.TEST_IMAGE_SIZE)
+        ])
+
+        self.final_transform_op = transforms.Compose([transforms.ToTensor(),
+                                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id);
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+
+        img_id = self.image_list_b[idx]
+        img_b = cv2.imread(img_id);
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
+
+        img_a = self.initial_transform_op(img_a)
+        img_b = self.initial_transform_op(img_b)
+
+        crop_indices = transforms.RandomCrop.get_params(img_a, output_size=constants.PATCH_IMAGE_SIZE)
+        i, j, h, w = crop_indices
+
+        img_a = transforms.functional.crop(img_a, i, j, h, w)
+        img_b = transforms.functional.crop(img_b, i, j, h, w)
+
+        img_a = self.final_transform_op(img_a)
+        img_b = self.final_transform_op(img_b)
+
+        return file_name, img_a, img_b
+
+    def __len__(self):
+        return len(self.image_list_a)
+
+
+class ColorAlbedoTestDataset(data.Dataset):
+    def __init__(self, image_list_a, image_list_b):
+        self.image_list_a = image_list_a
+        self.image_list_b = image_list_b
+
+        self.final_transform_op = transforms.Compose([transforms.ToPILImage(),
+                                                      transforms.Resize(constants.TEST_IMAGE_SIZE),
+                                                      transforms.CenterCrop(constants.TEST_IMAGE_SIZE),
+                                                      transforms.ToTensor(),
+                                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id);
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+
+        img_id = self.image_list_b[idx]
+        img_b = cv2.imread(img_id);
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
+
+        img_a = self.final_transform_op(img_a)
+        img_b = self.final_transform_op(img_b)
+
+        return file_name, img_a, img_b
 
     def __len__(self):
         return len(self.image_list_a)

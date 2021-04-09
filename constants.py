@@ -14,6 +14,7 @@ DATASET_LIGHTCOORDS_PATH_COMPLETE = "E:/Synth Hazy 2/light/"
 DATASET_LIGHTDIRECTIONS_PATH_COMPLETE = "E:/Synth Hazy 2/directionality/"
 
 DATASET_ALBEDO_PATH_COMPLETE_3 = "E:/Synth Hazy 3/albedo/"
+DATASET_ALBEDO_PATH_PSEUDO_3 = "E:/Synth Hazy 3/albedo - pseudo/"
 DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
@@ -58,7 +59,7 @@ LATENT_VECTOR_KEY = "latent_vector"
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "albedo_transfer_v1.01"
-TRANSMISSION_VERSION = "transmission_estimator_v1.02"
+TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.03"
 AIRLIGHT_VERSION = "airlight_estimator_v1.01"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
@@ -106,7 +107,7 @@ num_epochs = 250
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 128
+batch_size = 8
 infer_size = 16
 
 brightness_enhance = 0.6
