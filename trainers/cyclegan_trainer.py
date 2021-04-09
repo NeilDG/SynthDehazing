@@ -19,6 +19,8 @@ from utils import plot_utils
 from utils import pytorch_colors
 from utils import tensor_utils
 import torch.cuda.amp as amp
+import kornia
+import torchvision.transforms as transforms
 
 class CycleGANTrainer:
     
@@ -26,14 +28,19 @@ class CycleGANTrainer:
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
-        self.G_A = discrim_gan.Generator(n_residual_blocks=10).to(self.gpu_device)
-        self.G_B = discrim_gan.Generator(n_residual_blocks=10).to(self.gpu_device)
+        self.G_A = discrim_gan.Generator(n_residual_blocks=8).to(self.gpu_device)
+        #self.G_A = transfer_gan.Generator(n_residual_blocks=8).to(self.gpu_device)
+        self.G_B = discrim_gan.Generator(n_residual_blocks=8).to(self.gpu_device)
+        #self.G_B = transfer_gan.Generator(n_residual_blocks=8).to(self.gpu_device)
+
         self.D_A = discrim_gan.Discriminator().to(self.gpu_device) #use CycleGAN's discriminator
         self.D_B = discrim_gan.Discriminator().to(self.gpu_device)
         
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters(), self.G_B.parameters()), lr = self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters(), self.D_B.parameters()), lr = self.d_lr)
+        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience=1000, threshold=0.00005)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience=1000, threshold=0.00005)
         self.initialize_dict()
 
         self.fp16_scaler = amp.GradScaler() #for automatic mixed precision
@@ -46,7 +53,7 @@ class CycleGANTrainer:
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
         self.losses_dict[constants.IDENTITY_LOSS_KEY] = []
         self.losses_dict[constants.LIKENESS_LOSS_KEY] = []
-        self.losses_dict[constants.COLOR_SHIFT_LOSS_KEY] = []
+        self.losses_dict[constants.SMOOTHNESS_LOSS_KEY] = []
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
@@ -59,7 +66,7 @@ class CycleGANTrainer:
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
         self.caption_dict[constants.IDENTITY_LOSS_KEY] = "Identity loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
-        self.caption_dict[constants.COLOR_SHIFT_LOSS_KEY] = "Color shift loss per iteration"
+        self.caption_dict[constants.SMOOTHNESS_LOSS_KEY] = "Smoothness loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
@@ -68,13 +75,13 @@ class CycleGANTrainer:
         self.caption_dict[constants.CYCLE_LOSS_KEY] = "Cycle loss per iteration"
         
     
-    def update_penalties(self, adv_weight, id_weight, likeness_weight, cycle_weight, color_shift_weight, comments):
+    def update_penalties(self, adv_weight, id_weight, likeness_weight, cycle_weight, smoothness_weight, comments):
         #what penalties to use for losses?
         self.adv_weight = adv_weight
         self.id_weight = id_weight
         self.likeness_weight = likeness_weight
         self.cycle_weight = cycle_weight
-        self.color_shift_weight = color_shift_weight
+        self.smoothness_weight = smoothness_weight
         
         #save hyperparameters for bookeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + ".config"
@@ -87,7 +94,7 @@ class CycleGANTrainer:
             print("Adv weight: ", str(self.adv_weight), file = f)
             print("Identity weight: ", str(self.id_weight), file = f)
             print("Likeness weight: ", str(self.likeness_weight), file = f)
-            print("Color shift weight: ", str(self.color_shift_weight), file=f)
+            print("Smoothness weight: ", str(self.smoothness_weight), file=f)
             print("Cycle weight: ", str(self.cycle_weight), file = f)
             print("====================================", file = f)
             print("Brightness enhance: ", str(constants.brightness_enhance), file = f)
@@ -112,8 +119,16 @@ class CycleGANTrainer:
     def likeness_loss(self, pred, target):
         loss = nn.L1Loss()
         return loss(pred, target)
+
         # loss = vgg.VGGPerceptualLoss().to(self.gpu_device)
         # return loss(pred, target)
+
+    def smoothness_loss(self, pred, target):
+        loss = nn.L1Loss()
+        pred_blur = kornia.gaussian_blur2d(pred, (7, 7), (5.5, 5.5))
+        target_blur = kornia.gaussian_blur2d(target, (7, 7), (5.5, 5.5))
+
+        return loss(pred_blur, target_blur)
 
     def color_shift_loss(self, pred, target):
         pred_lab = pytorch_colors.rgb_to_lab(pred.detach())
@@ -166,6 +181,7 @@ class CycleGANTrainer:
             #self.optimizerD.step()
             self.fp16_scaler.scale(errD).backward()
             self.fp16_scaler.step(self.optimizerD)
+            self.schedulerD.step(errD)
 
             self.G_A.train()
             self.G_B.train()
@@ -177,12 +193,12 @@ class CycleGANTrainer:
 
             identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
             A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
-            A_color_shift_loss = self.color_shift_loss(clean_like, clean_tensor) * self.color_shift_weight
+            A_smoothness_loss = self.smoothness_loss(clean_like, clean_tensor) * self.smoothness_weight
             A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
 
             dirty_like = self.G_B(clean_tensor)
             B_likeness_loss = self.likeness_loss(dirty_like, dirty_tensor) * self.likeness_weight
-            B_color_shift_loss = self.color_shift_loss(dirty_like, dirty_like) * self.color_shift_weight
+            B_smoothness_loss = self.smoothness_loss(dirty_like, dirty_tensor) * self.smoothness_weight
             B_cycle_loss = self.cycle_loss(self.G_A(dirty_like), clean_tensor) * self.cycle_weight
 
             prediction = self.D_A(clean_like)
@@ -193,11 +209,12 @@ class CycleGANTrainer:
             real_tensor = torch.ones_like(prediction)
             B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            errG = identity_loss + B_likeness_loss + A_color_shift_loss + B_color_shift_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
+            errG = identity_loss + A_likeness_loss + B_likeness_loss + A_smoothness_loss + B_smoothness_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
             # errG.backward()
             # self.optimizerG.step()
             self.fp16_scaler.scale(errG).backward()
             self.fp16_scaler.step(self.optimizerG)
+            self.schedulerG.step(errG)
 
             self.fp16_scaler.update()
         
@@ -206,7 +223,7 @@ class CycleGANTrainer:
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
         self.losses_dict[constants.IDENTITY_LOSS_KEY].append(identity_loss.item())
         self.losses_dict[constants.LIKENESS_LOSS_KEY].append(B_likeness_loss.item())
-        self.losses_dict[constants.COLOR_SHIFT_LOSS_KEY].append(A_color_shift_loss.item() + B_color_shift_loss.item())
+        self.losses_dict[constants.SMOOTHNESS_LOSS_KEY].append(A_smoothness_loss.item() + B_smoothness_loss.item())
         self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item() + B_adv_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
@@ -219,6 +236,9 @@ class CycleGANTrainer:
             clean_like = self.G_A(dirty_tensor)
             test_clean_like = self.G_A(test_dirty_tensor)
             test_dirty_like = self.G_B(test_clean_like)
+
+            # inferred albedo image appears darker --> adjust brightness and contrast of albedo image
+            test_clean_like = kornia.adjust_brightness(test_clean_like, 0.6)
         
         #report to visdom
         self.visdom_reporter.plot_finegrain_loss("color transfer loss", iteration, self.losses_dict, self.caption_dict)
@@ -229,6 +249,15 @@ class CycleGANTrainer:
         self.visdom_reporter.plot_image((test_dirty_like), "Test Dirty-like images")
         self.visdom_reporter.plot_image((test_clean_tensor), "Test Clean images")
         self.visdom_reporter.plot_image((test_clean_like), "Test Clean-like images")
+
+    def visdom_infer(self, test_dirty_tensor, caption_dirty, caption_clean):
+        with torch.no_grad():
+            test_clean_like = self.G_A(test_dirty_tensor)
+            # inferred albedo image appears darker --> adjust brightness and contrast of albedo image
+            test_clean_like = kornia.adjust_brightness(test_clean_like, 0.6)
+
+        self.visdom_reporter.plot_image(test_dirty_tensor, caption_dirty)
+        self.visdom_reporter.plot_image(test_clean_like, caption_clean)
     
     def produce_image(self, dirty_tensor):
         with torch.no_grad():
@@ -271,6 +300,8 @@ class CycleGANTrainer:
         self.D_B.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "B"])
         self.optimizerG.load_state_dict(checkpoint[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY])
         self.optimizerD.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY])
+        self.schedulerG.load_state_dict(checkpoint[constants.GENERATOR_KEY + "scheduler"])
+        self.schedulerD.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "scheduler"])
     
     def save_states(self, epoch, iteration):
         save_dict = {'epoch': epoch, 'iteration': iteration}
@@ -281,14 +312,20 @@ class CycleGANTrainer:
         
         optimizerG_state_dict = self.optimizerG.state_dict()
         optimizerD_state_dict = self.optimizerD.state_dict()
+
+        schedulerG_state_dict = self.schedulerG.state_dict()
+        schedulerD_state_dict = self.schedulerD.state_dict()
         
         save_dict[constants.GENERATOR_KEY + "A"] = netGA_state_dict
         save_dict[constants.GENERATOR_KEY + "B"] = netGB_state_dict
         save_dict[constants.DISCRIMINATOR_KEY + "A"] = netDA_state_dict
         save_dict[constants.DISCRIMINATOR_KEY + "B"] = netDB_state_dict
-        
+
         save_dict[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY] = optimizerG_state_dict
         save_dict[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY] = optimizerD_state_dict
+
+        save_dict[constants.GENERATOR_KEY + "scheduler"] = schedulerG_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "scheduler"] = schedulerD_state_dict
     
         torch.save(save_dict, constants.COLOR_TRANSFER_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))

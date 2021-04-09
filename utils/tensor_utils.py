@@ -270,12 +270,9 @@ def introduce_haze(hazy_img, clear_img, depth_map):
     clear_img_like = np.zeros_like(hazy_img)
     T = np.resize(T, np.shape(clear_img[:, :, 0]))
     print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
-    clear_img_like[:, :, 0] = (hazy_img_like[:, :, 0] - (
-                np.full(np.shape(hazy_img_like[:, :, 0]), atmosphere[0]) * (1 - T))) / T
-    clear_img_like[:, :, 1] = (hazy_img_like[:, :, 1] - (
-                np.full(np.shape(hazy_img_like[:, :, 1]), atmosphere[1]) * (1 - T))) / T
-    clear_img_like[:, :, 2] = (hazy_img_like[:, :, 2] - (
-                np.full(np.shape(hazy_img_like[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+    clear_img_like[:, :, 0] = (hazy_img_like[:, :, 0] - (np.full(np.shape(hazy_img_like[:, :, 0]), atmosphere[0]) * (1 - T))) / T
+    clear_img_like[:, :, 1] = (hazy_img_like[:, :, 1] - (np.full(np.shape(hazy_img_like[:, :, 1]), atmosphere[1]) * (1 - T))) / T
+    clear_img_like[:, :, 2] = (hazy_img_like[:, :, 2] - (np.full(np.shape(hazy_img_like[:, :, 2]), atmosphere[2]) * (1 - T))) / T
 
     hazy_img_like = np.clip(hazy_img_like, 0.0, 1.0)
     clear_img_like = np.clip(clear_img_like, 0.0, 1.0)
@@ -289,6 +286,50 @@ def introduce_haze(hazy_img, clear_img, depth_map):
     fig.tight_layout()
     ax[0, 0].imshow(hazy_img)
     ax[0, 1].imshow(hazy_img_like)
+    ax[1, 0].imshow(clear_img)
+    ax[1, 1].imshow(clear_img_like)
+    plt.show(block=True)
+
+def introduce_haze_albedo(clear_img, depth_map, albedo_img):
+
+    beta = 1.2
+    T = generate_transmission(1 - depth_map, beta, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
+
+    clear_img_float = cv2.normalize(clear_img, dst = None,alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    albedo_img_float = cv2.normalize(albedo_img, dst = None, alpha=0, beta = 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    #clear_img_float = cv2.cvtColor(clear_img_float, cv2.COLOR_BGR2GRAY)
+    #albedo_img_float = cv2.cvtColor(albedo_img_float, cv2.COLOR_BGR2GRAY)
+
+    fig, ax = plt.subplots(1, 2)
+    fig.tight_layout()
+    ax[0].imshow(clear_img_float)
+    ax[1].imshow(albedo_img_float)
+    plt.show(block=True)
+
+    atmosphere_val = np.random.uniform(0.5, 1.2)
+    atmosphere = [atmosphere_val, atmosphere_val, atmosphere_val]  # atmosphere values can change per channel. but make it uniform for this time
+    hazy_img_like = np.zeros_like(clear_img)
+    T = np.resize(T, np.shape(clear_img[:, :, 0]))
+    hazy_img_like[:, :, 0] = (T * albedo_img_float[:, :, 0]) + atmosphere[0] * (1 - T)
+    hazy_img_like[:, :, 1] = (T * albedo_img_float[:, :, 1]) + atmosphere[1] * (1 - T)
+    hazy_img_like[:, :, 2] = (T * albedo_img_float[:, :, 2]) + atmosphere[2] * (1 - T)
+
+    # reverse equation
+    clear_img_like = np.zeros_like(clear_img)
+    T = np.resize(T, np.shape(clear_img[:, :, 0]))
+    print("Shapes: ", np.shape(clear_img), np.shape(T))
+    clear_img_like[:, :, 0] = (hazy_img_like[:, :, 0] - (np.full(np.shape(hazy_img_like[:, :, 0]), atmosphere[0]) * (1 - T))) / T
+    clear_img_like[:, :, 1] = (hazy_img_like[:, :, 1] - (np.full(np.shape(hazy_img_like[:, :, 1]), atmosphere[1]) * (1 - T))) / T
+    clear_img_like[:, :, 2] = (hazy_img_like[:, :, 2] - (np.full(np.shape(hazy_img_like[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+
+    clear_img_like = np.clip(clear_img_like, 0.0, 1.0)
+    clear_img_like = cv2.normalize(clear_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+                                   dtype=cv2.CV_8U)
+    clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+    fig, ax = plt.subplots(2, 2)
+    fig.tight_layout()
+    ax[0, 0].imshow(hazy_img_like)
     ax[1, 0].imshow(clear_img)
     ax[1, 1].imshow(clear_img_like)
     plt.show(block=True)
