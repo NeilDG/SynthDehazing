@@ -14,7 +14,7 @@ cd scratch2/NeuralNets-GenerativeExperiment-6
 sbatch slurm_install.slurm
 sbatch slurm_visdom_test.slurm
 sbatch visdom_run.slurm
-sbatch neil_job.slurm
+sbatch -w saliksik-cpu-23 -b now+7days visdom_run.slurm
 sbatch denoise_1.slurm
 sbatch denoise_2.slurm
 

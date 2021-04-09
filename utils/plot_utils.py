@@ -12,11 +12,12 @@ import matplotlib.pyplot as plt
 import torchvision.utils as vutils
 import visdom
 
+SALIKSIK_SERVER = "http://192.168.134.223"
+
 class VisdomReporter:
     def __init__(self):
         if(constants.is_coare == 1):
-            LOG_PATH = "checkpoint/visdom_log_iteration_"+ str(constants.ITERATION) + ".visdom"
-            self.vis = visdom.Visdom(offline = True, log_to_filename = LOG_PATH)
+            self.vis = visdom.Visdom(server=SALIKSIK_SERVER)
         else:
             self.vis= visdom.Visdom()
         

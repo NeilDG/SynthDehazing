@@ -13,6 +13,11 @@ DATASET_DEPTH_PATH_COMPLETE = "E:/Synth Hazy 2/depth/"
 DATASET_LIGHTCOORDS_PATH_COMPLETE = "E:/Synth Hazy 2/light/"
 DATASET_LIGHTDIRECTIONS_PATH_COMPLETE = "E:/Synth Hazy 2/directionality/"
 
+DATASET_ALBEDO_PATH_COMPLETE_3 = "E:/Synth Hazy 3/albedo/"
+DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
+DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
+DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
+
 DATASET_CLEAN_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "E:/Synth Hazy - Test Set/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/depth/"
@@ -52,7 +57,7 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
-COLOR_TRANSFER_VERSION = "color_transfer_v2.00"
+COLOR_TRANSFER_VERSION = "albedo_transfer_v1.01"
 TRANSMISSION_VERSION = "transmission_estimator_v1.02"
 AIRLIGHT_VERSION = "airlight_estimator_v1.01"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
@@ -81,6 +86,7 @@ G_ADV_LOSS_KEY = "g_adv"
 LIKENESS_LOSS_KEY = "likeness"
 REALNESS_LOSS_KEY = "realness"
 COLOR_SHIFT_LOSS_KEY = "colorshift"
+SMOOTHNESS_LOSS_KEY = "smoothness"
 EDGE_LOSS_KEY = "edge"
 
 D_OVERALL_LOSS_KEY = "d_loss"
@@ -96,14 +102,14 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 40
+num_epochs = 250
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 512
+batch_size = 128
 infer_size = 16
 
-brightness_enhance = 1.0
+brightness_enhance = 0.6
 contrast_enhance = 1.0
 
 #Running on COARE?
