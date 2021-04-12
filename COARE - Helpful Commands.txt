@@ -9,14 +9,13 @@ cd scratch2/NeuralNets-GenerativeExperiment-3
 cd scratch2/NeuralNets-GenerativeExperiment-4
 cd scratch2/NeuralNets-GenerativeExperiment-5
 cd scratch2/NeuralNets-GenerativeExperiment-6
+cd scratch2/Visdom
 
 //Execute job
 sbatch slurm_install.slurm
 sbatch slurm_visdom_test.slurm
 sbatch visdom_run.slurm
-sbatch -w saliksik-cpu-23 -b now+7days visdom_run.slurm
-sbatch denoise_1.slurm
-sbatch denoise_2.slurm
+sbatch -w saliksik-cpu-23 --dependency=afterany:223494 visdom_run.slurm
 
 sbatch script_1.slurm
 sbatch script_2.slurm
