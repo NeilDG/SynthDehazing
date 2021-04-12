@@ -93,7 +93,7 @@ class TransmissionTrainer:
         #return loss(pred, target)
 
     def likeness_loss(self, pred, target):
-        loss = nn.MSELoss()
+        loss = nn.L1Loss()
         return loss(pred, target)
 
     def edge_loss(self, pred, target):
@@ -217,3 +217,13 @@ class TransmissionTrainer:
 
         torch.save(save_dict, constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
+
+        #clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training
+        if(epoch % 5 == 0):
+            self.losses_dict[constants.G_LOSS_KEY].clear()
+            self.losses_dict[constants.D_OVERALL_LOSS_KEY].clear()
+            self.losses_dict[constants.LIKENESS_LOSS_KEY].clear()
+            self.losses_dict[constants.EDGE_LOSS_KEY].clear()
+            self.losses_dict[constants.G_ADV_LOSS_KEY].clear()
+            self.losses_dict[constants.D_A_FAKE_LOSS_KEY].clear()
+            self.losses_dict[constants.D_A_REAL_LOSS_KEY].clear()
