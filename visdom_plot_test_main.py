@@ -23,6 +23,11 @@ def update_config(opts):
         constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/clean/"
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/clean - styled/"
         constants.DATASET_LIGHTCOORDS_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/light/"
+        constants.DATASET_VEMON_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
+        constants.DATASET_PLACES_PATH = "/scratch1/scratch2/neil.delgallego/Places Dataset/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
+        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
+
         constants.num_workers = 4
 
 def main(argv):
@@ -44,13 +49,9 @@ def main(argv):
     visdom_reporter = plot_utils.VisdomReporter()
 
     for i, train_data in enumerate(train_loader, 0):
-        _, rgb_batch, _, light_batch, airlight_batch = train_data
+        _, rgb_batch, _, _, _ = train_data
         rgb_tensor = rgb_batch.to(device).float()
-        airlight_tensor = airlight_batch.to(device).float()
-        lights_coord_tensor = light_batch.to(device).float()
-
-        visdom_reporter.plot_image((rgb_tensor), "Training RGB images")
-        break
+        visdom_reporter.plot_image((rgb_tensor), "Training RGB images - " +str(i % 10))
 
     print("Successfully plotted visdom image")
 

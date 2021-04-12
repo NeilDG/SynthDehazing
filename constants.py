@@ -28,11 +28,6 @@ DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
 DATASET_DEPTH_PATH_PATCH = "E:/Synth Hazy - Patch/depth/"
 
-DATASET_OHAZE_PATH_PATCH_HAZY = "E:/O-HAZE - Patch/hazy/"
-DATASET_OHAZE_PATH_PATCH_CLEAN = "E:/O-HAZE - Patch/clean/"
-DATASET_OHAZE_PATH_CROP_HAZY = "E:/O-Haze - Crop/hazy/"
-DATASET_OHAZE_PATH_CROP_CLEAN = "E:/O-Haze - Crop/clean/"
-
 DATASET_OHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
 DATASET_OHAZE_CLEAN_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
 DATASET_IHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
@@ -64,7 +59,7 @@ AIRLIGHT_VERSION = "airlight_estimator_v1.01"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "1"
+ITERATION = "2"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'

@@ -2,8 +2,7 @@
 #SBATCH -J NeilVis
 #SBATCH --partition=serial
 #SBATCH --qos=84c-1d_serial
-#SBATCH --nodes=1 
-#SBATCH --ntasks-per-node=8 
+#SBATCH --nodes=1
 #SBATCH --output=visdom_run.out
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph 
 #SBATCH --mail-type=END 

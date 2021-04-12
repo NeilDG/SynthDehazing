@@ -12,12 +12,22 @@ import matplotlib.pyplot as plt
 import torchvision.utils as vutils
 import visdom
 
-SALIKSIK_SERVER = "http://192.168.134.223"
+SALIKSIK_SERVER = "192.168.134.223" #IMPORTANT: No HTTP
 
 class VisdomReporter:
+    _sharedInstance = None
+
+    @staticmethod
+    def initialize():
+        VisdomReporter._sharedInstance = VisdomReporter()
+
+    @staticmethod
+    def getInstance():
+        return VisdomReporter._sharedInstance
+
     def __init__(self):
         if(constants.is_coare == 1):
-            self.vis = visdom.Visdom(server=SALIKSIK_SERVER)
+            self.vis = visdom.Visdom(SALIKSIK_SERVER, use_incoming_socket=False)
         else:
             self.vis= visdom.Visdom()
         
@@ -86,7 +96,10 @@ class VisdomReporter:
         for i in range(ROWS):
             for j in range(COLS):
                 if(index < len(loss_keys)):
-                    ax[i, j].plot(x, losses_dict[loss_keys[index]], color = colors[index], label = str(caption_dict[caption_keys[index]]))
+                    if(index == 1):
+                        ax[i, j].plot(x, losses_dict[loss_keys[index]], color=colors[index], label= loss_key + " " +str(caption_dict[caption_keys[index]]))
+                    else:
+                        ax[i, j].plot(x, losses_dict[loss_keys[index]], color = colors[index], label = str(caption_dict[caption_keys[index]]))
                     index = index + 1
                 else:
                     break
@@ -95,7 +108,7 @@ class VisdomReporter:
         if loss_key not in self.loss_windows:
             self.loss_windows[loss_key] = self.vis.matplot(plt, opts = dict(caption = "Losses" + " " + str(constants)))
         else:
-            self.vis.matplot(plt, win = self.loss_windows[loss_key], opts = dict(caption = "Losses" + " " + str(constants))) 
+            self.vis.matplot(plt, win = self.loss_windows[loss_key], opts = dict(caption = "Losses" + " " + str(constants)))
           
         plt.show()
 
