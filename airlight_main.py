@@ -35,7 +35,7 @@ parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--image_size', type=int, help="Weight", default="256")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network using same architecture for A and B. \n "
-                                                                                     "Light estimates from coord network are included in training. \n"
+                                                                                     "Accepts albedo input. \n"
                                                                                      "New architecture based on CycleGAN.")
 
 #--img_to_load=-1 --load_previous=0
@@ -82,22 +82,6 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    # load color transfer
-    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_2.pt')
-    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
-    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
-    color_transfer_gan.eval()
-    print("Color transfer GAN model loaded.")
-    print("===================================================")
-
-    #load light coords estimation network
-    light_coords_checkpt = torch.load('checkpoint/lightcoords_estimator_V1.00_9.pt')
-    light_estimator = dh.LightCoordsEstimator_V2(input_nc = 3, num_layers = 4).to(device)
-    light_estimator.load_state_dict(light_coords_checkpt[constants.DISCRIMINATOR_KEY])
-    light_estimator.eval()
-    print("Light estimator network loaded")
-    print("===================================================")
-
     gt = airlight_trainer.AirlightTrainer(device, opts.d_lr)
     gt.update_penalties(opts.airlight_weight, opts.comments)
     start_epoch = 0
@@ -113,85 +97,38 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_model_based_transmission_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_LIGHTCOORDS_PATH_COMPLETE,
-                                                                        constants.TEST_IMAGE_SIZE, constants.batch_size, opts.img_to_load)
-
-    test_loader = dataset_loader.load_model_based_transmission_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, constants.DATASET_LIGHTCOORDS_PATH_COMPLETE_TEST,
-                                                                        constants.TEST_IMAGE_SIZE, constants.batch_size, 500)
+    train_loaders = [dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load),
+                    dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)]
 
     # Plot some training images
     if (constants.is_coare == 0):
-        _, a, b, light_coords_tensor, _ = next(iter(train_loader))
-        show_images(a, "Training - RGB Images")
-        show_images(b, "Training - Depth Images")
-        print("Training - Lights Tensor", np.shape(light_coords_tensor))
-        print("Values: ",light_coords_tensor.numpy())
+        _, a, b, airlight_tensor = next(iter(train_loaders[0]))
+        show_images(a, "Training - Albedo Images")
+        show_images(b, "Training - Styled Images")
+        print("Training - Airlight Tensor", np.shape(airlight_tensor))
+        print("Values: ",airlight_tensor.numpy())
 
-        _, a, b, _, _ = next(iter(test_loader))
-        show_images(a, "Test - RGB Images")
-        show_images(b, "Test - Depth Images")
+        _, a, b, airlight_tensor = next(iter(train_loaders[1]))
+        show_images(a, "Training - Pseudo Albedo Images")
+        show_images(b, "Training - Styled Images")
+        print("Training - Pseudo Airlight Tensor", np.shape(airlight_tensor))
+        print("Values: ", airlight_tensor.numpy())
 
     print("Starting Training Loop...")
-    if (constants.is_coare == 0):
-        for epoch in range(start_epoch, constants.num_epochs):
-            # For each batch in the dataloader
-            print("Feeding ground truth light data. Epoch: ", epoch)
-            for i, (train_data, test_data) in enumerate(zip(train_loader, itertools.cycle(test_loader))):
-                _, rgb_batch, _, light_batch, airlight_batch = train_data
-                rgb_tensor = rgb_batch.to(device).float()
-                airlight_tensor = airlight_batch.to(device).float()
-                lights_coord_tensor = light_batch.to(device).float()
+    for epoch in range(start_epoch, constants.num_epochs):
+        # For each batch in the dataloader
+        for i, (train_data, pseudo_train_data) in enumerate(zip(train_loaders[0], train_loaders[1])):
+            _, albedo_batch, styled_batch, airlight_batch = train_data
+            albedo_batch = albedo_batch.to(device).float()
+            styled_batch = styled_batch.to(device).float()
+            airlight_batch= airlight_batch.to(device).float()
 
-                # perform color transfer first
-                #rgb_tensor = color_transfer_gan(rgb_tensor)
-                
-                gt.train(rgb_tensor, lights_coord_tensor, airlight_tensor, i)
+            gt.train(albedo_batch, styled_batch, airlight_batch)
 
-                #check test set
-                _, rgb_batch, _, light_batch, airlight_batch = test_data
-                rgb_tensor_test = rgb_batch.to(device).float()
-                airlight_tensor = airlight_batch.to(device).float()
-                lights_coord_tensor = light_batch.to(device).float()
-                
-                gt.test(rgb_tensor_test, lights_coord_tensor, airlight_tensor, i)
+            #TODO:check test set
 
-            gt.save_states(epoch, iteration)
-            gt.visdom_report(iteration, rgb_tensor, rgb_tensor_test)
-
-            #For each batch, use pretrained light coord network to account for errors
-            print("Feeding light estimator training data. Epoch: ", epoch)
-            for i, (train_data, test_data) in enumerate(zip(train_loader, itertools.cycle(test_loader))):
-                _, rgb_batch, _, _, airlight_batch = train_data
-                rgb_tensor = rgb_batch.to(device).float()
-                airlight_tensor = airlight_batch.to(device).float()
-
-                light_estimator.eval()
-                gt.train(rgb_tensor, light_estimator(rgb_tensor), airlight_tensor, i)
-
-                # check test set
-                _, rgb_batch, _, _, airlight_batch = test_data
-                rgb_tensor_test = rgb_batch.to(device).float()
-                airlight_tensor = airlight_batch.to(device).float()
-
-                gt.test(rgb_tensor_test, light_estimator(rgb_tensor_test), airlight_tensor, i)
-
-            gt.save_states(epoch, iteration)
-            gt.visdom_report(iteration, rgb_tensor, rgb_tensor_test)
-
-    else:
-        for i, train_data in enumerate(train_loader, 0):
-            _, rgb_batch, _, light_batch, airlight_batch = train_data
-            rgb_tensor = rgb_batch.to(device).float()
-            #airlight_tensor = airlight_batch.to(device).float()
-            lights_coord_tensor = light_batch.to(device).float()
-
-            # perform color transfer first
-            rgb_tensor = color_transfer_gan(rgb_tensor)
-            gt.train(rgb_tensor, lights_coord_tensor)
-            if ((i + 1) % 400 == 0):
-                print("Iterating %d" % i)
-
-        gt.save_states(start_epoch, iteration)
+        gt.save_states(epoch, iteration)
+        gt.visdom_report(iteration, albedo_batch, styled_batch)
 
 
 # FIX for broken pipe num_workers issue.

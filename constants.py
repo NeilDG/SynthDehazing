@@ -55,11 +55,11 @@ DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "albedo_transfer_v1.01"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.03"
-AIRLIGHT_VERSION = "airlight_estimator_v1.01"
+AIRLIGHT_VERSION = "airlight_estimator_v1.02"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "2"
+ITERATION = "1"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -102,7 +102,7 @@ num_epochs = 250
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 8
+batch_size = 256
 infer_size = 16
 
 brightness_enhance = 0.6

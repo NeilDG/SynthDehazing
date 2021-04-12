@@ -301,15 +301,16 @@ def load_color_albedo_test_dataset(path_a, path_c, batch_size=8, num_image_to_lo
 
     return data_loader
 
-def load_latent_dataset(path_a, batch_size=8, num_image_to_load=-1):
-    a_list = assemble_unpaired_data(path_a, num_image_to_load)
-    print("Length of dehazing train dataset: %d" % (len(a_list)))
+def load_airlight_train_dataset(path_albedo, path_styled, path_depth, batch_size=8, num_image_to_load=-1):
+    albedo_list = assemble_unpaired_data(path_albedo, num_image_to_load)
+
+    print("Length of images: %d." % (len(albedo_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.LatentDataset(a_list),
+        image_dataset.AirlightDataset(albedo_list, path_styled, path_depth, (32, 32), False),
         batch_size=batch_size,
-        num_workers=3,
-        shuffle=False
+        num_workers=6,
+        shuffle=True
     )
 
     return data_loader
