@@ -27,10 +27,3 @@ conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 
 srun python cyclegan_main.py --iteration=$ITERATION --coare=1 --smoothness_weight=10.0 --img_to_load=-1 --load_previous=0
 conda deactivate
-
-for i in {1..300}
-    do
-        source activate NeilGAN_V2
-        srun python cyclegan_main.py --iteration=$ITERATION --coare=1 --smoothness_weight=10.0 --img_to_load=-1 --load_previous=1
-        conda deactivate
-    done
