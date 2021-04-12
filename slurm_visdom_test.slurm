@@ -15,10 +15,6 @@ module load anaconda
 module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
-conda update python
-
-pip install visdom
-pip install requests
 
 srun python visdom_plot_test_main.py --coare=1
 conda deactivate

@@ -12,11 +12,22 @@ import matplotlib.pyplot as plt
 import torchvision.utils as vutils
 import visdom
 
+SALIKSIK_SERVER = "192.168.134.223" #IMPORTANT: No HTTP
+
 class VisdomReporter:
+    _sharedInstance = None
+
+    @staticmethod
+    def initialize():
+        VisdomReporter._sharedInstance = VisdomReporter()
+
+    @staticmethod
+    def getInstance():
+        return VisdomReporter._sharedInstance
+
     def __init__(self):
         if(constants.is_coare == 1):
-            LOG_PATH = "checkpoint/visdom_log_iteration_"+ str(constants.ITERATION) + ".visdom"
-            self.vis = visdom.Visdom(offline = True, log_to_filename = LOG_PATH)
+            self.vis = visdom.Visdom(SALIKSIK_SERVER, use_incoming_socket=False)
         else:
             self.vis= visdom.Visdom()
         
@@ -85,7 +96,10 @@ class VisdomReporter:
         for i in range(ROWS):
             for j in range(COLS):
                 if(index < len(loss_keys)):
-                    ax[i, j].plot(x, losses_dict[loss_keys[index]], color = colors[index], label = str(caption_dict[caption_keys[index]]))
+                    if(index == 1):
+                        ax[i, j].plot(x, losses_dict[loss_keys[index]], color=colors[index], label= loss_key + " " +str(caption_dict[caption_keys[index]]))
+                    else:
+                        ax[i, j].plot(x, losses_dict[loss_keys[index]], color = colors[index], label = str(caption_dict[caption_keys[index]]))
                     index = index + 1
                 else:
                     break
@@ -94,8 +108,25 @@ class VisdomReporter:
         if loss_key not in self.loss_windows:
             self.loss_windows[loss_key] = self.vis.matplot(plt, opts = dict(caption = "Losses" + " " + str(constants)))
         else:
-            self.vis.matplot(plt, win = self.loss_windows[loss_key], opts = dict(caption = "Losses" + " " + str(constants))) 
+            self.vis.matplot(plt, win = self.loss_windows[loss_key], opts = dict(caption = "Losses" + " " + str(constants)))
           
+        plt.show()
+
+    def plot_train_test_loss(self, loss_key, iteration, train_losses, test_losses, train_caption, test_caption):
+        colors = ['r', 'g', 'black', 'darkorange', 'olive', 'palevioletred', 'rosybrown', 'cyan', 'slategray', 'darkmagenta', 'linen', 'chocolate']
+
+        x1 = [i for i in range(iteration, iteration + len(train_losses))]
+        x2 = [i for i in range(iteration, iteration + len(test_losses))]
+
+        plt.plot(x1, train_losses, color=colors[0], label=str(train_caption))
+        plt.plot(x2, test_losses, color=colors[1], label=str(test_caption))
+        plt.legend(loc='lower right')
+
+        if loss_key not in self.loss_windows:
+            self.loss_windows[loss_key] = self.vis.matplot(plt, opts=dict(caption="Losses" + " " + str(constants)))
+        else:
+            self.vis.matplot(plt, win=self.loss_windows[loss_key], opts=dict(caption="Losses" + " " + str(constants)))
+
         plt.show()
 
     def plot_psnr_ssim_loss(self, loss_key, iteration, losses_dict, caption_dict, base_key):

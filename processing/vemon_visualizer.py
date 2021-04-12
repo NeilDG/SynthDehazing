@@ -84,6 +84,30 @@ def visualize_edge_distribution(path_a):
     plt.hist(edge_list)
 
 
+def visualize_haze_equation_albedo(clear_path, depth_path, albedo_path):
+    clear_list, depth_list = dataset_loader.assemble_paired_data(clear_path, depth_path, num_image_to_load = 10)
+    albedo_list = dataset_loader.assemble_unpaired_data(albedo_path, num_image_to_load = 10)
+    print("Reading images in ", albedo_path, depth_path)
+
+    #for i in range(len(albedo_list)):
+    for i in range(0, 5):
+        albedo_img = cv2.imread(albedo_list[i])
+        albedo_img = cv2.cvtColor(albedo_img, cv2.COLOR_BGR2RGB)
+        albedo_img = cv2.resize(albedo_img, (256, 256))
+        albedo_img = cv2.normalize(albedo_img, dst = None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        depth_img = cv2.imread(depth_list[i])
+        depth_img = cv2.cvtColor(depth_img, cv2.COLOR_BGR2GRAY)
+        depth_img = cv2.resize(depth_img, (256, 256))
+        depth_img = cv2.normalize(depth_img, dst = None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        clear_img = cv2.imread(clear_list[i])
+        clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
+        clear_img = cv2.resize(clear_img, (256, 256))
+        clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        tensor_utils.introduce_haze_albedo(clear_img, depth_img, albedo_img)
+
 def visualize_haze_equation(path_a, depth_path, path_b):
     img_list, depth_list = dataset_loader.assemble_paired_data(path_a, depth_path, num_image_to_load = 10)
     clear_list = dataset_loader.assemble_unpaired_data(path_b, num_image_to_load = 10)
@@ -221,12 +245,12 @@ def perform_lightcoord_predictions(model_checkpt_name):
     print("===================================================")
 
     # load color transfer
-    color_transfer_checkpt = torch.load(ABS_PATH_CHECKPOINT + 'color_transfer_v1.11_2.pt')
-    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
-    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
-    color_transfer_gan.eval()
-    print("Color transfer GAN model loaded.")
-    print("===================================================")
+    # color_transfer_checkpt = torch.load(ABS_PATH_CHECKPOINT + 'color_transfer_v1.11_2.pt')
+    # color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    # color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    # color_transfer_gan.eval()
+    # print("Color transfer GAN model loaded.")
+    # print("===================================================")
 
     img_op = transforms.Compose([
         transforms.ToPILImage(),
@@ -268,7 +292,8 @@ def perform_lightcoord_predictions(model_checkpt_name):
 
             img_tensor = img_op(img).to(device)
 
-            light_preds = light_estimator(color_transfer_gan(torch.unsqueeze(img_tensor, 0)))
+            #light_preds = light_estimator(color_transfer_gan(torch.unsqueeze(img_tensor, 0)))
+            light_preds = light_estimator(torch.unsqueeze(img_tensor, 0))
             light_preds = torch.squeeze(light_preds).cpu().numpy()
 
             light_preds[0] = (light_preds[0] * LIGHT_STD[0]) + LIGHT_MEAN[0]
@@ -298,8 +323,11 @@ def main():
     # plt.show()
 
     #visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
-    #visualize_feature_distribution(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
+    #visualize_haze_equation_albedo(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3)
+    #visualize_feature_distribution(constants.DATASET
+    # _HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
     #visualize_img_to_light_correlation()
+    perform_lightcoord_predictions("lightcoords_estimator_V1.00_7")
     perform_lightcoord_predictions("lightcoords_estimator_V1.00_5")
     perform_lightcoord_predictions("lightcoords_estimator_V1.00_6")
     perform_lightcoord_predictions("lightcoords_estimator_V1.00_8")

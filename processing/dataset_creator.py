@@ -6,16 +6,16 @@ Created on Tue Jul 14 20:11:02 2020
 """
 import os
 import torch
-from PIL import Image
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils import data
-import torch.nn as nn
 from utils import tensor_utils
-from torchvision.utils import save_image
+import torchvision.utils as vutils
+from loaders import dataset_loader
 import torchvision.transforms as transforms
 import constants
+from model import vanilla_cycle_gan as cycle_gan
+import kornia
 
 DATASET_DIV2K_PATH = "E:/DIV2K_train_HR/"
 SAVE_PATH = "E:/VEMON_Transfer/train/C/"
@@ -47,6 +47,38 @@ def unsharp_mask(div2k_img):
     unsharp_image = cv2.addWeighted(div2k_img, 1.5, gaussian_3, -0.5, 0)
     
     return unsharp_image
+
+def create_data_from_video(video_path, save_path, filename_format, img_size, patch_size, offset, repeats):
+    vidcap = cv2.VideoCapture(video_path)
+    count = offset
+    success = True
+
+    final_op = transforms.Compose([transforms.ToPILImage(),
+                                   transforms.RandomHorizontalFlip(),
+                                   transforms.Resize(img_size),
+                                   transforms.RandomCrop(patch_size),
+                                   transforms.ToTensor()])
+
+    while success:
+        success, image = vidcap.read()
+        if (success):
+            w, h, c = np.shape(image)
+            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation=cv2.INTER_CUBIC)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+            for i in range(repeats):
+                file_name = save_path + filename_format % count
+
+                new_img = final_op(image).numpy()
+                new_img = np.moveaxis(new_img, -1, 0)
+                new_img = np.moveaxis(new_img, -1, 0)
+
+                #plt.imshow(new_img)
+                #plt.show()
+
+                cv2.imwrite(file_name, cv2.cvtColor(cv2.convertScaleAbs(new_img, alpha=255.0), cv2.COLOR_BGR2RGB))
+                print("Saved: ", file_name)
+                count = count + 1
 
 def create_img_data(dataset_path, save_path, filename_format, img_size, patch_size, repeats):
     img_list = assemble_img_list(dataset_path)
@@ -237,39 +269,17 @@ def create_tri_img_data(dataset_path_a, dataset_path_b, dataset_path_c, save_pat
 
             print("Saved: ", file_name_a, file_name_b, file_name_c)
             count = count + 1
-  
-def create_gta_noisy_data():
-    NOISY_SAVE_PATH = "E:/Noisy GTA/noisy/"
-    CLEAN_SAVE_PATH = "E:/Noisy GTA/clean/"
-    gta_clean_data = assemble_img_list(constants.DATASET_GTA_PATH_2)
-    count = 0
-    for k in range(len(gta_clean_data)):
-        normal_img = cv2.imread(gta_clean_data[k])
-        normal_img = cv2.cvtColor(normal_img, cv2.COLOR_BGR2RGB)
-        transform_op = transforms.Compose([transforms.ToPILImage(),
-                                           transforms.ColorJitter(brightness=(1.25, 1.8)),
-                                           transforms.ToTensor(),
-                                           AddGaussianNoise(std=0.15)]
-                                          )
-        
-        final_img = transform_op(normal_img)
-        file_name = NOISY_SAVE_PATH + "gta_noisy_%d.png" % count
-        save_image(final_img, file_name)
-        print("Saved: ", file_name)
-        
-        file_name = CLEAN_SAVE_PATH + "gta_clean_%d.png" % count
-        save_image(transforms.ToTensor()(normal_img), file_name)
-        
-        count = count + 1
 
 def create_hazy_data(offset):
-    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_11_clean.mp4"
-    hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_11_haze.mp4"
-    depth_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_11_depth.mp4"
+    clean_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_12_clean.mp4"
+    #hazy_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_11_haze.mp4"
+    albedo_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_12_albedo.mp4"
+    depth_video_path = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/synth_12_depth.mp4"
 
     CLEAN_SAVE_PATH = "E:/Synth Hazy 3/clean/"
-    HAZY_SAVE_PATH = "E:/Synth Hazy 3/hazy/"
+    #HAZY_SAVE_PATH = "E:/Synth Hazy 3/hazy/"
     DEPTH_SAVE_PATH = "E:/Synth Hazy 3/depth/"
+    ALBEDO_SAVE_PATH = "E:/Synth Hazy 3/albedo/"
     
     vidcap = cv2.VideoCapture(clean_video_path)
     count = offset
@@ -285,18 +295,18 @@ def create_hazy_data(offset):
             count += 1
     
     #for noisy
-    vidcap = cv2.VideoCapture(hazy_video_path)
-    count = offset
-    
-    success = True
-    while success:
-        success,image = vidcap.read()
-        if(success):
-            w,h,c = np.shape(image)
-            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation = cv2.INTER_CUBIC)
-            cv2.imwrite(HAZY_SAVE_PATH + "synth_%d.png" % count, image)
-            print("Saved hazy: synth_%d.png" % count)
-            count += 1
+    # vidcap = cv2.VideoCapture(hazy_video_path)
+    # count = offset
+    #
+    # success = True
+    # while success:
+    #     success,image = vidcap.read()
+    #     if(success):
+    #         w,h,c = np.shape(image)
+    #         image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation = cv2.INTER_CUBIC)
+    #         cv2.imwrite(HAZY_SAVE_PATH + "synth_%d.png" % count, image)
+    #         print("Saved hazy: synth_%d.png" % count)
+    #         count += 1
 
     #for depth
     vidcap = cv2.VideoCapture(depth_video_path)
@@ -310,13 +320,127 @@ def create_hazy_data(offset):
             cv2.imwrite(DEPTH_SAVE_PATH + "synth_%d.png" % count, image)
             print("Saved depth: synth_%d.png" % count)
             count += 1
-    
+
+    #for albedo
+    vidcap = cv2.VideoCapture(albedo_video_path)
+    count = offset
+    success = True
+    while success:
+        success, image = vidcap.read()
+        if (success):
+            w, h, c = np.shape(image)
+            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation=cv2.INTER_CUBIC)
+            cv2.imwrite(ALBEDO_SAVE_PATH + "synth_%d.png" % count, image)
+            print("Saved albedo: synth_%d.png" % count)
+            count += 1
+
+def produce_color_images():
+    SAVE_PATH = "E:/Synth Hazy 3/clean - styled/"
+    CHECKPT_ROOT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+
+    # load color transfer
+    color_transfer_checkpt = torch.load(CHECKPT_ROOT + "color_transfer_v1.11_2.pt")
+    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    color_transfer_gan.eval()
+    print("Color transfer GAN model loaded.")
+    print("===================================================")
+
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
+
+    # Plot some training images
+    name_batch, dirty_batch, clean_batch = next(iter(dataloader))
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Training - Old Images")
+    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.show()
+
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Training - New Images")
+    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.show()
+
+    for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
+        with torch.no_grad():
+            input_tensor = dirty_batch.to(device)
+            result = color_transfer_gan(input_tensor)
+
+            for i in range(0, len(result)):
+                img_name = name[i].split(".")[0]
+                style_img = result[i].cpu().numpy()
+                style_img = ((style_img * 0.5) + 0.5) #remove normalization
+                style_img = np.rollaxis(style_img, 0, 3)
+                style_img = cv2.normalize(style_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                style_img = cv2.cvtColor(style_img, cv2.COLOR_BGR2RGB)
+
+                cv2.imwrite(SAVE_PATH + img_name + ".png", style_img)
+                print("Saved styled image: ", img_name)
+
+def produce_pseudo_albedo_images():
+    SAVE_PATH = "E:/Synth Hazy 3/albedo - pseudo/"
+    CHECKPT_ROOT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    # load color transfer
+    color_transfer_checkpt = torch.load(CHECKPT_ROOT + "albedo_transfer_v1.01_1.pt")
+    albedo_transfer_gan = cycle_gan.Generator(n_residual_blocks=8).to(device)
+    albedo_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    albedo_transfer_gan.eval()
+
+    albedo_discriminator = cycle_gan.Discriminator().to(device)
+    albedo_discriminator.load_state_dict(color_transfer_checkpt[constants.DISCRIMINATOR_KEY + "A"])
+    albedo_discriminator.eval()
+
+    print("Color transfer GAN model loaded.")
+    print("===================================================")
+
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.infer_size, -1)
+
+    # Plot some training images
+    name_batch, dirty_batch, clean_batch = next(iter(dataloader))
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Test - Colored Images")
+    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.show()
+
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Test - Albedo Images")
+    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.show()
+
+    for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
+        with torch.no_grad():
+            input_tensor = dirty_batch.to(device)
+            result = albedo_transfer_gan(input_tensor)
+            result = kornia.adjust_brightness(result, 0.6)
+            prediction = albedo_discriminator(result)
+            for i in range(0, len(result)):
+                img_name = name[i].split(".")[0]
+                #first check with discrminator score. If it's good, save image
+
+                if(prediction[i].item() > 0.8):
+                    style_img = result[i].cpu().numpy()
+                    style_img = ((style_img * 0.5) + 0.5) #remove normalization
+                    style_img = np.rollaxis(style_img, 0, 3)
+                    style_img = cv2.normalize(style_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                    style_img = cv2.cvtColor(style_img, cv2.COLOR_BGR2RGB)
+
+                    cv2.imwrite(SAVE_PATH + img_name + ".png", style_img)
+                    print("Prediction of %s from discriminator: %f. Saved styled image: %s" % (img_name, prediction[i].item(), img_name))
+
 def main():
-    # PATH_A = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
-    # SAVE_PATH_A = "E:/O-Haze - Crop/hazy/"
-    # PATH_B = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
-    # SAVE_PATH_B = "E:/O-Haze - Crop/clean/"
-    # create_filtered_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", (960, 960), (256, 256), 1000, 500, offset = 45000)
+    # VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_1.mp4"
+    # SAVE_PATH = "E:/Synth Hazy 2/directionality/"
+    # create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (512, 512), (256, 256), offset = 0, repeats = 7)
+    #
+    # VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_2.mp4"
+    # create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (512, 512), (256, 256), offset=0, repeats=7)
 
     # PATH_A = constants.DATASET_DIV2K_PATH
     # SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
@@ -328,7 +452,9 @@ def main():
     # SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
     # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (64, 64), 10, 0)
 
-    create_hazy_data(0)
+    #create_hazy_data(0)
+    produce_color_images()
+    produce_pseudo_albedo_images()
 
 if __name__=="__main__": 
     main()   

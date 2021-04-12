@@ -12,8 +12,9 @@ class AirlightTrainer:
     def __init__(self, gpu_device, lr=0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
-        self.D_A = dh.AirlightEstimator(input_nc=3, num_layers = 2).to(self.gpu_device)
-        self.D_B = dh.AirlightEstimator_V2(input_nc=3, num_layers = 2).to(self.gpu_device)
+        self.LOGGING_INTERVAL = 40
+        self.D_A = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 3).to(self.gpu_device)
+        self.D_B = dh.AirlightEstimator_V2(input_nc=3, downsampling_layers = 3, residual_blocks = 3).to(self.gpu_device)
 
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
@@ -25,16 +26,22 @@ class AirlightTrainer:
         self.schedulerDB = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDB, patience=1000, threshold=0.00005)
 
     def initialize_dict(self):
-
         self.AIRLOSS_B_KEY = "AIRLOSS_B_KEY"
+        self.AIRLOSS_A_KEY_TEST = "AIRLOSS_A_KEY_TEST"
+        self.AIRLOSS_B_KEY_TEST = "AIRLOSS_b_KEY_TEST"
+
         # what to store in visdom?
         self.losses_dict = {}
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
         self.losses_dict[self.AIRLOSS_B_KEY] = []
+        self.losses_dict[self.AIRLOSS_A_KEY_TEST] = []
+        self.losses_dict[self.AIRLOSS_B_KEY_TEST] = []
 
         self.caption_dict = {}
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "Airlight loss per iteration"
         self.caption_dict[self.AIRLOSS_B_KEY] = "Airlight (with light coords) loss per iteration"
+        self.caption_dict[self.AIRLOSS_A_KEY_TEST] = "Airlight - testloss per iteration"
+        self.caption_dict[self.AIRLOSS_B_KEY_TEST] = "Airlight (with light coords) - test loss per iteration"
 
 
     def network_loss(self, pred, target):
@@ -54,20 +61,24 @@ class AirlightTrainer:
             print("====================================", file=f)
             print("Airlight weight: ", str(self.loss_weight), file=f)
 
-    def train(self, rgb_tensor, light_coords_tensor, airlight_tensor):
+    def train(self, rgb_tensor, light_coords_tensor, airlight_tensor, batch_number):
         self.D_A.train()
         self.optimizerDA.zero_grad()
 
         #train first model
         airlight_tensor = torch.unsqueeze(airlight_tensor, 1)
         D_A_loss = self.network_loss(self.D_A(rgb_tensor), airlight_tensor) * self.loss_weight
-        self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(D_A_loss.item())
+
+        if(batch_number % self.LOGGING_INTERVAL == 0):
+            self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(D_A_loss.item())
 
         #train second model
         self.D_B.train()
         self.optimizerDB.zero_grad()
         D_B_loss = self.network_loss(self.D_B(rgb_tensor, light_coords_tensor), airlight_tensor) * self.loss_weight
-        self.losses_dict[self.AIRLOSS_B_KEY].append(D_B_loss.item())
+
+        if (batch_number % self.LOGGING_INTERVAL == 0):
+            self.losses_dict[self.AIRLOSS_B_KEY].append(D_B_loss.item())
 
         errD = D_A_loss + D_B_loss
         errD.backward()
@@ -77,10 +88,31 @@ class AirlightTrainer:
         self.optimizerDB.step()
         self.schedulerDB.step(errD)
 
-    def visdom_report(self, iteration, train_tensor):
+    def test(self, rgb_tensor, light_coords_tensor, airlight_tensor, batch_number):
+        self.D_A.eval()
+        self.D_B.eval()
+        with torch.no_grad():
+            airlight_tensor = torch.unsqueeze(airlight_tensor, 1)
+            D_A_loss = self.network_loss(self.D_A(rgb_tensor), airlight_tensor) * self.loss_weight
+
+            if (batch_number % self.LOGGING_INTERVAL == 0):
+                self.losses_dict[self.AIRLOSS_A_KEY_TEST].append(D_A_loss.item())
+
+            D_B_loss = self.network_loss(self.D_B(rgb_tensor, light_coords_tensor), airlight_tensor) * self.loss_weight
+
+            if (batch_number % self.LOGGING_INTERVAL == 0):
+                self.losses_dict[self.AIRLOSS_B_KEY_TEST].append(D_B_loss.item())
+
+
+    def visdom_report(self, iteration, train_tensor, test_tensor):
         # report to visdom
-        self.visdom_reporter.plot_finegrain_loss("Train loss", iteration, self.losses_dict, self.caption_dict)
+        self.visdom_reporter.plot_train_test_loss(self.AIRLOSS_A_KEY_TEST, iteration, self.losses_dict[constants.D_OVERALL_LOSS_KEY], self.losses_dict[self.AIRLOSS_A_KEY_TEST],
+                                                  "Airloss - Train loss", "Airlight - Test Loss")
+        self.visdom_reporter.plot_train_test_loss(self.AIRLOSS_B_KEY_TEST, iteration, self.losses_dict[self.AIRLOSS_B_KEY], self.losses_dict[self.AIRLOSS_B_KEY_TEST],
+                                                  "Airloss (with light coords) - Train loss", "Airlight (with light coords) - Test Loss")
+
         self.visdom_reporter.plot_image((train_tensor), "Training RGB images")
+        self.visdom_reporter.plot_image((test_tensor), "Test RGB images")
 
     def load_saved_state(self, checkpoint):
         self.D_A.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "A"])

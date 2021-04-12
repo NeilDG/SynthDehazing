@@ -7,9 +7,7 @@ Created on Sun Apr 19 13:22:06 2020
 """
 
 from __future__ import print_function
-import os
 import sys
-import logging
 from optparse import OptionParser
 import random
 import torch
@@ -19,7 +17,7 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
-from trainers import div2k_trainer
+from trainers import cyclegan_trainer
 import constants
      
 parser = OptionParser()
@@ -29,13 +27,14 @@ parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="0.0")
-parser.add_option('--color_shift_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--smoothness_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00") 
 parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Vanilla CycleGAN. Paired learning for extracing albedo from a lit image and vice versa.")
 
 #--img_to_load=-1 --load_previous=1
 #Update config if on COARE
@@ -51,12 +50,9 @@ def update_config(opts):
         constants.ITERATION = str(opts.iteration)
         constants.COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.DATASET_VEMON_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/VEMON Dataset/frames/"
-        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth/hazy/"
-        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth/clean/"
-        constants.DATASET_PLACES_PATH = "/scratch1/scratch2/neil.delgallego/Places Dataset/"
-
-        constants.num_workers = 4
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
+        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/GT/"
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -80,8 +76,8 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
     
-    gt = div2k_trainer.Div2kTrainer(constants.COLOR_TRANSFER_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
-    gt.update_penalties(opts.adv_weight, opts.identity_weight, opts.likeness_weight, opts.cycle_weight, opts.color_shift_weight)
+    gt = cyclegan_trainer.CycleGANTrainer(device, opts.g_lr, opts.d_lr)
+    gt.update_penalties(opts.adv_weight, opts.identity_weight, opts.likeness_weight, opts.cycle_weight, opts.smoothness_weight, opts.comments)
     start_epoch = 0
     iteration = 0
     
@@ -89,55 +85,52 @@ def main(argv):
         checkpoint = torch.load(constants.COLOR_TRANSFER_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1   
         iteration = checkpoint['iteration'] + 1
-        gt.load_saved_state(iteration, checkpoint, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+        gt.load_saved_state(checkpoint)
  
         print("Loaded checkpt: %s Current epoch: %d" % (constants.COLOR_TRANSFER_CHECKPATH, start_epoch))
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_color_train_dataset(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.batch_size, opts.img_to_load)
-    test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.display_size, 500)
+    #train_loader = dataset_loader.load_color_train_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.batch_size, opts.img_to_load)
+    #test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.display_size, 500)
+    train_loader = dataset_loader.load_color_albedo_train_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)
+    test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
+    test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
     index = 0
     
     # Plot some training images
     if(constants.is_coare == 0):
         _, noisy_batch, clean_batch = next(iter(train_loader))
 
-        show_images(noisy_batch, "Training - Dirty Images")
-        show_images(clean_batch, "Training - Clean Images")
+        show_images(noisy_batch, "Training - A Images")
+        show_images(clean_batch, "Training - B Images")
     
     print("Starting Training Loop...")
-    if(constants.is_coare == 0):
-        for epoch in range(start_epoch, constants.num_epochs):
-            # For each batch in the dataloader
-            for i, train_data in enumerate(train_loader, 0):
-                _, dirty_batch, clean_batch = train_data
-                dirty_tensor = dirty_batch.to(device)
-                clean_tensor = clean_batch.to(device)
-                
-                gt.train(dirty_tensor, clean_tensor)
-                if(i % 500 == 0 and constants.is_coare == 0):
-                    view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
-                    view_dirty_batch = view_dirty_batch.to(device)
-                    view_clean_batch = view_clean_batch.to(device)
-                    gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
-                    #gt.visdom_report(iteration, dirty_tensor, clean_tensor, dirty_tensor, clean_tensor)
-                    iteration = iteration + 1
-                    index = (index + 1) % len(test_loader)
-                    if(index == 0):
-                      test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.display_size, 500)
-          
-                    gt.save_states(epoch, iteration, constants.COLOR_TRANSFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
-    else: 
-        for i, (name, dirty_batch, clean_batch) in enumerate(train_loader, 0):
+    for epoch in range(start_epoch, constants.num_epochs):
+        # For each batch in the dataloader
+        for i, train_data in enumerate(train_loader, 0):
+            _, dirty_batch, clean_batch = train_data
             dirty_tensor = dirty_batch.to(device)
             clean_tensor = clean_batch.to(device)
+
             gt.train(dirty_tensor, clean_tensor)
-            if(i % 100 == 0):
-                print("Iterating %d " % i)
-            
-        #save every X epoch
-        gt.save_states(start_epoch, iteration, constants.COLOR_TRANSFER_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
+            if(i % 100 == 0 and constants.is_coare == 0):
+                view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader_1))
+                view_dirty_batch = view_dirty_batch.to(device)
+                view_clean_batch = view_clean_batch.to(device)
+                gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
+
+                view_batch, view_dirty_batch, _ = next(iter(test_loader_2))
+                view_dirty_batch = view_dirty_batch.to(device)
+                gt.visdom_infer(view_dirty_batch, "O-Haze Hazy", "O-Haze Albedo")
+
+                iteration = iteration + 1
+                index = (index + 1) % len(test_loader_1)
+                if(index == 0):
+                    test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
+                    test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
+
+                gt.save_states(epoch, iteration)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

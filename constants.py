@@ -11,15 +11,22 @@ DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy 2/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED = "E:/Synth Hazy 2/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE = "E:/Synth Hazy 2/depth/"
 DATASET_LIGHTCOORDS_PATH_COMPLETE = "E:/Synth Hazy 2/light/"
+DATASET_LIGHTDIRECTIONS_PATH_COMPLETE = "E:/Synth Hazy 2/directionality/"
+
+DATASET_ALBEDO_PATH_COMPLETE_3 = "E:/Synth Hazy 3/albedo/"
+DATASET_ALBEDO_PATH_PSEUDO_3 = "E:/Synth Hazy 3/albedo - pseudo/"
+DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
+DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
+DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
+
+DATASET_CLEAN_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/clean/"
+DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "E:/Synth Hazy - Test Set/clean - styled/"
+DATASET_DEPTH_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/depth/"
+DATASET_LIGHTCOORDS_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/light/"
 
 DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
 DATASET_DEPTH_PATH_PATCH = "E:/Synth Hazy - Patch/depth/"
-
-DATASET_OHAZE_PATH_PATCH_HAZY = "E:/O-HAZE - Patch/hazy/"
-DATASET_OHAZE_PATH_PATCH_CLEAN = "E:/O-HAZE - Patch/clean/"
-DATASET_OHAZE_PATH_CROP_HAZY = "E:/O-Haze - Crop/hazy/"
-DATASET_OHAZE_PATH_CROP_CLEAN = "E:/O-Haze - Crop/clean/"
 
 DATASET_OHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
 DATASET_OHAZE_CLEAN_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
@@ -46,13 +53,13 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
-COLOR_TRANSFER_VERSION = "color_transfer_v1.11"
-TRANSMISSION_VERSION = "transmission_estimator_v1.02"
+COLOR_TRANSFER_VERSION = "albedo_transfer_v1.01"
+TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.03"
 AIRLIGHT_VERSION = "airlight_estimator_v1.01"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "1"
+ITERATION = "2"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -75,6 +82,7 @@ G_ADV_LOSS_KEY = "g_adv"
 LIKENESS_LOSS_KEY = "likeness"
 REALNESS_LOSS_KEY = "realness"
 COLOR_SHIFT_LOSS_KEY = "colorshift"
+SMOOTHNESS_LOSS_KEY = "smoothness"
 EDGE_LOSS_KEY = "edge"
 
 D_OVERALL_LOSS_KEY = "d_loss"
@@ -90,14 +98,14 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 30
+num_epochs = 250
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 128
+batch_size = 8
 infer_size = 16
 
-brightness_enhance = 1.0
+brightness_enhance = 0.6
 contrast_enhance = 1.0
 
 #Running on COARE?
