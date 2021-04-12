@@ -36,8 +36,7 @@ parser.add_option('--image_size', type=int, help="Weight", default="64")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
-#parser.add_option('--plot_on', type=int, help="plotting?", default=0)
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network. Using L1-discriminator loss.")
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE
@@ -118,40 +117,28 @@ def main(argv):
         show_images(c, "Test - RGB Images")
 
     print("Starting Training Loop...")
-    if (constants.is_coare == 0):
-        for epoch in range(start_epoch, constants.num_epochs):
-            # For each batch in the dataloader
-            for i, train_data in enumerate(train_loader, 0):
-                _, rgb_batch, depth_batch, _ = train_data
-                rgb_tensor = rgb_batch.to(device).float()
-                depth_tensor = depth_batch.to(device).float()
+    for epoch in range(start_epoch, constants.num_epochs):
+        # For each batch in the dataloader
+        for i, train_data in enumerate(train_loader, 0):
+            _, rgb_batch, depth_batch, _ = train_data
+            rgb_tensor = rgb_batch.to(device).float()
+            depth_tensor = depth_batch.to(device).float()
 
-                gt.train(rgb_tensor, depth_tensor)
-                if ((i) % 100 == 0):
-                    gt.visdom_report(iteration, rgb_tensor, depth_tensor)
+            gt.train(rgb_tensor, depth_tensor)
+            iteration = iteration + 1
+            if ((i) % 1000 == 0):
+                gt.visdom_report(iteration, rgb_tensor, depth_tensor)
+                for i in range(len(test_loaders)):
+                    _, rgb_batch = next(iter(test_loaders[i]))
+                    rgb_batch = rgb_batch.to(device)
+                    gt.visdom_infer(rgb_batch, i)
 
-                    for i in range(len(test_loaders)):
-                        _, rgb_batch = next(iter(test_loaders[i]))
-                        rgb_batch = rgb_batch.to(device)
-                        gt.visdom_infer(rgb_batch, i)
-
-                    iteration = iteration + 1
                     index = (index + 1) % len(test_loaders[0])
                     if (index == 0):
                         test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500),
                                         dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.batch_size, 500),
                                         dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.batch_size, 500)]
-                    gt.save_states(epoch, iteration)
-    else:
-        for i, train_data in enumerate(train_loader, 0):
-            _, rgb_batch, depth_batch = train_data
-            rgb_tensor = rgb_batch.to(device).float()
-            depth_tensor = depth_batch.to(device).float()
-
-            gt.train(rgb_tensor, depth_tensor)
-            if (i % 100 == 0):
-                print("Iterating %d " % i)
-
+                gt.save_states(epoch, iteration)
         # save every X epoch
         gt.save_states(start_epoch, iteration, constants.TRANSMISSION_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
 

@@ -86,10 +86,11 @@ class TransmissionTrainer:
             print("Edge weight: ", str(self.edge_weight), file=f)
     
     def adversarial_loss(self, pred, target):
-        # loss = nn.MSELoss()
-        # return loss(pred, target)
-        loss = nn.BCEWithLogitsLoss()
+        loss = nn.L1Loss()
         return loss(pred, target)
+
+        #loss = nn.BCEWithLogitsLoss()
+        #return loss(pred, target)
 
     def likeness_loss(self, pred, target):
         loss = nn.MSELoss()
