@@ -1,15 +1,14 @@
 #!/bin/bash
-#SBATCH -J LIGHT_11
-#SBATCH --partition=gpu
-#SBATCH --qos=12c-1h_2gpu
+#SBATCH -J ALBEDO_DEBUG
+#SBATCH --partition=debug
+#SBATCH --qos=240c-1h_debug
 #SBATCH --cpus-per-task=6
-#SBATCH -G 1
 #SBATCH --ntasks=1
-#SBATCH --output=script_11.out
+#SBATCH --output=script_debug.out
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph
 #SBATCH --mail-type=END
 
-ITERATION=11
+ITERATION=2
 
 #About this script:
 # CycleGAN using new dataset between synth hazy and places dataset
@@ -25,12 +24,5 @@ source activate NeilGAN_V2
 conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
 #conda install -c conda-forge scikit-image
 
-srun python airlight_main.py --iteration=$ITERATION --coare=1 --d_lr=0.05 --img_to_load=-1 --batch_size=32 --load_previous=0
+srun python cyclegan_main.py --iteration=$ITERATION --coare=1 --cycle_weight=100.0 --img_to_load=-1 --load_previous=0
 conda deactivate
-
-for i in {1..40}
-    do
-        source activate NeilGAN_V2
-        srun python airlight_main.py --iteration=$ITERATION --coare=1 --d_lr=0.05 --img_to_load=-1 --batch_size=32 --load_previous=1
-        conda deactivate
-    done

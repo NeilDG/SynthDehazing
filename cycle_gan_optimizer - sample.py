@@ -4,8 +4,8 @@ class CycleGanOptimizer(nn.Module):
         super(CycleGanOptimizer, self).__init__()
         self.G_A = gan.G_A
         self.G_B = gan.G_B
-        self.D_A = gan.D_A
-        self.D_B = gan.D_B
+        self.D_A = gan.A1
+        self.D_B = gan.A2
 
         self.identity_criterion = identity_criterion(reduction='mean')
         self.cycle_criterion = cycle_criterion(reduction='mean')

@@ -19,6 +19,7 @@ DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
 
+DATASET_ALBEDO_PATH_PSEUDO_TEST  = "E:/Synth Hazy - Test Set/albedo - pseudo/"
 DATASET_CLEAN_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "E:/Synth Hazy - Test Set/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/depth/"
@@ -102,7 +103,7 @@ num_epochs = 250
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 256
+batch_size = 128
 infer_size = 16
 
 brightness_enhance = 0.6

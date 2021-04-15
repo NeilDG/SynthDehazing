@@ -309,7 +309,21 @@ def load_airlight_train_dataset(path_albedo, path_styled, path_depth, batch_size
     data_loader = torch.utils.data.DataLoader(
         image_dataset.AirlightDataset(albedo_list, path_styled, path_depth, (32, 32), False),
         batch_size=batch_size,
-        num_workers=6,
+        num_workers=3,
+        shuffle=True
+    )
+
+    return data_loader
+
+def load_airlight_test_dataset(path_albedo, path_styled, path_depth, batch_size=8, num_image_to_load=-1):
+    albedo_list = assemble_unpaired_data(path_albedo, num_image_to_load)
+
+    print("Length of images: %d." % (len(albedo_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.AirlightDataset(albedo_list, path_styled, path_depth, (32, 32), False),
+        batch_size=batch_size,
+        num_workers=2,
         shuffle=True
     )
 

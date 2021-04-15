@@ -129,18 +129,14 @@ class VisdomReporter:
 
         plt.show()
 
-    def plot_airlight_comparison(self, loss_key, iteration, airlight_a_loss, airlight_b_loss, airlight_a_captions, airlight_b_captions):
+    def plot_airlight_comparison(self, loss_key, iteration, airlight_loss, airlight_captions):
         colors = ['r', 'g', 'black', 'darkorange', 'olive', 'palevioletred', 'rosybrown', 'cyan', 'slategray', 'darkmagenta', 'linen', 'chocolate']
 
-        x1 = [i for i in range(iteration, iteration + len(airlight_a_loss[0]))]
-        x2 = [i for i in range(iteration, iteration + len(airlight_a_loss[1]))]
-        x3 = [i for i in range(iteration, iteration + len(airlight_b_loss[0]))]
-        x4 = [i for i in range(iteration, iteration + len(airlight_b_loss[1]))]
+        x1 = [i for i in range(iteration, iteration + len(airlight_loss[0]))]
+        x2 = [i for i in range(iteration, iteration + len(airlight_loss[1]))]
 
-        plt.plot(x1, airlight_a_loss[0], color=colors[0], label=str(airlight_a_captions[0]))
-        plt.plot(x2, airlight_a_loss[1], color=colors[1], label=str(airlight_a_captions[1]))
-        plt.plot(x3, airlight_b_loss[0], color=colors[2], label=str(airlight_b_captions[0]))
-        plt.plot(x4, airlight_b_loss[1], color=colors[3], label=str(airlight_b_captions[1]))
+        plt.plot(x1, airlight_loss[0], color=colors[0], label=str(airlight_captions[0]))
+        plt.plot(x2, airlight_loss[1], color=colors[1], label=str(airlight_captions[1]))
         plt.legend(loc='lower right')
 
         if loss_key not in self.loss_windows:

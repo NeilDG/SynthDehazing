@@ -8,6 +8,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from loaders import image_dataset
+from loaders.image_dataset import AirlightDataset
+
 
 def weights_init(m):
         classname = m.__class__.__name__
@@ -16,6 +19,11 @@ def weights_init(m):
         elif classname.find('BatchNorm') != -1:
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
+
+
+def xavier_init(m):
+    if(type(m) == nn.Conv2d):
+        nn.init.xavier_uniform_(m.weight)
 
 class Discriminator(nn.Module):
     def __init__(self, input_nc = 3):
@@ -236,9 +244,10 @@ class AirlightEstimator_Single(nn.Module):
         return self.output_block(img_features)
 
 class AirlightEstimator_V1(nn.Module):
-    def __init__(self, input_nc, downsampling_layers, residual_blocks):
+    def __init__(self, input_nc, downsampling_layers, residual_blocks, add_mean):
         super(AirlightEstimator_V1, self).__init__()
 
+        self.add_mean = add_mean
         # A bunch of convolutions one after another
         img_features = [nn.Conv2d(input_nc, 64, 4, stride=2, padding=1),
                  nn.LeakyReLU(0.2, inplace=True)]
@@ -273,22 +282,25 @@ class AirlightEstimator_V1(nn.Module):
 
         self.fully_connected = nn.Sequential(nn.Flatten(),
                                              nn.Linear(in_features=32 * img_feature_shape * img_feature_shape, out_features=32),
-                                             nn.Tanh(),
+                                             nn.ReLU(),
                                              nn.Dropout2d(),
                                              nn.Linear(in_features=32, out_features=16),
-                                             nn.Tanh(),
+                                             nn.ReLU(),
                                              nn.Dropout2d(),
                                              nn.Linear(in_features=16, out_features=8),
-                                             nn.Tanh(),
+                                             nn.ReLU(),
                                              nn.Linear(in_features=8, out_features=1))
 
-        self.img_features.apply(weights_init)
+        self.img_features.apply(xavier_init)
 
     def forward(self, x):
         y = self.img_features(x)
         #print("Img features shape: ", np.shape(y))
 
-        return self.fully_connected(y)
+        if(self.add_mean):
+            return torch.add(self.fully_connected(y), image_dataset.AirlightDataset.atmosphere_mean())
+        else:
+            return self.fully_connected(y)
 
 class AirlightEstimator_V2(nn.Module):
     def __init__(self, input_nc, downsampling_layers, residual_blocks):

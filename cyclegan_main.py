@@ -91,8 +91,6 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    #train_loader = dataset_loader.load_color_train_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.batch_size, opts.img_to_load)
-    #test_loader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.display_size, 500)
     train_loader = dataset_loader.load_color_albedo_train_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)
     test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
     test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
@@ -114,7 +112,7 @@ def main(argv):
             clean_tensor = clean_batch.to(device)
 
             gt.train(dirty_tensor, clean_tensor)
-            if(i % 100 == 0 and constants.is_coare == 0):
+            if(i % 100 == 0):
                 view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader_1))
                 view_dirty_batch = view_dirty_batch.to(device)
                 view_clean_batch = view_clean_batch.to(device)

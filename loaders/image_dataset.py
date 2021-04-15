@@ -5,6 +5,8 @@ Created on Fri Jun  7 18:14:21 2019
 Pytorch image dataset
 @author: delgallegon
 """
+import math
+
 import torch
 import cv2
 import numpy as np
@@ -113,6 +115,17 @@ class TransmissionAlbedoDatasetTest(data.Dataset):
         return len(self.image_list_a)
 
 class AirlightDataset(data.Dataset):
+    ATMOSPHERE_MIN = 0.5
+    ATMOSPHERE_MAX = 1.2
+
+    @staticmethod
+    def atmosphere_mean():
+        return (AirlightDataset.ATMOSPHERE_MIN + AirlightDataset.ATMOSPHERE_MAX) / 2.0;
+
+    @staticmethod
+    def atmosphere_std():
+        return math.sqrt(pow(AirlightDataset.ATMOSPHERE_MAX - AirlightDataset.ATMOSPHERE_MIN, 2) / 12)
+
     def __init__(self, image_albedo_list, clear_dir, depth_dir, crop_size, should_crop):
         self.image_list_a = image_albedo_list
         self.depth_dir = depth_dir
@@ -148,7 +161,7 @@ class AirlightDataset(data.Dataset):
         T = tensor_utils.generate_transmission(1 - depth_img, np.random.uniform(0.0, 2.5)) #also include clear samples
 
         #formulate hazy img
-        atmosphere = np.random.uniform(0.5, 1.2)
+        atmosphere = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
         T = np.resize(T, np.shape(albedo_hazy_img[:, :, 0]))
         albedo_hazy_img[:, :, 0] = (T * albedo_hazy_img[:, :, 0]) + atmosphere * (1 - T)
         albedo_hazy_img[:, :, 1] = (T * albedo_hazy_img[:, :, 1]) + atmosphere * (1 - T)
@@ -182,7 +195,10 @@ class AirlightDataset(data.Dataset):
         albedo_hazy_img = self.final_transform_op(albedo_hazy_img)
         styled_hazy_img = self.final_transform_op(styled_hazy_img)
 
-        airlight_tensor = torch.tensor(atmosphere, dtype=torch.float32)
+        #normalize
+        #atmosphere = (atmosphere - AirlightDataset.atmosphere_mean()) / AirlightDataset.atmosphere_std()
+        airlight_tensor = torch.tensor(atmosphere, dtype = torch.float32)
+
         return file_name, albedo_hazy_img, styled_hazy_img, airlight_tensor #hazy albedo img, transmission map, airlight
 
     def __len__(self):

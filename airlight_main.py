@@ -30,7 +30,7 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--airlight_weight', type=float, help="Weight", default="100.0")
+parser.add_option('--airlight_weight', type=float, help="Weight", default="500.0")
 parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--image_size', type=int, help="Weight", default="256")
@@ -100,6 +100,8 @@ def main(argv):
     train_loaders = [dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load),
                     dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)]
 
+    test_loader = dataset_loader.load_airlight_test_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_TEST, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, constants.batch_size, 5000)
+
     # Plot some training images
     if (constants.is_coare == 0):
         _, a, b, airlight_tensor = next(iter(train_loaders[0]))
@@ -114,18 +116,44 @@ def main(argv):
         print("Training - Pseudo Airlight Tensor", np.shape(airlight_tensor))
         print("Values: ", airlight_tensor.numpy())
 
+        _, a, b, airlight_tensor = next(iter(test_loader))
+        show_images(a, "Test - Pseudo Albedo Images")
+        show_images(b, "Test - Styled Images")
+        print("Test - Pseudo Airlight Tensor", np.shape(airlight_tensor))
+        print("Values: ", airlight_tensor.numpy())
+
     print("Starting Training Loop...")
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        for i, (train_data, pseudo_train_data) in enumerate(zip(train_loaders[0], train_loaders[1])):
+        for i, (train_data, pseudo_train_data, test_data) in enumerate(zip(train_loaders[0], train_loaders[1], itertools.cycle(test_loader))):
             _, albedo_batch, styled_batch, airlight_batch = train_data
             albedo_batch = albedo_batch.to(device).float()
             styled_batch = styled_batch.to(device).float()
             airlight_batch= airlight_batch.to(device).float()
 
-            gt.train(albedo_batch, styled_batch, airlight_batch)
+            gt.train_a1(styled_batch, airlight_batch)
+            gt.train_a2(albedo_batch, styled_batch, airlight_batch)
+            #gt.train_a3(styled_batch, airlight_batch)
+            #gt.train_a4(albedo_batch, styled_batch, airlight_batch)
 
-            #TODO:check test set
+            _, albedo_batch, styled_batch, airlight_batch = pseudo_train_data
+            albedo_batch = albedo_batch.to(device).float()
+            styled_batch = styled_batch.to(device).float()
+            airlight_batch = airlight_batch.to(device).float()
+
+            gt.train_a1(styled_batch, airlight_batch)
+            gt.train_a2(albedo_batch, styled_batch, airlight_batch)
+            #gt.train_a3(styled_batch, airlight_batch)
+            #gt.train_a4(albedo_batch, styled_batch, airlight_batch)
+
+            _, albedo_batch, styled_batch, airlight_batch = test_data
+            albedo_batch = albedo_batch.to(device).float()
+            styled_batch = styled_batch.to(device).float()
+            airlight_batch = airlight_batch.to(device).float()
+
+            gt.test(albedo_batch, styled_batch, airlight_batch)
+            
+            iteration = iteration + 1
 
         gt.save_states(epoch, iteration)
         gt.visdom_report(iteration, albedo_batch, styled_batch)

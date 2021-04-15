@@ -381,7 +381,7 @@ def produce_color_images():
                 print("Saved styled image: ", img_name)
 
 def produce_pseudo_albedo_images():
-    SAVE_PATH = "E:/Synth Hazy 3/albedo - pseudo/"
+    SAVE_PATH = "E:/Synth Hazy - Test Set/albedo - pseudo/"
     CHECKPT_ROOT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -398,7 +398,7 @@ def produce_pseudo_albedo_images():
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.infer_size, -1)
 
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -414,7 +414,7 @@ def produce_pseudo_albedo_images():
     plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
     plt.show()
 
-    for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
+    for i, (name, dirty_batch, _) in enumerate(dataloader, 0):
         with torch.no_grad():
             input_tensor = dirty_batch.to(device)
             result = albedo_transfer_gan(input_tensor)
@@ -424,7 +424,7 @@ def produce_pseudo_albedo_images():
                 img_name = name[i].split(".")[0]
                 #first check with discrminator score. If it's good, save image
 
-                if(prediction[i].item() > 0.8):
+                if(prediction[i].item() > 0.95):
                     style_img = result[i].cpu().numpy()
                     style_img = ((style_img * 0.5) + 0.5) #remove normalization
                     style_img = np.rollaxis(style_img, 0, 3)
@@ -453,7 +453,7 @@ def main():
     # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (64, 64), 10, 0)
 
     #create_hazy_data(0)
-    produce_color_images()
+    #produce_color_images()
     produce_pseudo_albedo_images()
 
 if __name__=="__main__": 
