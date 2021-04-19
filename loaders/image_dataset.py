@@ -161,7 +161,7 @@ class AirlightDataset(data.Dataset):
         T = tensor_utils.generate_transmission(1 - depth_img, np.random.uniform(0.0, 2.5)) #also include clear samples
 
         #formulate hazy img
-        atmosphere = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
+        atmosphere = np.random.normal(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
         T = np.resize(T, np.shape(albedo_hazy_img[:, :, 0]))
         albedo_hazy_img[:, :, 0] = (T * albedo_hazy_img[:, :, 0]) + atmosphere * (1 - T)
         albedo_hazy_img[:, :, 1] = (T * albedo_hazy_img[:, :, 1]) + atmosphere * (1 - T)
@@ -194,6 +194,15 @@ class AirlightDataset(data.Dataset):
 
         albedo_hazy_img = self.final_transform_op(albedo_hazy_img)
         styled_hazy_img = self.final_transform_op(styled_hazy_img)
+
+        self.depth_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,), (0.5,))
+        ])
+
+        # transmission_img = cv2.normalize(T, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        # transmission_img = cv2.resize(transmission_img, (256, 256))
+        # transmission_img = self.depth_transform_op(transmission_img)
 
         #normalize
         #atmosphere = (atmosphere - AirlightDataset.atmosphere_mean()) / AirlightDataset.atmosphere_std()

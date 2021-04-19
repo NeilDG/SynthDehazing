@@ -282,14 +282,15 @@ class AirlightEstimator_V1(nn.Module):
 
         self.fully_connected = nn.Sequential(nn.Flatten(),
                                              nn.Linear(in_features=32 * img_feature_shape * img_feature_shape, out_features=32),
-                                             nn.ReLU(),
-                                             nn.Dropout2d(),
+                                             nn.LeakyReLU(0.2, inplace = True),
+                                             #nn.Dropout2d(),
                                              nn.Linear(in_features=32, out_features=16),
-                                             nn.ReLU(),
-                                             nn.Dropout2d(),
+                                             nn.LeakyReLU(0.2, inplace = True),
+                                             #nn.Dropout2d(),
                                              nn.Linear(in_features=16, out_features=8),
-                                             nn.ReLU(),
-                                             nn.Linear(in_features=8, out_features=1))
+                                             nn.LeakyReLU(0.2, inplace = True),
+                                             nn.Linear(in_features=8, out_features=1),
+                                             nn.LeakyReLU(0.2, inplace = True))
 
         self.img_features.apply(xavier_init)
 
@@ -298,7 +299,7 @@ class AirlightEstimator_V1(nn.Module):
         #print("Img features shape: ", np.shape(y))
 
         if(self.add_mean):
-            return torch.add(self.fully_connected(y), image_dataset.AirlightDataset.atmosphere_mean())
+            return torch.mul(self.fully_connected(y), image_dataset.AirlightDataset.atmosphere_mean())
         else:
             return self.fully_connected(y)
 
