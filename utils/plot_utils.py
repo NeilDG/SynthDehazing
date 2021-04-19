@@ -27,7 +27,7 @@ class VisdomReporter:
 
     def __init__(self):
         if(constants.is_coare == 1):
-            self.vis = visdom.Visdom(SALIKSIK_SERVER, use_incoming_socket=False)
+            self.vis = visdom.Visdom(SALIKSIK_SERVER, use_incoming_socket=True) #TODO: Note that this is set to TRUE for observation.
         else:
             self.vis= visdom.Visdom()
         
@@ -37,7 +37,6 @@ class VisdomReporter:
     def plot_image(self, img_tensor, caption):
         # if(constants.is_coare == 1):
         #     return
-        
         img_group = vutils.make_grid(img_tensor[:constants.display_size], nrow = 8, padding=2, normalize=True).cpu()
         if hash(caption) not in self.image_windows:
             self.image_windows[hash(caption)] = self.vis.images(img_group, opts = dict(caption = caption + " " + str(constants.ITERATION)))

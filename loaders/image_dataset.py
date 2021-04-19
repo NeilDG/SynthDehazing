@@ -571,14 +571,6 @@ class DarkChannelHazeDataset(data.Dataset):
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
             transforms.Normalize((0.5), (0.5), (0.5))])
-
-        # self.initial_transform_op = transforms.Compose([
-        #                             transforms.ToPILImage(mode = 'L'),
-        #                             transforms.Resize(constants.TEST_IMAGE_SIZE),
-        #                             ])
-        #
-        # self.final_transform_op = transforms.Compose([transforms.ToTensor(),
-        #                                               transforms.Normalize((0.5), (0.5))])
         
         
     
@@ -864,9 +856,10 @@ class LatentDataset(data.Dataset):
 
 
 class ColorAlbedoDataset(data.Dataset):
-    def __init__(self, image_list_a, image_list_b):
+    def __init__(self, image_list_a, image_list_b, depth_dir):
         self.image_list_a = image_list_a
         self.image_list_b = image_list_b
+        self.depth_dir = depth_dir
 
         self.initial_transform_op = transforms.Compose([
             transforms.ToPILImage(),
@@ -883,35 +876,57 @@ class ColorAlbedoDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
 
-        img_a = cv2.imread(img_id);
-        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        initial_img = cv2.imread(img_id);
+        initial_img = cv2.cvtColor(initial_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
 
         img_id = self.image_list_b[idx]
         img_b = cv2.imread(img_id);
         img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
 
-        img_a = self.initial_transform_op(img_a)
+        img_a = self.initial_transform_op(initial_img)
         img_b = self.initial_transform_op(img_b)
+
+        img_id = self.depth_dir + file_name
+        depth_img = cv2.imread(img_id)
+        depth_img = cv2.cvtColor(depth_img, cv2.COLOR_BGR2GRAY)
+        depth_img = cv2.resize(depth_img, np.shape(initial_img[:, :, 0]))
+        depth_img = cv2.normalize(depth_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        T = tensor_utils.generate_transmission(1 - depth_img, np.random.uniform(0.0, 2.5))  # also include clear samples
+
+        # formulate hazy img
+        atmosphere = np.random.normal(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
+        T = np.resize(T, np.shape(initial_img[:, :, 0]))
+        hazy_img = initial_img
+        hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        hazy_img[:, :, 0] = (T * hazy_img[:, :, 0]) + atmosphere * (1 - T)
+        hazy_img[:, :, 1] = (T * hazy_img[:, :, 1]) + atmosphere * (1 - T)
+        hazy_img[:, :, 2] = (T * hazy_img[:, :, 2]) + atmosphere * (1 - T)
+        hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        hazy_img = self.initial_transform_op(hazy_img)
 
         crop_indices = transforms.RandomCrop.get_params(img_a, output_size=constants.PATCH_IMAGE_SIZE)
         i, j, h, w = crop_indices
 
-        img_a = transforms.functional.crop(img_a, i, j, h, w)
+        #img_a = transforms.functional.crop(img_a, i, j, h, w)
+        hazy_img = transforms.functional.crop(hazy_img, i, j, h, w)
         img_b = transforms.functional.crop(img_b, i, j, h, w)
 
-        img_a = self.final_transform_op(img_a)
+        #img_a = self.final_transform_op(img_a)
+        hazy_img = self.final_transform_op(hazy_img)
         img_b = self.final_transform_op(img_b)
 
-        return file_name, img_a, img_b
+        return file_name, hazy_img, img_b
 
     def __len__(self):
         return len(self.image_list_a)
 
 
 class ColorAlbedoTestDataset(data.Dataset):
-    def __init__(self, image_list_a, image_list_b):
+    def __init__(self, image_list_a, image_list_b, depth_dir): #depth_dir can be none
         self.image_list_a = image_list_a
         self.image_list_b = image_list_b
+        self.depth_dir = depth_dir
 
         self.final_transform_op = transforms.Compose([transforms.ToPILImage(),
                                                       transforms.Resize(constants.TEST_IMAGE_SIZE),
@@ -932,10 +947,32 @@ class ColorAlbedoTestDataset(data.Dataset):
         img_b = cv2.imread(img_id);
         img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
 
-        img_a = self.final_transform_op(img_a)
+        if(self.depth_dir is not None):
+            img_id = self.depth_dir + file_name
+            depth_img = cv2.imread(img_id)
+            depth_img = cv2.cvtColor(depth_img, cv2.COLOR_BGR2GRAY)
+            depth_img = cv2.resize(depth_img, np.shape(img_a[:, :, 0]))
+            depth_img = cv2.normalize(depth_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+            T = tensor_utils.generate_transmission(1 - depth_img, np.random.uniform(0.0, 2.5))  # also include clear samples
+
+            # formulate hazy img
+            atmosphere = np.random.normal(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
+            T = np.resize(T, np.shape(img_a[:, :, 0]))
+            hazy_img = img_a
+            hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+            hazy_img[:, :, 0] = (T * hazy_img[:, :, 0]) + atmosphere * (1 - T)
+            hazy_img[:, :, 1] = (T * hazy_img[:, :, 1]) + atmosphere * (1 - T)
+            hazy_img[:, :, 2] = (T * hazy_img[:, :, 2]) + atmosphere * (1 - T)
+            hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
         img_b = self.final_transform_op(img_b)
 
-        return file_name, img_a, img_b
+        if(self.depth_dir is None):
+            img_a = self.final_transform_op(img_a)
+            return file_name, img_a, img_b
+        else:
+            hazy_img = self.final_transform_op(hazy_img)
+            return file_name, hazy_img, img_b
 
     def __len__(self):
         return len(self.image_list_a)

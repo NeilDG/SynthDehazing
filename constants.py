@@ -54,7 +54,7 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
-COLOR_TRANSFER_VERSION = "albedo_transfer_v1.01"
+COLOR_TRANSFER_VERSION = "albedo_transfer_v1.02"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.03"
 AIRLIGHT_VERSION = "airlight_estimator_v1.02"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"

@@ -34,7 +34,8 @@ parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.
 parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Vanilla CycleGAN. Paired learning for extracing albedo from a lit image and vice versa.")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Vanilla CycleGAN. Paired learning for extracting albedo from a lit image and vice versa. \n"
+                                                                                     "Now uses hazy images as input for extracing albedo.")
 
 #--img_to_load=-1 --load_previous=1
 #Update config if on COARE
@@ -52,6 +53,7 @@ def update_config(opts):
 
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
         constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
 
 def show_images(img_tensor, caption):
@@ -91,9 +93,9 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_color_albedo_train_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)
-    test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
-    test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
+    train_loader = dataset_loader.load_color_albedo_train_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)
+    test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, 500)
+    test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, None, constants.batch_size, 500)
     index = 0
     
     # Plot some training images
@@ -125,8 +127,8 @@ def main(argv):
                 iteration = iteration + 1
                 index = (index + 1) % len(test_loader_1)
                 if(index == 0):
-                    test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
-                    test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500)
+                    test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, 500)
+                    test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, None, constants.batch_size, 500)
 
                 gt.save_states(epoch, iteration)
 

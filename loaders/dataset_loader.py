@@ -271,14 +271,14 @@ def load_color_train_dataset(path_a, path_c, batch_size=8, num_image_to_load=-1)
 
     return data_loader
 
-def load_color_albedo_train_dataset(path_a, path_c, batch_size=8, num_image_to_load=-1):
+def load_color_albedo_train_dataset(path_a, path_c, depth_dir, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
     c_list = assemble_unpaired_data(path_c, len(a_list), True)
 
     print("Length of images: %d, %d." % (len(a_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.ColorAlbedoDataset(a_list, c_list),
+        image_dataset.ColorAlbedoDataset(a_list, c_list, depth_dir),
         batch_size=batch_size,
         num_workers=6,
         shuffle=True
@@ -286,14 +286,14 @@ def load_color_albedo_train_dataset(path_a, path_c, batch_size=8, num_image_to_l
 
     return data_loader
 
-def load_color_albedo_test_dataset(path_a, path_c, batch_size=8, num_image_to_load=-1):
+def load_color_albedo_test_dataset(path_a, path_c, depth_dir, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
     c_list = assemble_unpaired_data(path_c, len(a_list), True)
 
     print("Length of images: %d, %d." % (len(a_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.ColorAlbedoTestDataset(a_list, c_list),
+        image_dataset.ColorAlbedoTestDataset(a_list, c_list, depth_dir),
         batch_size=batch_size,
         num_workers=2,
         shuffle=True

@@ -264,10 +264,6 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name):
             A1_error = mse(A1(styled_batch), airlight_batch).item()
             A2_error = mse(A2(torch.cat([styled_batch, albedo_batch], 1)), airlight_batch).item()
 
-            print(mean_batch, file = f)
-            print(airlight_batch, file = f)
-            print(A1(styled_batch), file = f)
-
             average_MSE[0] += mean_error
             average_MSE[1] += A1_error
             average_MSE[2] += A2_error

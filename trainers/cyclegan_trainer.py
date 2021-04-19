@@ -320,3 +320,17 @@ class CycleGANTrainer:
 
         torch.save(save_dict, constants.COLOR_TRANSFER_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
+
+        # clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training
+        if (epoch % 20 == 0):
+            self.losses_dict[constants.G_LOSS_KEY].clear()
+            self.losses_dict[constants.D_OVERALL_LOSS_KEY].clear()
+            self.losses_dict[constants.IDENTITY_LOSS_KEY].clear()
+            self.losses_dict[constants.LIKENESS_LOSS_KEY].clear()
+            self.losses_dict[constants.SMOOTHNESS_LOSS_KEY].clear()
+            self.losses_dict[constants.G_ADV_LOSS_KEY].clear()
+            self.losses_dict[constants.D_A_FAKE_LOSS_KEY].clear()
+            self.losses_dict[constants.D_A_REAL_LOSS_KEY].clear()
+            self.losses_dict[constants.D_B_FAKE_LOSS_KEY].clear()
+            self.losses_dict[constants.D_B_REAL_LOSS_KEY].clear()
+            self.losses_dict[constants.CYCLE_LOSS_KEY].clear()
