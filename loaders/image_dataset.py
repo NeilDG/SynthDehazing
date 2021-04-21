@@ -149,37 +149,40 @@ class AirlightDataset(data.Dataset):
         file_name = path_segment[len(path_segment) - 1]
 
         #albedo hazy img
-        albedo_hazy_img = cv2.imread(img_id);
-        albedo_hazy_img = cv2.cvtColor(albedo_hazy_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
-        albedo_hazy_img = cv2.normalize(albedo_hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        albedo_img = cv2.imread(img_id);
+        albedo_img = cv2.cvtColor(albedo_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        albedo_img = cv2.normalize(albedo_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         img_id = self.depth_dir + file_name
         depth_img = cv2.imread(img_id)
         depth_img = cv2.cvtColor(depth_img, cv2.COLOR_BGR2GRAY)
-        depth_img = cv2.resize(depth_img, np.shape(albedo_hazy_img[:, :, 0]))
+        depth_img = cv2.resize(depth_img, np.shape(albedo_img[:, :, 0]))
         depth_img = cv2.normalize(depth_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         T = tensor_utils.generate_transmission(1 - depth_img, np.random.uniform(0.0, 2.5)) #also include clear samples
 
         #formulate hazy img
-        atmosphere = np.random.normal(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
-        T = np.resize(T, np.shape(albedo_hazy_img[:, :, 0]))
-        albedo_hazy_img[:, :, 0] = (T * albedo_hazy_img[:, :, 0]) + atmosphere * (1 - T)
-        albedo_hazy_img[:, :, 1] = (T * albedo_hazy_img[:, :, 1]) + atmosphere * (1 - T)
-        albedo_hazy_img[:, :, 2] = (T * albedo_hazy_img[:, :, 2]) + atmosphere * (1 - T)
+        #atmosphere = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
+        atmosphere = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std() + 1.5)
+        T = np.resize(T, np.shape(albedo_img[:, :, 0]))
+        albedo_hazy_img = np.zeros_like(albedo_img)
+        albedo_hazy_img[:, :, 0] = (T * albedo_img[:, :, 0]) + atmosphere * (1 - T)
+        albedo_hazy_img[:, :, 1] = (T * albedo_img[:, :, 1]) + atmosphere * (1 - T)
+        albedo_hazy_img[:, :, 2] = (T * albedo_img[:, :, 2]) + atmosphere * (1 - T)
         albedo_hazy_img = cv2.normalize(albedo_hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
         #styled hazy img
         img_id = self.clear_dir + file_name
-        styled_hazy_img = cv2.imread(img_id)
-        styled_hazy_img = cv2.cvtColor(styled_hazy_img, cv2.COLOR_BGR2RGB)
-        styled_hazy_img = cv2.resize(styled_hazy_img, np.shape(albedo_hazy_img[:, :, 0]))
-        styled_hazy_img = cv2.normalize(styled_hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        styled_img = cv2.imread(img_id)
+        styled_img = cv2.cvtColor(styled_img, cv2.COLOR_BGR2RGB)
+        styled_img = cv2.resize(styled_img, np.shape(albedo_hazy_img[:, :, 0]))
+        styled_img = cv2.normalize(styled_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         #formulate hazy img
-        T = np.resize(T, np.shape(styled_hazy_img[:, :, 0]))
-        styled_hazy_img[:, :, 0] = (T * styled_hazy_img[:, :, 0]) + atmosphere * (1 - T)
-        styled_hazy_img[:, :, 1] = (T * styled_hazy_img[:, :, 1]) + atmosphere * (1 - T)
-        styled_hazy_img[:, :, 2] = (T * styled_hazy_img[:, :, 2]) + atmosphere * (1 - T)
+        T = np.resize(T, np.shape(styled_img[:, :, 0]))
+        styled_hazy_img = np.zeros_like(styled_img)
+        styled_hazy_img[:, :, 0] = (T * styled_img[:, :, 0]) + atmosphere * (1 - T)
+        styled_hazy_img[:, :, 1] = (T * styled_img[:, :, 1]) + atmosphere * (1 - T)
+        styled_hazy_img[:, :, 2] = (T * styled_img[:, :, 2]) + atmosphere * (1 - T)
         styled_hazy_img = cv2.normalize(styled_hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
         albedo_hazy_img = self.initial_img_op(albedo_hazy_img)

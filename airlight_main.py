@@ -48,7 +48,6 @@ def update_config(opts):
         constants.TEST_IMAGE_SIZE = (opts.image_size, opts.image_size)
         constants.batch_size = opts.batch_size
         constants.ITERATION = str(opts.iteration)
-        constants.LIGHTCOORDS_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.LIGHTS_ESTIMATOR_VERSION + "_" + constants.ITERATION + '.pt'
 
         constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/hazy/"
         constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/depth/"

@@ -55,22 +55,22 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.main = nn.Sequential(
             # input is (nc) x H x W.  Opposite of generator
-            nn.Conv2d(num_channels, disc_feature_size, 4, 2, 1, bias=False),
+            nn.Conv2d(num_channels, disc_feature_size, 4, stride = 2, padding = 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             
-            nn.Conv2d(disc_feature_size, disc_feature_size * 2, 4, 2, 1, bias=False),
+            nn.Conv2d(disc_feature_size, disc_feature_size * 2, 4, stride = 2, padding = 1, bias=False),
             nn.BatchNorm2d(disc_feature_size * 2),
             nn.LeakyReLU(0.2, inplace=True),
             
-            nn.Conv2d(disc_feature_size * 2, disc_feature_size * 4, 4, 2, 1, bias=False),
+            nn.Conv2d(disc_feature_size * 2, disc_feature_size * 4, 4, stride = 2, padding = 1, bias=False),
             nn.BatchNorm2d(disc_feature_size * 4),
             nn.LeakyReLU(0.2, inplace=True),
             
-            nn.Conv2d(disc_feature_size * 4, disc_feature_size * 8, 4, 2, 1, bias=False),
+            nn.Conv2d(disc_feature_size * 4, disc_feature_size * 8, 4, stride = 2, padding = 1, bias=False),
             nn.BatchNorm2d(disc_feature_size * 8),
             nn.LeakyReLU(0.2, inplace=True),
             
-            nn.Conv2d(disc_feature_size * 8, 1, 4, 1, 0, bias=False)
+            nn.Conv2d(disc_feature_size * 8, 1, 4, stride = 1, padding = 0, bias=False)
         )
         
         self.fc_block = nn.Sequential(
@@ -81,11 +81,11 @@ class Discriminator(nn.Module):
             #nn.Linear(disc_feature_size, 1),
             nn.Sigmoid())
         
-        self.apply(weights_init)
+        self.main.apply(weights_init)
+        self.fc_block.apply(weights_init)
 
     def forward(self, input):
         x = self.main(input)
-        #x = torch.flatten(x, 1)
         x = self.fc_block(x)
         
         return x

@@ -56,7 +56,7 @@ DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "albedo_transfer_v1.02"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.03"
-AIRLIGHT_VERSION = "airlight_estimator_v1.02"
+AIRLIGHT_VERSION = "airlight_estimator_v1.03"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
@@ -103,7 +103,7 @@ num_epochs = 250
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 128
+batch_size = 512
 infer_size = 16
 
 brightness_enhance = 0.6

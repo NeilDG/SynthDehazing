@@ -16,8 +16,11 @@ class AirlightTrainer:
     def __init__(self, gpu_device, lr=0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
-        self.A1 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(self.gpu_device)
-        self.A2 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(self.gpu_device)
+        # self.A1 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(self.gpu_device)
+        # self.A2 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(self.gpu_device)
+        self.A1 = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64).to(self.gpu_device)
+        self.A2 = dh.AirlightEstimator_V2(num_channels = 6, disc_feature_size = 64).to(self.gpu_device)
+
         #self.A3 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers=3, residual_blocks=5, add_mean=True).to(self.gpu_device)
         #self.A4 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers=3, residual_blocks=5, add_mean=True).to(self.gpu_device)
 
@@ -106,6 +109,7 @@ class AirlightTrainer:
             airlight_tensor = torch.unsqueeze(airlight_tensor, 1)
             self.optimizerDA.zero_grad()
             self.A1.train()
+
             errD = self.network_loss(self.A1(rgb_tensor), airlight_tensor) * self.loss_weight
             self.losses_dict[self.AIRLOSS_A_KEY].append(errD.item() / self.loss_weight)
 
