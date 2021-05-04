@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J ALBEDO_4
+#SBATCH -J ALBEDO_SSIM_4
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu
 #SBATCH --cpus-per-task=6
@@ -22,10 +22,7 @@ module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
 
-conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
-#conda install -c conda-forge scikit-image
-
-srun python cyclegan_main.py --iteration=$ITERATION --coare=1 --smoothness_weight=10.0 --identity_weight=0.0 --img_to_load=-1 --load_previous=0
+srun python cyclegan_main.py --iteration=$ITERATION --coare=1 --likeness_weight=1.0 --psnr_loss_weight=10.0 --use_psnr=0 --img_to_load=-1 --load_previous=0
 conda deactivate
 
 

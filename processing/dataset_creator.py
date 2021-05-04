@@ -139,10 +139,10 @@ def create_filtered_img_data(dataset_path, save_path, filename_format, img_size,
             final_img = np.moveaxis(final_img, -1, 0)
             final_img = np.moveaxis(final_img, -1, 0)
 
-            final_img_dc = tensor_utils.get_dark_channel(final_img, 3)
-            if(np.linalg.norm(final_img_dc) > 10.0): #filter out very hazy images by dark channel prior
-                sobel_x = cv2.Sobel(final_img_dc, cv2.CV_64F, 1, 0, ksize=5)
-                sobel_y = cv2.Sobel(final_img_dc, cv2.CV_64F, 0, 1, ksize=5)
+            #final_img_dc = tensor_utils.get_dark_channel(final_img, 3)
+            if(np.linalg.norm(final_img) > 10.0): #filter out very hazy images by dark channel prior
+                sobel_x = cv2.Sobel(final_img, cv2.CV_64F, 1, 0, ksize=5)
+                sobel_y = cv2.Sobel(final_img, cv2.CV_64F, 0, 1, ksize=5)
                 sobel_img = sobel_x + sobel_y
                 sobel_quality = np.linalg.norm(sobel_img)
                 if(sobel_quality > threshold): #only consider images with good edges
@@ -442,19 +442,24 @@ def main():
     # VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_2.mp4"
     # create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (512, 512), (256, 256), offset=0, repeats=7)
 
-    # PATH_A = constants.DATASET_DIV2K_PATH
-    # SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
-    # create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 100, offset = 3743814)
+    #PATH_A = constants.DATASET_ALBEDO_PATH_PSEUDO_3
+    #SAVE_PATH_A = constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3
+    #create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", (256, 256), (32, 32), 25, 16, offset = 0)
 
-    # PATH_A = "E:/Synth Hazy/clean/"
-    # SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
-    # PATH_C = "E:/Synth Hazy/depth/"
-    # SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
-    # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (64, 64), 10, 0)
+    PATH_A = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3
+    PATH_B = constants.DATASET_ALBEDO_PATH_COMPLETE_3
+    PATH_C = constants.DATASET_ALBEDO_PATH_PSEUDO_3
+
+    SAVE_PATH_A = constants.DATASET_CLEAN_PATH_PATCH_STYLED_3
+    SAVE_PATH_B = constants.DATASET_ALBEDO_PATH_PATCH_3
+    SAVE_PATH_C = constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3
+
+    create_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", (256, 256), (32, 32), 16)
+    #create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (32, 32), 16, 0)
 
     #create_hazy_data(0)
     #produce_color_images()
-    produce_pseudo_albedo_images()
+    #produce_pseudo_albedo_images()
 
 if __name__=="__main__": 
     main()   

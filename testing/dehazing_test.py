@@ -359,8 +359,9 @@ def perform_albedo_reconstruction(model_checkpt_name):
     ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
+    print("Loading: ", ABS_PATH_CHECKPOINT + model_checkpt_name)
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    G_A = cycle_gan.Generator(n_residual_blocks=8).to(device)
+    G_A = cycle_gan.Generator(n_residual_blocks=16).to(device)
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
     G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
     G_A.eval()
@@ -379,7 +380,7 @@ def perform_albedo_reconstruction(model_checkpt_name):
 
             albedo_like = G_A(hazy_batch)
             # inferred albedo image appears darker --> adjust brightness and contrast of albedo image
-            albedo_like = kornia.adjust_brightness(albedo_like, 0.6)
+            #albedo_like = kornia.adjust_brightness(albedo_like, 0.6)
 
             albedo_batch = (albedo_batch * 0.5) + 0.5  # remove tanh normalization
             albedo_like = (albedo_like * 0.5) + 0.5
@@ -407,10 +408,10 @@ def perform_albedo_reconstruction(model_checkpt_name):
             print("MSE: ", np.round(mse, 5))
             print("PSNR: ", np.round(psnr, 5))
             print("SSIM: ", np.round(ssim_val, 5))
-            print("MAE: ", np.round(mae, 5), file=f)
-            print("MSE: ", np.round(mse, 5), file=f)
-            print("PSNR: ", np.round(psnr, 5), file=f)
-            print("SSIM: ", np.round(ssim_val, 5), file=f)
+            # print("MAE: ", np.round(mae, 5), file=f)
+            # print("MSE: ", np.round(mse, 5), file=f)
+            # print("PSNR: ", np.round(psnr, 5), file=f)
+            # print("SSIM: ", np.round(ssim_val, 5), file=f)
 
         ave_losses[0] = np.round(ave_losses[0] / count * 1.0, 5)
         ave_losses[1] = np.round(ave_losses[1] / count * 1.0, 5)
@@ -514,7 +515,11 @@ def main():
     #perform_airlight_predictions("airlight_estimator_v1.03_1", "albedo_transfer_v1.01_1")
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.03_1")
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.03_2")
-    perform_albedo_reconstruction("albedo_transfer_v1.01_1")
+    #perform_albedo_reconstruction("albedo_transfer_v1.01_2")
+    #perform_albedo_reconstruction("albedo_transfer_v1.01_3")
+    #perform_albedo_reconstruction("albedo_transfer_v1.01_4")
+    #perform_albedo_reconstruction("albedo_transfer_v1.01_5")
+    perform_albedo_reconstruction("albedo_transfer_v1.03_6")
     
 if __name__=="__main__": 
     main()   
