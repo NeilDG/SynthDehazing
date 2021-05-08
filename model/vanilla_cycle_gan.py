@@ -42,7 +42,7 @@ class ResidualBlock(nn.Module):
         return x + self.conv_block(x)
 
 class Generator(nn.Module):
-    def __init__(self, input_nc=3, output_nc=3, n_residual_blocks=6):
+    def __init__(self, input_nc=3, output_nc=3, downsampling_blocks = 2, n_residual_blocks=6):
         super(Generator, self).__init__()
 
         # Initial convolution block       
@@ -54,12 +54,12 @@ class Generator(nn.Module):
         # Downsampling
         in_features = 64
         out_features = in_features*2
-        for _ in range(2):
+        for _ in range(downsampling_blocks):
             model += [  nn.Conv2d(in_features, out_features, 4, stride=2, padding=1),
                         nn.InstanceNorm2d(out_features),
                         nn.ReLU(inplace=True) ]
             in_features = out_features
-            out_features = in_features*2
+            out_features = clamp(in_features*2, 1024)
 
         # Residual blocks
         for _ in range(n_residual_blocks):
@@ -67,7 +67,7 @@ class Generator(nn.Module):
 
         # Upsampling
         out_features = in_features//2
-        for _ in range(2):
+        for _ in range(downsampling_blocks):
             model += [  nn.ConvTranspose2d(in_features, out_features, 4, stride=2, padding=1, output_padding=1),
                         nn.InstanceNorm2d(out_features),
                         nn.ReLU(inplace=True) ]
@@ -100,12 +100,12 @@ class Discriminator(nn.Module):
                     nn.InstanceNorm2d(256), 
                     nn.LeakyReLU(0.2, inplace=True) ]
 
-        model += [  nn.Conv2d(256, 512, 4, padding=1),
-                    nn.InstanceNorm2d(512), 
-                    nn.LeakyReLU(0.2, inplace=True) ]
+        # model += [  nn.Conv2d(256, 512, 4, padding=1),
+        #             nn.InstanceNorm2d(512),
+        #             nn.LeakyReLU(0.2, inplace=True) ]
 
         # FCN classification layer
-        model += [nn.Conv2d(512, 1, 4, padding=1)]
+        model += [nn.Conv2d(256, 1, 4, padding=1)]
 
         self.model = nn.Sequential(*model)
 

@@ -139,10 +139,10 @@ def create_filtered_img_data(dataset_path, save_path, filename_format, img_size,
             final_img = np.moveaxis(final_img, -1, 0)
             final_img = np.moveaxis(final_img, -1, 0)
 
-            final_img_dc = tensor_utils.get_dark_channel(final_img, 3)
-            if(np.linalg.norm(final_img_dc) > 10.0): #filter out very hazy images by dark channel prior
-                sobel_x = cv2.Sobel(final_img_dc, cv2.CV_64F, 1, 0, ksize=5)
-                sobel_y = cv2.Sobel(final_img_dc, cv2.CV_64F, 0, 1, ksize=5)
+            #final_img_dc = tensor_utils.get_dark_channel(final_img, 3)
+            if(np.linalg.norm(final_img) > 10.0): #filter out very hazy images by dark channel prior
+                sobel_x = cv2.Sobel(final_img, cv2.CV_64F, 1, 0, ksize=5)
+                sobel_y = cv2.Sobel(final_img, cv2.CV_64F, 0, 1, ksize=5)
                 sobel_img = sobel_x + sobel_y
                 sobel_quality = np.linalg.norm(sobel_img)
                 if(sobel_quality > threshold): #only consider images with good edges
@@ -381,7 +381,7 @@ def produce_color_images():
                 print("Saved styled image: ", img_name)
 
 def produce_pseudo_albedo_images():
-    SAVE_PATH = "E:/Synth Hazy 3/albedo - pseudo/"
+    SAVE_PATH = "E:/Synth Hazy - Test Set/albedo - pseudo/"
     CHECKPT_ROOT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -398,7 +398,7 @@ def produce_pseudo_albedo_images():
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.infer_size, -1)
 
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -414,7 +414,7 @@ def produce_pseudo_albedo_images():
     plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
     plt.show()
 
-    for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
+    for i, (name, dirty_batch, _) in enumerate(dataloader, 0):
         with torch.no_grad():
             input_tensor = dirty_batch.to(device)
             result = albedo_transfer_gan(input_tensor)
@@ -424,7 +424,7 @@ def produce_pseudo_albedo_images():
                 img_name = name[i].split(".")[0]
                 #first check with discrminator score. If it's good, save image
 
-                if(prediction[i].item() > 0.8):
+                if(prediction[i].item() > 0.95):
                     style_img = result[i].cpu().numpy()
                     style_img = ((style_img * 0.5) + 0.5) #remove normalization
                     style_img = np.rollaxis(style_img, 0, 3)
@@ -442,19 +442,24 @@ def main():
     # VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_2.mp4"
     # create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (512, 512), (256, 256), offset=0, repeats=7)
 
-    # PATH_A = constants.DATASET_DIV2K_PATH
-    # SAVE_PATH_A = constants.DATASET_DIV2K_PATH_PATCH
-    # create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", constants.DIV2K_IMAGE_SIZE, constants.PATCH_IMAGE_SIZE, 25, 100, offset = 3743814)
+    #PATH_A = constants.DATASET_ALBEDO_PATH_PSEUDO_3
+    #SAVE_PATH_A = constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3
+    #create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", (256, 256), (32, 32), 25, 16, offset = 0)
 
-    # PATH_A = "E:/Synth Hazy/clean/"
-    # SAVE_PATH_B = "E:/Synth Hazy - Patch/hazy/"
-    # PATH_C = "E:/Synth Hazy/depth/"
-    # SAVE_PATH_C = "E:/Synth Hazy - Patch/depth/"
-    # create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (64, 64), 10, 0)
+    PATH_A = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3
+    PATH_B = constants.DATASET_ALBEDO_PATH_COMPLETE_3
+    PATH_C = constants.DATASET_ALBEDO_PATH_PSEUDO_3
+
+    SAVE_PATH_A = constants.DATASET_CLEAN_PATH_PATCH_STYLED_3
+    SAVE_PATH_B = constants.DATASET_ALBEDO_PATH_PATCH_3
+    SAVE_PATH_C = constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3
+
+    create_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", (256, 256), (32, 32), 16)
+    #create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (32, 32), 16, 0)
 
     #create_hazy_data(0)
-    produce_color_images()
-    produce_pseudo_albedo_images()
+    #produce_color_images()
+    #produce_pseudo_albedo_images()
 
 if __name__=="__main__": 
     main()   

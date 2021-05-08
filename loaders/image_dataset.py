@@ -5,6 +5,8 @@ Created on Fri Jun  7 18:14:21 2019
 Pytorch image dataset
 @author: delgallegon
 """
+import math
+
 import torch
 import cv2
 import numpy as np
@@ -77,7 +79,7 @@ class TransmissionAlbedoDataset(data.Dataset):
         img_b = self.depth_transform_op(img_b)
 
         airlight_tensor = torch.tensor(atmosphere, dtype=torch.float32)
-        return file_name, img_a, img_b, airlight_tensor #hazy albedo img, transmission map, airlight
+        return file_name, img_a, img_b #hazy albedo img, transmission map
 
     def __len__(self):
         return len(self.image_list_a)
@@ -108,6 +110,108 @@ class TransmissionAlbedoDatasetTest(data.Dataset):
         img_a = self.final_transform_op(img_a)
 
         return file_name, img_a
+
+    def __len__(self):
+        return len(self.image_list_a)
+
+class AirlightDataset(data.Dataset):
+    ATMOSPHERE_MIN = 0.5
+    ATMOSPHERE_MAX = 1.2
+
+    @staticmethod
+    def atmosphere_mean():
+        return (AirlightDataset.ATMOSPHERE_MIN + AirlightDataset.ATMOSPHERE_MAX) / 2.0;
+
+    @staticmethod
+    def atmosphere_std():
+        return math.sqrt(pow(AirlightDataset.ATMOSPHERE_MAX - AirlightDataset.ATMOSPHERE_MIN, 2) / 12)
+
+    def __init__(self, image_albedo_list, clear_dir, depth_dir, crop_size, should_crop):
+        self.image_list_a = image_albedo_list
+        self.depth_dir = depth_dir
+        self.clear_dir = clear_dir
+        self.crop_size = crop_size
+        self.should_crop = should_crop
+
+        self.initial_img_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((256, 256))
+        ])
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        #albedo hazy img
+        albedo_img = cv2.imread(img_id);
+        albedo_img = cv2.cvtColor(albedo_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        albedo_img = cv2.normalize(albedo_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        img_id = self.depth_dir + file_name
+        depth_img = cv2.imread(img_id)
+        depth_img = cv2.cvtColor(depth_img, cv2.COLOR_BGR2GRAY)
+        depth_img = cv2.resize(depth_img, np.shape(albedo_img[:, :, 0]))
+        depth_img = cv2.normalize(depth_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        T = tensor_utils.generate_transmission(1 - depth_img, np.random.uniform(0.0, 2.5)) #also include clear samples
+
+        #formulate hazy img
+        #atmosphere = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
+        atmosphere = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        T = np.resize(T, np.shape(albedo_img[:, :, 0]))
+        albedo_hazy_img = np.zeros_like(albedo_img)
+        albedo_hazy_img[:, :, 0] = (T * albedo_img[:, :, 0]) + atmosphere * (1 - T)
+        albedo_hazy_img[:, :, 1] = (T * albedo_img[:, :, 1]) + atmosphere * (1 - T)
+        albedo_hazy_img[:, :, 2] = (T * albedo_img[:, :, 2]) + atmosphere * (1 - T)
+        albedo_hazy_img = cv2.normalize(albedo_hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        #styled hazy img
+        img_id = self.clear_dir + file_name
+        styled_img = cv2.imread(img_id)
+        styled_img = cv2.cvtColor(styled_img, cv2.COLOR_BGR2RGB)
+        styled_img = cv2.resize(styled_img, np.shape(albedo_hazy_img[:, :, 0]))
+        styled_img = cv2.normalize(styled_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        #formulate hazy img
+        T = np.resize(T, np.shape(styled_img[:, :, 0]))
+        styled_hazy_img = np.zeros_like(styled_img)
+        styled_hazy_img[:, :, 0] = (T * styled_img[:, :, 0]) + atmosphere * (1 - T)
+        styled_hazy_img[:, :, 1] = (T * styled_img[:, :, 1]) + atmosphere * (1 - T)
+        styled_hazy_img[:, :, 2] = (T * styled_img[:, :, 2]) + atmosphere * (1 - T)
+        styled_hazy_img = cv2.normalize(styled_hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        albedo_hazy_img = self.initial_img_op(albedo_hazy_img)
+        styled_hazy_img = self.initial_img_op(styled_hazy_img)
+
+        if(self.should_crop):
+            crop_indices = transforms.RandomCrop.get_params(styled_hazy_img, output_size=self.crop_size)
+            i, j, h, w = crop_indices
+
+            albedo_hazy_img = transforms.functional.crop(albedo_hazy_img, i, j, h, w)
+            styled_hazy_img = transforms.functional.crop(styled_hazy_img, i, j, h, w)
+
+        albedo_hazy_img = self.final_transform_op(albedo_hazy_img)
+        styled_hazy_img = self.final_transform_op(styled_hazy_img)
+
+        self.depth_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,), (0.5,))
+        ])
+
+        # transmission_img = cv2.normalize(T, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        # transmission_img = cv2.resize(transmission_img, (256, 256))
+        # transmission_img = self.depth_transform_op(transmission_img)
+
+        #normalize
+        #atmosphere = (atmosphere - AirlightDataset.atmosphere_mean()) / AirlightDataset.atmosphere_std()
+        airlight_tensor = torch.tensor(atmosphere, dtype = torch.float32)
+
+        return file_name, albedo_hazy_img, styled_hazy_img, airlight_tensor #hazy albedo img, transmission map, airlight
 
     def __len__(self):
         return len(self.image_list_a)
@@ -470,14 +574,6 @@ class DarkChannelHazeDataset(data.Dataset):
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
             transforms.Normalize((0.5), (0.5), (0.5))])
-
-        # self.initial_transform_op = transforms.Compose([
-        #                             transforms.ToPILImage(mode = 'L'),
-        #                             transforms.Resize(constants.TEST_IMAGE_SIZE),
-        #                             ])
-        #
-        # self.final_transform_op = transforms.Compose([transforms.ToTensor(),
-        #                                               transforms.Normalize((0.5), (0.5))])
         
         
     
@@ -763,17 +859,23 @@ class LatentDataset(data.Dataset):
 
 
 class ColorAlbedoDataset(data.Dataset):
-    def __init__(self, image_list_a, image_list_b):
+    def __init__(self, image_list_a, image_list_b, depth_dir):
         self.image_list_a = image_list_a
         self.image_list_b = image_list_b
+        self.depth_dir = depth_dir
 
-        self.initial_transform_op = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize(constants.TEST_IMAGE_SIZE),
-            transforms.CenterCrop(constants.TEST_IMAGE_SIZE)
-        ])
+        # self.initial_transform_op = transforms.Compose([
+        #     transforms.ToPILImage(),
+        #     transforms.Resize(constants.TEST_IMAGE_SIZE),
+        #     transforms.CenterCrop(constants.TEST_IMAGE_SIZE)
+        # ])
+        #
+        # self.final_transform_op = transforms.Compose([transforms.ToTensor(),
+        #                                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-        self.final_transform_op = transforms.Compose([transforms.ToTensor(),
+        self.final_transform_op = transforms.Compose([transforms.ToPILImage(),
+                                                      transforms.Resize(constants.PATCH_IMAGE_SIZE),
+                                                      transforms.ToTensor(),
                                                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 
@@ -782,35 +884,59 @@ class ColorAlbedoDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
 
-        img_a = cv2.imread(img_id);
-        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        initial_img = cv2.imread(img_id);
+        initial_img = cv2.cvtColor(initial_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
 
         img_id = self.image_list_b[idx]
         img_b = cv2.imread(img_id);
         img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
 
-        img_a = self.initial_transform_op(img_a)
-        img_b = self.initial_transform_op(img_b)
-
-        crop_indices = transforms.RandomCrop.get_params(img_a, output_size=constants.PATCH_IMAGE_SIZE)
-        i, j, h, w = crop_indices
-
-        img_a = transforms.functional.crop(img_a, i, j, h, w)
-        img_b = transforms.functional.crop(img_b, i, j, h, w)
-
-        img_a = self.final_transform_op(img_a)
+        img_a = self.final_transform_op(initial_img)
         img_b = self.final_transform_op(img_b)
 
-        return file_name, img_a, img_b
+        # img_id = self.depth_dir + file_name
+        # depth_img = cv2.imread(img_id)
+        # depth_img = cv2.cvtColor(depth_img, cv2.COLOR_BGR2GRAY)
+        # depth_img = cv2.resize(depth_img, np.shape(initial_img[:, :, 0]))
+        # depth_img = cv2.normalize(depth_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        # T = tensor_utils.generate_transmission(1 - depth_img, np.random.uniform(0.0, 2.5))  # also include clear samples
+        #
+        # # formulate hazy img
+        # #atmosphere = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
+        # atmosphere = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        # T = np.resize(T, np.shape(initial_img[:, :, 0]))
+        # hazy_img = initial_img
+        # hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        # hazy_img[:, :, 0] = (T * hazy_img[:, :, 0]) + atmosphere * (1 - T)
+        # hazy_img[:, :, 1] = (T * hazy_img[:, :, 1]) + atmosphere * (1 - T)
+        # hazy_img[:, :, 2] = (T * hazy_img[:, :, 2]) + atmosphere * (1 - T)
+        # hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        #
+        # hazy_img = self.initial_transform_op(hazy_img)
+        #
+        # crop_indices = transforms.RandomCrop.get_params(img_a, output_size=constants.PATCH_IMAGE_SIZE)
+        # i, j, h, w = crop_indices
+        #
+        # #img_a = transforms.functional.crop(img_a, i, j, h, w)
+        # hazy_img = transforms.functional.crop(hazy_img, i, j, h, w)
+        # img_b = transforms.functional.crop(img_b, i, j, h, w)
+        #
+        # #img_a = self.final_transform_op(img_a)
+        # hazy_img = self.final_transform_op(hazy_img)
+        # img_b = self.final_transform_op(img_b)
+
+        hazy_img = img_a
+        return file_name, hazy_img, img_b
 
     def __len__(self):
         return len(self.image_list_a)
 
 
 class ColorAlbedoTestDataset(data.Dataset):
-    def __init__(self, image_list_a, image_list_b):
+    def __init__(self, image_list_a, image_list_b, depth_dir): #depth_dir can be none
         self.image_list_a = image_list_a
         self.image_list_b = image_list_b
+        self.depth_dir = depth_dir
 
         self.final_transform_op = transforms.Compose([transforms.ToPILImage(),
                                                       transforms.Resize(constants.TEST_IMAGE_SIZE),
@@ -831,10 +957,35 @@ class ColorAlbedoTestDataset(data.Dataset):
         img_b = cv2.imread(img_id);
         img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
 
-        img_a = self.final_transform_op(img_a)
+        if(self.depth_dir is not None):
+            img_id = self.depth_dir + file_name
+            depth_img = cv2.imread(img_id)
+            depth_img = cv2.cvtColor(depth_img, cv2.COLOR_BGR2GRAY)
+            depth_img = cv2.resize(depth_img, np.shape(img_a[:, :, 0]))
+            depth_img = cv2.normalize(depth_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+            #T = tensor_utils.generate_transmission(1 - depth_img, np.random.uniform(0.0, 2.5))  # also include clear samples
+            T = tensor_utils.generate_transmission(1 - depth_img, np.random.uniform(0.0, 0.0))
+
+            # formulate hazy img
+            #atmosphere = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
+            #atmosphere = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+            atmosphere = 0.0
+            T = np.resize(T, np.shape(img_a[:, :, 0]))
+            hazy_img = img_a
+            hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+            hazy_img[:, :, 0] = (T * hazy_img[:, :, 0]) + atmosphere * (1 - T)
+            hazy_img[:, :, 1] = (T * hazy_img[:, :, 1]) + atmosphere * (1 - T)
+            hazy_img[:, :, 2] = (T * hazy_img[:, :, 2]) + atmosphere * (1 - T)
+            hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
         img_b = self.final_transform_op(img_b)
 
-        return file_name, img_a, img_b
+        if(self.depth_dir is None):
+            img_a = self.final_transform_op(img_a)
+            return file_name, img_a, img_b
+        else:
+            hazy_img = self.final_transform_op(hazy_img)
+            return file_name, hazy_img, img_b
 
     def __len__(self):
         return len(self.image_list_a)

@@ -14,6 +14,9 @@ import cv2
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import torchvision.models as models
+import kornia
+from custom_losses import ssim_loss
+from loaders.image_dataset import AirlightDataset
 from utils import tensor_utils
 from utils import plot_utils
 from loaders import dataset_loader
@@ -224,6 +227,202 @@ def visualize_img_to_light_correlation():
 def mse(predictions, targets):
     return ((predictions - targets) ** 2).mean()
 
+def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name):
+    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
+    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    PATH_TO_FILE = ABS_PATH_RESULTS + str(airlight_checkpt_name) + ".txt"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    #A1 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(device)
+    #A2 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(device)
+    A1 = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64).to(device)
+    A2 = dh.AirlightEstimator_V2(num_channels = 6, disc_feature_size = 64).to(device)
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + airlight_checkpt_name + '.pt')
+    A1.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "A"])
+    A2.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "B"])
+    A1.eval()
+    A2.eval()
+    print("Airlight estimator network loaded")
+    print("===================================================")
+
+    G_albedo = cycle_gan.Generator(n_residual_blocks=8).to(device)
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + albedo_checkpt_name + '.pt')
+    G_albedo.load_state_dict(checkpoint[constants.GENERATOR_KEY  + "A"])
+    G_albedo.eval()
+    print("G albedo network loaded")
+    print("===================================================")
+
+    test_loader = dataset_loader.load_airlight_test_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_TEST, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, constants.batch_size, -1)
+    average_MSE = [0.0, 0.0, 0.0]
+
+    count = 0
+    with open(PATH_TO_FILE, "w") as f, torch.no_grad():
+        for i, (test_data) in enumerate(test_loader, 0):
+            _, albedo_batch, styled_batch, airlight_batch = test_data
+            albedo_batch = albedo_batch.to(device).float()
+            styled_batch = styled_batch.to(device).float()
+            airlight_batch = airlight_batch.to(device).float()
+
+            mean_batch = torch.full(np.shape(airlight_batch), AirlightDataset.atmosphere_mean()).to(device)
+
+            airlight_shape = np.shape(airlight_batch.cpu().numpy())[0]
+            for j in range(airlight_shape):
+                mean_input = torch.unsqueeze(mean_batch[j], 0)
+                styled_input = torch.unsqueeze(styled_batch[j], 0)
+                airlight_input = torch.unsqueeze(airlight_batch[j], 0)
+                albedo_input = torch.unsqueeze(albedo_batch[j], 0)
+
+                mean_error = mse(mean_input, airlight_input).item()
+                A1_error = mse(A1(styled_input), airlight_input).item()
+                A2_error = mse(A2(torch.cat([styled_input, albedo_input], 1)), airlight_input).item()
+
+                average_MSE[0] += mean_error
+                average_MSE[1] += A1_error
+                average_MSE[2] += A2_error
+
+                count = count + 1
+                print("Errors: ", mean_error, A1_error, A2_error, file = f)
+                print("Errors: ", mean_error, A1_error, A2_error)
+
+        average_MSE[0] = np.round(average_MSE[0] / count * 1.0, 5)
+        average_MSE[1] = np.round(average_MSE[1] / count * 1.0, 5)
+        average_MSE[2] = np.round(average_MSE[2] / count * 1.0, 5)
+        print("Overall MSE for Mean: " + str(average_MSE[0]), file=f)
+        print("Overall MSE for A1: " + str(average_MSE[1]), file=f)
+        print("Overall MSE for A2: " + str(average_MSE[2]), file=f)
+
+def perform_transmission_map_estimation(model_checkpt_name):
+    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
+    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
+    G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
+    G_A.eval()
+
+    print("G transmission network loaded")
+    print("===================================================")
+
+    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, 128, -1)
+
+    ave_losses = [0.0, 0.0, 0.0, 0.0]
+    count = 0
+    with open(PATH_TO_FILE, "w") as f, torch.no_grad():
+        for i, (test_data) in enumerate(test_loader, 0):
+            _, rgb_batch, transmission_batch = test_data
+            rgb_tensor = rgb_batch.to(device).float()
+            transmission_batch = transmission_batch.to(device).float()
+            transmission_like = G_A(rgb_tensor)
+
+            transmission_batch = (transmission_batch * 0.5) + 0.5 #remove tanh normalization
+            transmission_like = (transmission_like * 0.5) + 0.5
+
+            #use common losses in torch and kornia
+            l1_loss = nn.L1Loss()
+            l2_loss = nn.MSELoss()
+            ssim = ssim_loss.SSIM()
+
+            mae = l1_loss(transmission_like, transmission_batch).cpu().item()
+            mse = l2_loss(transmission_like, transmission_batch).cpu().item()
+            psnr = kornia.losses.psnr(transmission_batch, transmission_like, torch.max(transmission_batch).item()).cpu().item()
+            ssim_val = ssim(transmission_batch, transmission_like).cpu().item()
+
+            ave_losses[0] += mae
+            ave_losses[1] += mse
+            ave_losses[2] += psnr
+            ave_losses[3] += ssim_val
+
+            count = count + 1
+            print("MAE: ", np.round(mae, 5))
+            print("MSE: ", np.round(mse, 5))
+            print("PSNR: ", np.round(psnr, 5))
+            print("SSIM: ", np.round(ssim_val, 5))
+            print("MAE: ", np.round(mae, 5), file = f)
+            print("MSE: ", np.round(mse, 5), file = f)
+            print("PSNR: ", np.round(psnr, 5), file = f)
+            print("SSIM: ", np.round(ssim_val, 5), file = f)
+
+        ave_losses[0] = np.round(ave_losses[0] / count * 1.0, 5)
+        ave_losses[1] = np.round(ave_losses[1] / count * 1.0, 5)
+        ave_losses[2] = np.round(ave_losses[2] / count * 1.0, 5)
+        ave_losses[3] = np.round(ave_losses[3] / count * 1.0, 5)
+
+        print("Overall MAE: " + str(ave_losses[0]), file=f)
+        print("Overall MSE: " + str(ave_losses[1]), file=f)
+        print("Overall PSNR: " + str(ave_losses[2]), file=f)
+        print("Overall SSIM: " + str(ave_losses[3]), file=f)
+
+def perform_albedo_reconstruction(model_checkpt_name):
+    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
+    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
+
+    print("Loading: ", ABS_PATH_CHECKPOINT + model_checkpt_name)
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    G_A = cycle_gan.Generator(n_residual_blocks=16).to(device)
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
+    G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
+    G_A.eval()
+
+    print("G transmission network loaded")
+    print("===================================================")
+
+    test_loader = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, 64, -1)
+    count = 0
+    ave_losses = [0.0, 0.0, 0.0, 0.0]
+    with open(PATH_TO_FILE, "w") as f, torch.no_grad():
+        for i, (test_data) in enumerate(test_loader, 0):
+            _, hazy_batch, albedo_batch = test_data
+            hazy_batch = hazy_batch.to(device).float()
+            albedo_batch = albedo_batch.to(device).float()
+
+            albedo_like = G_A(hazy_batch)
+            # inferred albedo image appears darker --> adjust brightness and contrast of albedo image
+            #albedo_like = kornia.adjust_brightness(albedo_like, 0.6)
+
+            albedo_batch = (albedo_batch * 0.5) + 0.5  # remove tanh normalization
+            albedo_like = (albedo_like * 0.5) + 0.5
+
+            #show_images(albedo_batch, "Albedo GT")
+            #show_images(albedo_like, "Albedo Like")
+
+            # use common losses in torch and kornia
+            l1_loss = nn.L1Loss()
+            l2_loss = nn.MSELoss()
+            ssim = ssim_loss.SSIM()
+
+            mae = l1_loss(albedo_like, albedo_batch).cpu().item()
+            mse = l2_loss(albedo_like, albedo_batch).cpu().item()
+            psnr = kornia.losses.psnr(albedo_like, albedo_batch, torch.max(albedo_batch).item()).cpu().item()
+            ssim_val = ssim(albedo_like, albedo_batch).cpu().item()
+
+            ave_losses[0] += mae
+            ave_losses[1] += mse
+            ave_losses[2] += psnr
+            ave_losses[3] += ssim_val
+
+            count = count + 1
+            print("MAE: ", np.round(mae, 5))
+            print("MSE: ", np.round(mse, 5))
+            print("PSNR: ", np.round(psnr, 5))
+            print("SSIM: ", np.round(ssim_val, 5))
+            # print("MAE: ", np.round(mae, 5), file=f)
+            # print("MSE: ", np.round(mse, 5), file=f)
+            # print("PSNR: ", np.round(psnr, 5), file=f)
+            # print("SSIM: ", np.round(ssim_val, 5), file=f)
+
+        ave_losses[0] = np.round(ave_losses[0] / count * 1.0, 5)
+        ave_losses[1] = np.round(ave_losses[1] / count * 1.0, 5)
+        ave_losses[2] = np.round(ave_losses[2] / count * 1.0, 5)
+        ave_losses[3] = np.round(ave_losses[3] / count * 1.0, 5)
+
+        print("Overall MAE: " + str(ave_losses[0]), file=f)
+        print("Overall MSE: " + str(ave_losses[1]), file=f)
+        print("Overall PSNR: " + str(ave_losses[2]), file=f)
+        print("Overall SSIM: " + str(ave_losses[3]), file=f)
+
 def perform_lightcoord_predictions(model_checkpt_name):
     img_list = dataset_loader.assemble_unpaired_data(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED, num_image_to_load=1000)
     print("Reading images in ", img_list)
@@ -313,30 +512,14 @@ def perform_lightcoord_predictions(model_checkpt_name):
 
 
 def main():
-    # visualize_color_distribution(constants.DATASET_VEMON_PATH_PATCH_32, constants.DATASET_DIV2K_PATH_PATCH)
-    # visualize_edge_distribution(constants.DATASET_VEMON_PATH_PATCH_32)
-    # visualize_edge_distribution(constants.DATASET_DIV2K_PATH_PATCH)
-    # plt.show()
-    #
-    # visualize_edge_distribution(constants.DATASET_HAZY_PATH_PATCH)
-    # visualize_edge_distribution(constants.DATASET_CLEAN_PATH_PATCH)
-    # plt.show()
-
-    #visualize_haze_equation(constants.DATASET_HAZY_PATH_COMPLETE, constants.DATASET_DEPTH_PATH_COMPLETE, constants.DATASET_CLEAN_PATH_COMPLETE)
-    #visualize_haze_equation_albedo(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3)
-    #visualize_feature_distribution(constants.DATASET
-    # _HAZY_PATH_COMPLETE, constants.DATASET_IHAZE_HAZY_PATH_COMPLETE)
-    #visualize_img_to_light_correlation()
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_7")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_5")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_6")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_8")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_9")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_13")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_14")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_15")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_16")
-    perform_lightcoord_predictions("lightcoords_estimator_V1.00_17")
+    #perform_airlight_predictions("airlight_estimator_v1.03_1", "albedo_transfer_v1.01_1")
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.03_1")
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.03_2")
+    #perform_albedo_reconstruction("albedo_transfer_v1.01_2")
+    #perform_albedo_reconstruction("albedo_transfer_v1.01_3")
+    #perform_albedo_reconstruction("albedo_transfer_v1.01_4")
+    #perform_albedo_reconstruction("albedo_transfer_v1.01_5")
+    perform_albedo_reconstruction("albedo_transfer_v1.03_6")
     
 if __name__=="__main__": 
     main()   

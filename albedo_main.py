@@ -17,7 +17,7 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
-from trainers import cyclegan_trainer
+from trainers import albedo_trainer
 import constants
      
 parser = OptionParser()
@@ -25,24 +25,22 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--smoothness_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00") 
-parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
+parser.add_option('--psnr_loss_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--use_psnr', type=int, help="LR", default="1")
+parser.add_option('--cycle_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Vanilla CycleGAN. Paired learning for extracting albedo from a lit image and vice versa. \n"
-                                                                                     "Now uses hazy images as input for extracing albedo.")
+                                                                                     "Now uses hazy images as input for extracing albedo. \n"
+                                                                                     "Uses S(x) = A(x) + L(x) formula" )
 
 #--img_to_load=-1 --load_previous=1
 #Update config if on COARE
 def update_config(opts):
     constants.is_coare = opts.coare
-    constants.brightness_enhance = opts.brightness_enhance
-    constants.contrast_enhance = opts.contrast_enhance
     
     if(constants.is_coare == 1):
         print("Using COARE configuration.")
@@ -55,6 +53,10 @@ def update_config(opts):
         constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
+
+        constants.DATASET_ALBEDO_PATH_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo/"
+        constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo - pseudo/"
+        constants.DATASET_CLEAN_PATH_PATCH_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/clean - styled/"
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -78,8 +80,8 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
     
-    gt = cyclegan_trainer.CycleGANTrainer(device, opts.g_lr, opts.d_lr)
-    gt.update_penalties(opts.adv_weight, opts.identity_weight, opts.likeness_weight, opts.cycle_weight, opts.smoothness_weight, opts.comments)
+    gt = albedo_trainer.AlbedoTrainer(device, opts.g_lr, opts.d_lr)
+    gt.update_penalties(opts.adv_weight, opts.identity_weight, opts.likeness_weight, opts.cycle_weight, opts.psnr_loss_weight, opts.use_psnr, opts.comments)
     start_epoch = 0
     iteration = 0
     
@@ -93,7 +95,7 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_color_albedo_train_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)
+    train_loader = dataset_loader.load_color_albedo_train_dataset(constants.DATASET_CLEAN_PATH_PATCH_STYLED_3, constants.DATASET_ALBEDO_PATH_PATCH_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)
     test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, 500)
     test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, None, constants.batch_size, 500)
     index = 0
@@ -114,7 +116,7 @@ def main(argv):
             clean_tensor = clean_batch.to(device)
 
             gt.train(dirty_tensor, clean_tensor)
-            if(i % 100 == 0):
+            if(i % 5000 == 0):
                 view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader_1))
                 view_dirty_batch = view_dirty_batch.to(device)
                 view_clean_batch = view_clean_batch.to(device)

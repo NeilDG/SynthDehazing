@@ -19,6 +19,12 @@ DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
 
+DATASET_ALBEDO_PATH_PATCH_3 = "E:/Synth Hazy 3 - Patch/albedo/"
+DATASET_ALBEDO_PATH_PSEUDO_PATCH_3 = "E:/Synth Hazy 3 - Patch/albedo - pseudo/"
+DATASET_CLEAN_PATH_PATCH_3 = "E:/Synth Hazy 3 - Patch/clean/"
+DATASET_CLEAN_PATH_PATCH_STYLED_3 = "E:/Synth Hazy 3 - Patch/clean - styled/"
+
+DATASET_ALBEDO_PATH_PSEUDO_TEST  = "E:/Synth Hazy - Test Set/albedo - pseudo/"
 DATASET_CLEAN_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "E:/Synth Hazy - Test Set/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/depth/"
@@ -53,13 +59,13 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 DEHAZER_VERSION = "dehazer_v1.13"
 COLORIZER_VERSION = "colorizer_v1.08"
-COLOR_TRANSFER_VERSION = "albedo_transfer_v1.01"
+COLOR_TRANSFER_VERSION = "albedo_transfer_v1.04"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.03"
-AIRLIGHT_VERSION = "airlight_estimator_v1.01"
+AIRLIGHT_VERSION = "airlight_estimator_v1.03"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "2"
+ITERATION = "1"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -81,7 +87,7 @@ TV_LOSS_KEY = "tv"
 G_ADV_LOSS_KEY = "g_adv"
 LIKENESS_LOSS_KEY = "likeness"
 REALNESS_LOSS_KEY = "realness"
-COLOR_SHIFT_LOSS_KEY = "colorshift"
+PSNR_LOSS_KEY = "colorshift"
 SMOOTHNESS_LOSS_KEY = "smoothness"
 EDGE_LOSS_KEY = "edge"
 
@@ -98,11 +104,11 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 250
+num_epochs = 200
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-batch_size = 8
+batch_size = 64
 infer_size = 16
 
 brightness_enhance = 0.6

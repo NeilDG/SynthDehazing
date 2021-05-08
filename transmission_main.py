@@ -36,7 +36,7 @@ parser.add_option('--image_size', type=int, help="Weight", default="64")
 parser.add_option('--batch_size', type=int, help="Weight", default="64")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network. Using L1-discriminator loss.")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Transmission estimation network. Using L1-discriminator loss.")
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE
@@ -110,7 +110,7 @@ def main(argv):
 
     # Plot some training images
     if (constants.is_coare == 0):
-        _, a, b, _ = next(iter(train_loader))
+        _, a, b = next(iter(train_loader))
         _, c = next(iter(test_loaders[0]))
         show_images(a, "Training - RGB Images")
         show_images(b, "Training - Depth Images")
@@ -120,7 +120,7 @@ def main(argv):
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
         for i, train_data in enumerate(train_loader, 0):
-            _, rgb_batch, depth_batch, _ = train_data
+            _, rgb_batch, depth_batch = train_data
             rgb_tensor = rgb_batch.to(device).float()
             depth_tensor = depth_batch.to(device).float()
 
@@ -139,9 +139,6 @@ def main(argv):
                                         dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.batch_size, 500),
                                         dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.batch_size, 500)]
                 gt.save_states(epoch, iteration)
-        # save every X epoch
-        gt.save_states(start_epoch, iteration, constants.TRANSMISSION_ESTIMATOR_CHECKPATH, constants.GENERATOR_KEY, constants.DISCRIMINATOR_KEY, constants.OPTIMIZER_KEY)
-
 
 # FIX for broken pipe num_workers issue.
 if __name__ == "__main__":

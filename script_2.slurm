@@ -1,15 +1,15 @@
 #!/bin/bash
-#SBATCH -J ALBEDO_3
+#SBATCH -J AL_4
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu
 #SBATCH --cpus-per-task=6
 #SBATCH -G 1
 #SBATCH --ntasks=1
-#SBATCH --output=script_3.out
+#SBATCH --output=script_4.out
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph
 #SBATCH --mail-type=END
 
-ITERATION=3
+ITERATION=4
 
 #About this script:
 # CycleGAN using new dataset between synth hazy and places dataset
@@ -22,15 +22,5 @@ module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
 
-conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
-#conda install -c conda-forge scikit-image
-
-srun python cyclegan_main.py --iteration=$ITERATION --coare=1 --smoothness_weight=10.0 --img_to_load=-1 --load_previous=0
+srun python albedo_main.py --iteration=$ITERATION --coare=1 --likeness_weight=100.0 --psnr_loss_weight=0.0 --adv_weight=5.0 --img_to_load=-1 --load_previous=0
 conda deactivate
-
-for i in {1..300}
-    do
-        source activate NeilGAN_V2
-        srun python cyclegan_main.py --iteration=$ITERATION --coare=1 --smoothness_weight=10.0 --img_to_load=-1 --load_previous=1
-        conda deactivate
-    done

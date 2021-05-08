@@ -7,7 +7,7 @@ from PIL import Image
 
 from loaders import dataset_loader
 from trainers import denoise_net_trainer
-from trainers import cyclegan_trainer
+from trainers import albedo_trainer
 from trainers import dehaze_trainer
 from model import vanilla_cycle_gan as cycle_gan
 from model import style_transfer_gan as color_gan
