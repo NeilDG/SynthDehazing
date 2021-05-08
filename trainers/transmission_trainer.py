@@ -89,8 +89,8 @@ class TransmissionTrainer:
         loss = nn.L1Loss()
         return loss(pred, target)
 
-        #loss = nn.BCEWithLogitsLoss()
-        #return loss(pred, target)
+        # loss = nn.BCEWithLogitsLoss()
+        # return loss(pred, target)
 
     def likeness_loss(self, pred, target):
         loss = nn.L1Loss()

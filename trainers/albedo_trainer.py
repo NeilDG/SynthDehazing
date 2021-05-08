@@ -84,7 +84,10 @@ class AlbedoTrainer:
             print("Contrast enhance: ", str(constants.contrast_enhance), file=f)
 
     def adversarial_loss(self, pred, target):
-        loss = nn.L1Loss()
+        # loss = nn.L1Loss()
+        # return loss(pred, target)
+
+        loss = nn.BCEWithLogitsLoss()
         return loss(pred, target)
 
     def identity_loss(self, pred, target):
@@ -137,7 +140,7 @@ class AlbedoTrainer:
             self.optimizerG.zero_grad()
 
             identity_like = self.G_A(albedo_tensor)
-            albedo_like = styled_tensor - self.G_A(styled_tensor)
+            albedo_like = self.G_A(styled_tensor)
 
             identity_loss = self.identity_loss(identity_like, albedo_tensor) * self.id_weight
             A_likeness_loss = self.likeness_loss(albedo_like, albedo_tensor) * self.likeness_weight
@@ -167,8 +170,9 @@ class AlbedoTrainer:
 
     def visdom_report(self, iteration, styled_tensor, albedo_tensor, test_styled_tensor, test_albedo_tensor):
         with torch.no_grad():
-            albedo_like = styled_tensor - self.G_A(styled_tensor)
-            test_albedo_like = test_styled_tensor - self.G_A(test_styled_tensor)
+            albedo_like = self.G_A(styled_tensor)
+            test_albedo_like = self.G_A(test_styled_tensor)
+
 
         # report to visdom
         self.visdom_reporter.plot_finegrain_loss(str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
@@ -181,7 +185,7 @@ class AlbedoTrainer:
 
     def visdom_infer(self, test_styled_tensor, caption_dirty, caption_clean):
         with torch.no_grad():
-            test_clean_like = test_styled_tensor - self.G_A(test_styled_tensor)
+            test_clean_like = self.G_A(test_styled_tensor)
 
         self.visdom_reporter.plot_image(test_styled_tensor, caption_dirty + " - " + str(constants.COLOR_TRANSFER_VERSION) + str(constants.ITERATION))
         self.visdom_reporter.plot_image(test_clean_like, caption_clean + " - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
