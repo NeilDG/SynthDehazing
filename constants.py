@@ -65,7 +65,7 @@ AIRLIGHT_VERSION = "airlight_estimator_v1.03"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "1"
+ITERATION = "2"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -109,9 +109,9 @@ num_epochs = 200
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
 batch_size = 64
-infer_size = 16
+infer_size = 32
 
-brightness_enhance = 0.6
+brightness_enhance = 1.0
 contrast_enhance = 1.0
 
 #Running on COARE?

@@ -22,6 +22,7 @@ from utils import plot_utils
 from loaders import dataset_loader
 from model import dehaze_discriminator as dh
 from model import vanilla_cycle_gan as cycle_gan
+from model import ffa_net as ffa_gan
 
 def visualize_color_distribution(img_dir_path_a, img_dir_path_b):
     img_list = dataset_loader.assemble_unpaired_data(img_dir_path_a, 500)
@@ -361,7 +362,8 @@ def perform_albedo_reconstruction(model_checkpt_name):
 
     print("Loading: ", ABS_PATH_CHECKPOINT + model_checkpt_name)
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    G_A = cycle_gan.Generator(n_residual_blocks=16).to(device)
+    #G_A = cycle_gan.Generator(n_residual_blocks=16).to(device)
+    G_A = ffa_gan.FFA(gps=3, blocks=18).to(device)
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
     G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
     G_A.eval()
@@ -369,7 +371,7 @@ def perform_albedo_reconstruction(model_checkpt_name):
     print("G transmission network loaded")
     print("===================================================")
 
-    test_loader = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, 64, -1)
+    test_loader = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.infer_size, -1)
     count = 0
     ave_losses = [0.0, 0.0, 0.0, 0.0]
     with open(PATH_TO_FILE, "w") as f, torch.no_grad():
@@ -476,7 +478,8 @@ def perform_lightcoord_predictions(model_checkpt_name):
 
             # img_b = cv2.imread(constants.DATASET_DEPTH_PATH_COMPLETE + img_name+".png")
             # img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
-            # img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+            # img_b = cv2.normalize(img_b, dst=None, alpha=0
+            # , beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
             # T = tensor_utils.generate_transmission(1 - img_b, np.random.uniform(0.0, 2.5))
             #
             # # formulate hazy img
@@ -515,11 +518,13 @@ def main():
     #perform_airlight_predictions("airlight_estimator_v1.03_1", "albedo_transfer_v1.01_1")
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.03_1")
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.03_2")
-    #perform_albedo_reconstruction("albedo_transfer_v1.01_2")
-    #perform_albedo_reconstruction("albedo_transfer_v1.01_3")
-    #perform_albedo_reconstruction("albedo_transfer_v1.01_4")
-    #perform_albedo_reconstruction("albedo_transfer_v1.01_5")
-    perform_albedo_reconstruction("albedo_transfer_v1.03_6")
-    
+    # perform_albedo_reconstruction("albedo_transfer_v1.03_1")
+    # perform_albedo_reconstruction("albedo_transfer_v1.03_3")
+    # perform_albedo_reconstruction("albedo_transfer_v1.03_4")
+    perform_albedo_reconstruction("albedo_transfer_v1.03_7")
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_1")
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_2")
+
+
 if __name__=="__main__": 
     main()   
