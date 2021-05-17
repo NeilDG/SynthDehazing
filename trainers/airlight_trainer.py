@@ -37,8 +37,6 @@ class AirlightTrainer:
         # self.schedulerDD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDD, patience=100000 / constants.batch_size, threshold=0.00005)
 
         self.fp16_scalers = [amp.GradScaler(),
-                             amp.GradScaler(),
-                             amp.GradScaler(),
                              amp.GradScaler()]
 
     def initialize_dict(self):

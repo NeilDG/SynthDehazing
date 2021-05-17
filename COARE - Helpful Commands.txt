@@ -15,7 +15,7 @@ cd scratch2/Visdom
 sbatch slurm_install.slurm
 sbatch slurm_visdom_test.slurm
 sbatch visdom_run.slurm
-sbatch -w saliksik-cpu-23 --dependency=afterany:227264 visdom_run.slurm
+sbatch -w saliksik-cpu-23 --dependency=afterany:227939 visdom_run.slurm
 
 sbatch script_debug.slurm
 sbatch script_1.slurm
@@ -35,7 +35,7 @@ sbatch -w saliksik-gpu-05 script_5.slurm
 sbatch -w saliksik-gpu-06 script_6.slurm
 
 //Check status of job
-squeue -u neil.delgallego
+clear
 
 //Check all
 squeue -a

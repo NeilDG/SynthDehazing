@@ -50,7 +50,6 @@ class AlbedoTrainer:
         self.caption_dict = {}
         self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
-        self.caption_dict[constants.IDENTITY_LOSS_KEY] = "Identity loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
         self.caption_dict[constants.PSNR_LOSS_KEY] = "PSNR/SSIM color loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"

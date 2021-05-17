@@ -29,10 +29,10 @@ class GANTrainer:
         self.writer = writer
         self.visualized = False
     
-        self.netG = topdown_gan.Generator().to(self.gpu_device)
+        #self.netG = topdown_gan.Generator().to(self.gpu_device)
         print(self.netG)
         
-        self.netD = topdown_gan.Discriminator().to(self.gpu_device)
+        #self.netD = topdown_gan.Discriminator().to(self.gpu_device)
         print(self.netD)
         
         self.optimizerD = optim.Adam(self.netD.parameters(), lr, betas)

@@ -22,6 +22,7 @@ from utils import plot_utils
 from loaders import dataset_loader
 from model import dehaze_discriminator as dh
 from model import vanilla_cycle_gan as cycle_gan
+from model import unet_gan as un
 from model import ffa_net as ffa_gan
 
 def visualize_color_distribution(img_dir_path_a, img_dir_path_b):
@@ -228,7 +229,7 @@ def visualize_img_to_light_correlation():
 def mse(predictions, targets):
     return ((predictions - targets) ** 2).mean()
 
-def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name):
+def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num_albedo_blocks):
     ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
     ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(airlight_checkpt_name) + ".txt"
@@ -246,7 +247,8 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name):
     print("Airlight estimator network loaded")
     print("===================================================")
 
-    G_albedo = cycle_gan.Generator(n_residual_blocks=8).to(device)
+    #G_albedo = cycle_gan.Generator(n_residual_blocks=8).to(device)
+    G_albedo = ffa_gan.FFA(gps=3, blocks=num_albedo_blocks).to(device)
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + albedo_checkpt_name + '.pt')
     G_albedo.load_state_dict(checkpoint[constants.GENERATOR_KEY  + "A"])
     G_albedo.eval()
@@ -298,7 +300,8 @@ def perform_transmission_map_estimation(model_checkpt_name):
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+    #G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+    G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
     G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
     G_A.eval()
@@ -306,7 +309,7 @@ def perform_transmission_map_estimation(model_checkpt_name):
     print("G transmission network loaded")
     print("===================================================")
 
-    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, 128, -1)
+    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, 128, 50000)
 
     ave_losses = [0.0, 0.0, 0.0, 0.0]
     count = 0
@@ -355,7 +358,7 @@ def perform_transmission_map_estimation(model_checkpt_name):
         print("Overall PSNR: " + str(ave_losses[2]), file=f)
         print("Overall SSIM: " + str(ave_losses[3]), file=f)
 
-def perform_albedo_reconstruction(model_checkpt_name):
+def perform_albedo_reconstruction(model_checkpt_name, num_blocks):
     ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
     ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
@@ -363,7 +366,7 @@ def perform_albedo_reconstruction(model_checkpt_name):
     print("Loading: ", ABS_PATH_CHECKPOINT + model_checkpt_name)
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     #G_A = cycle_gan.Generator(n_residual_blocks=16).to(device)
-    G_A = ffa_gan.FFA(gps=3, blocks=18).to(device)
+    G_A = ffa_gan.FFA(gps=3, blocks=num_blocks).to(device)
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
     G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
     G_A.eval()
@@ -371,7 +374,7 @@ def perform_albedo_reconstruction(model_checkpt_name):
     print("G transmission network loaded")
     print("===================================================")
 
-    test_loader = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.infer_size, -1)
+    test_loader = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.infer_size, 100000)
     count = 0
     ave_losses = [0.0, 0.0, 0.0, 0.0]
     with open(PATH_TO_FILE, "w") as f, torch.no_grad():
@@ -515,15 +518,12 @@ def perform_lightcoord_predictions(model_checkpt_name):
 
 
 def main():
-    #perform_airlight_predictions("airlight_estimator_v1.03_1", "albedo_transfer_v1.01_1")
-    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.03_1")
-    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.03_2")
-    # perform_albedo_reconstruction("albedo_transfer_v1.03_1")
-    # perform_albedo_reconstruction("albedo_transfer_v1.03_3")
-    # perform_albedo_reconstruction("albedo_transfer_v1.03_4")
-    perform_albedo_reconstruction("albedo_transfer_v1.03_7")
-    # perform_albedo_reconstruction("albedo_transfer_v1.04_1")
-    # perform_albedo_reconstruction("albedo_transfer_v1.04_2")
+    perform_airlight_predictions("airlight_estimator_v1.04_1", "albedo_transfer_v1.04_1", 18)
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_3")
+    #perform_albedo_reconstruction("albedo_transfer_v1.04_1", 18)
+    #perform_albedo_reconstruction("albedo_transfer_v1.04_2", 8)
+    #perform_albedo_reconstruction("albedo_transfer_v1.04_3", 12)
 
 
 if __name__=="__main__": 
