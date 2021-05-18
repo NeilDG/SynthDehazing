@@ -30,13 +30,11 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--airlight_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--airlight_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
-parser.add_option('--batch_size', type=int, help="Weight", default="64")
-parser.add_option('--image_size', type=int, help="Weight", default="256")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network using same architecture for A and B. \n "
                                                                                      "Accepts albedo input. \n"
-                                                                                     "New architecture based on CycleGAN.")
+                                                                                     "New architecture based on DCGAN.")
 
 #--img_to_load=-1 --load_previous=0
 # Update config if on COARE
@@ -45,16 +43,18 @@ def update_config(opts):
 
     if (constants.is_coare == 1):
         print("Using COARE configuration.")
-        constants.TEST_IMAGE_SIZE = (opts.image_size, opts.image_size)
-        constants.batch_size = opts.batch_size
         constants.ITERATION = str(opts.iteration)
 
-        constants.DATASET_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/hazy/"
-        constants.DATASET_DEPTH_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/depth/"
-        constants.DATASET_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/clean/"
-        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/clean - styled/"
-        constants.DATASET_LIGHTCOORDS_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy 2/light/"
-        constants.num_workers = 4
+        constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_ESTIMATOR_CHECKPATH + "_" + constants.ITERATION + '.pt'
+
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
+        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
+
+        constants.DATASET_ALBEDO_PATH_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo/"
+        constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo - pseudo/"
+        constants.DATASET_CLEAN_PATH_PATCH_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/clean - styled/"
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")

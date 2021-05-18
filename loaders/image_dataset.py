@@ -16,6 +16,7 @@ from ast import literal_eval
 import torchvision.transforms as transforms
 import constants
 from utils import tensor_utils
+import kornia
 
 class TransmissionAlbedoDataset(data.Dataset):
     def __init__(self, image_list_a, depth_dir, crop_size, should_crop):
@@ -36,7 +37,7 @@ class TransmissionAlbedoDataset(data.Dataset):
 
         self.depth_transform_op = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5), (0.5))
+            transforms.Normalize((0.5,), (0.5,))
         ])
 
     def __getitem__(self, idx):
@@ -877,6 +878,10 @@ class ColorAlbedoDataset(data.Dataset):
                                                       transforms.Resize(constants.PATCH_IMAGE_SIZE),
                                                       transforms.ToTensor(),
                                                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+        # self.final_transform_op = transforms.Compose([transforms.ToPILImage(),
+        #                                               transforms.Resize(constants.PATCH_IMAGE_SIZE),
+        #                                               transforms.ToTensor()])
 
 
     def __getitem__(self, idx):

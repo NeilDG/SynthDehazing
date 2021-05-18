@@ -1,15 +1,13 @@
 #!/bin/bash
-#SBATCH -J AL_3
-#SBATCH --partition=gpu
-#SBATCH --qos=12c-1h_2gpu
-#SBATCH --cpus-per-task=6
-#SBATCH -G 1
+#SBATCH -J TR_DB
+#SBATCH --partition=debug
+#SBATCH --qos=240c-1h_debug
 #SBATCH --ntasks=1
-#SBATCH --output=script_3.out
+#SBATCH --output=script_debug.out
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph
 #SBATCH --mail-type=END
 
-ITERATION=3
+ITERATION=7
 
 #About this script:
 # CycleGAN using new dataset between synth hazy and places dataset
@@ -22,5 +20,5 @@ module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
 
-srun python albedo_main.py --iteration=$ITERATION --coare=1 --likeness_weight=100.0 --psnr_loss_weight=0.0 --adv_weight=5.0 --img_to_load=-1 --load_previous=0
+srun python transmission_main.py --iteration=$ITERATION --coare=1 --use_disc_l1=0 --edge_weight=2.0 --img_to_load=-1 --load_previous=0
 conda deactivate

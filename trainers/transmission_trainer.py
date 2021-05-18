@@ -3,6 +3,7 @@
 import os
 from model import vanilla_cycle_gan as cg
 from model import style_transfer_gan as sg
+from model import unet_gan as un
 from model import dehaze_discriminator as dh
 import constants
 import torch
@@ -26,8 +27,8 @@ class TransmissionTrainer:
         self.d_lr = d_lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
-        self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 8).to(self.gpu_device)
-        #self.G_A = sg.Generator(input_nc=3, output_nc=1, n_residual_blocks = 10).to(self.gpu_device)
+        #self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 8).to(self.gpu_device)
+        self.G_A = un.UnetGenerator(input_nc= 3, output_nc = 1, num_downs = 8).to(self.gpu_device)
         #self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)  # use CycleGAN's discriminator
         self.D_A = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 
@@ -36,8 +37,8 @@ class TransmissionTrainer:
 
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr=self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters()), lr=self.d_lr)
-        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 1000, threshold = 0.00005)
-        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 1000, threshold = 0.00005)
+        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 100000 / constants.batch_size, threshold = 0.00005)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 100000 / constants.batch_size, threshold = 0.00005)
 
         self.fp16_scaler = amp.GradScaler()  # for automatic mixed precision
         
@@ -52,8 +53,6 @@ class TransmissionTrainer:
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
-        #self.losses_dict[constants.D_B_FAKE_LOSS_KEY] = []
-        #self.losses_dict[constants.D_B_REAL_LOSS_KEY] = []
 
         self.caption_dict = {}
         self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
@@ -63,8 +62,6 @@ class TransmissionTrainer:
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
-        #self.caption_dict[constants.D_B_FAKE_LOSS_KEY] = "D(B) fake loss per iteration"
-        #self.caption_dict[constants.D_B_REAL_LOSS_KEY] = "D(B) real loss per iteration"
         
     
     def update_penalties(self, adv_weight, likeness_weight, edge_weight, comments):
@@ -86,11 +83,13 @@ class TransmissionTrainer:
             print("Edge weight: ", str(self.edge_weight), file=f)
     
     def adversarial_loss(self, pred, target):
-        loss = nn.L1Loss()
-        return loss(pred, target)
+        if(constants.l1_based_disc == 1):
+            loss = nn.L1Loss()
+            return loss(pred, target)
 
-        # loss = nn.BCEWithLogitsLoss()
-        # return loss(pred, target)
+        else:
+            loss = nn.BCEWithLogitsLoss()
+            return loss(pred, target)
 
     def likeness_loss(self, pred, target):
         loss = nn.L1Loss()

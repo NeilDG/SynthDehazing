@@ -15,6 +15,7 @@ from loaders import dataset_loader
 import torchvision.transforms as transforms
 import constants
 from model import vanilla_cycle_gan as cycle_gan
+from model import ffa_net as ffa_gan
 import kornia
 
 DATASET_DIV2K_PATH = "E:/DIV2K_train_HR/"
@@ -386,8 +387,9 @@ def produce_pseudo_albedo_images():
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     # load color transfer
-    color_transfer_checkpt = torch.load(CHECKPT_ROOT + "albedo_transfer_v1.01_1.pt")
-    albedo_transfer_gan = cycle_gan.Generator(n_residual_blocks=8).to(device)
+    color_transfer_checkpt = torch.load(CHECKPT_ROOT + "albedo_transfer_v1.04_1.pt")
+    #albedo_transfer_gan = cycle_gan.Generator(n_residual_blocks=8).to(device)
+    albedo_transfer_gan = ffa_gan.FFA(gps=3, blocks=18).to(device)
     albedo_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
     albedo_transfer_gan.eval()
 
@@ -424,7 +426,7 @@ def produce_pseudo_albedo_images():
                 img_name = name[i].split(".")[0]
                 #first check with discrminator score. If it's good, save image
 
-                if(prediction[i].item() > 0.95):
+                if(prediction[i].item() > 3.55):
                     style_img = result[i].cpu().numpy()
                     style_img = ((style_img * 0.5) + 0.5) #remove normalization
                     style_img = np.rollaxis(style_img, 0, 3)
@@ -454,12 +456,12 @@ def main():
     SAVE_PATH_B = constants.DATASET_ALBEDO_PATH_PATCH_3
     SAVE_PATH_C = constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3
 
-    create_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", (256, 256), (32, 32), 16)
+    #create_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", (256, 256), (32, 32), 16)
     #create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (32, 32), 16, 0)
 
     #create_hazy_data(0)
     #produce_color_images()
-    #produce_pseudo_albedo_images()
+    produce_pseudo_albedo_images()
 
 if __name__=="__main__": 
     main()   

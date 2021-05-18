@@ -6,6 +6,8 @@ Image and tensor utilities
 @author: delgallegon
 """
 import numbers
+
+import kornia
 import torch.nn as nn
 from torch.nn import functional as F
 import numpy as np
@@ -524,8 +526,7 @@ def measure_ssim(img1, img2):
     img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2YUV)
     img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2YUV)
 
-    return structural_similarity(img1, img2, multichannel=True)
-
+    return structural_similarity(img1, img2, multichannel=True, gaussian_weights=True, sigma=1.5)
 
 class GaussianSmoothing(nn.Module):
     """

@@ -13,16 +13,18 @@ import torch.nn as nn
 import torchvision.utils as vutils
 import constants
 from model import vanilla_cycle_gan as cycle_gan
+from model import ffa_net as ffa_gan
 from utils import plot_utils
 
 
 class AlbedoTrainer:
 
-    def __init__(self, gpu_device, g_lr, d_lr):
+    def __init__(self, gpu_device, g_lr, d_lr, num_blocks):
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
-        self.G_A = cycle_gan.Generator(downsampling_blocks = 2, n_residual_blocks=16).to(self.gpu_device)
+        #self.G_A = cycle_gan.Generator(downsampling_blocks = 2, n_residual_blocks=16).to(self.gpu_device)
+        self.G_A = ffa_gan.FFA(gps = 3, blocks = num_blocks).to(self.gpu_device)
         self.D_A = cycle_gan.Discriminator().to(self.gpu_device)  # use CycleGAN's discriminator
 
         self.visdom_reporter = plot_utils.VisdomReporter()
@@ -39,7 +41,6 @@ class AlbedoTrainer:
         self.losses_dict = {}
         self.losses_dict[constants.G_LOSS_KEY] = []
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
-        self.losses_dict[constants.IDENTITY_LOSS_KEY] = []
         self.losses_dict[constants.LIKENESS_LOSS_KEY] = []
         self.losses_dict[constants.PSNR_LOSS_KEY] = []
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
@@ -49,19 +50,16 @@ class AlbedoTrainer:
         self.caption_dict = {}
         self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
-        self.caption_dict[constants.IDENTITY_LOSS_KEY] = "Identity loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
         self.caption_dict[constants.PSNR_LOSS_KEY] = "PSNR/SSIM color loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
 
-    def update_penalties(self, adv_weight, id_weight, likeness_weight, cycle_weight, psnr_loss_weight, use_psnr, comments):
+    def update_penalties(self, adv_weight, likeness_weight, psnr_loss_weight, use_psnr, comments):
         # what penalties to use for losses?
         self.adv_weight = adv_weight
-        self.id_weight = id_weight
         self.likeness_weight = likeness_weight
-        self.cycle_weight = cycle_weight
         self.psnr_loss_weight = psnr_loss_weight
         self.use_psnr = use_psnr
 
@@ -74,14 +72,9 @@ class AlbedoTrainer:
             print("Learning rate for D: ", str(self.d_lr), file=f)
             print("====================================", file=f)
             print("Adv weight: ", str(self.adv_weight), file=f)
-            print("Identity weight: ", str(self.id_weight), file=f)
             print("Likeness weight: ", str(self.likeness_weight), file=f)
             print("Use PSNR: ", str(self.use_psnr), file = f)
             print("PSNR/SSIM loss weight: ", str(self.psnr_loss_weight), file=f)
-            print("Cycle weight: ", str(self.cycle_weight), file=f)
-            print("====================================", file=f)
-            print("Brightness enhance: ", str(constants.brightness_enhance), file=f)
-            print("Contrast enhance: ", str(constants.contrast_enhance), file=f)
 
     def adversarial_loss(self, pred, target):
         # loss = nn.L1Loss()
@@ -139,10 +132,8 @@ class AlbedoTrainer:
             self.G_A.train()
             self.optimizerG.zero_grad()
 
-            identity_like = self.G_A(albedo_tensor)
             albedo_like = self.G_A(styled_tensor)
 
-            identity_loss = self.identity_loss(identity_like, albedo_tensor) * self.id_weight
             A_likeness_loss = self.likeness_loss(albedo_like, albedo_tensor) * self.likeness_weight
             A_color_loss = self.psnr_loss(albedo_like, albedo_tensor) * self.psnr_loss_weight
 
@@ -150,7 +141,7 @@ class AlbedoTrainer:
             real_tensor = torch.ones_like(prediction)
             A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            errG = identity_loss + A_likeness_loss + A_color_loss + A_adv_loss
+            errG = A_likeness_loss + A_color_loss + A_adv_loss
 
             self.fp16_scaler.scale(errG).backward()
             self.fp16_scaler.step(self.optimizerG)
@@ -161,7 +152,6 @@ class AlbedoTrainer:
         # what to put to losses dict for visdom reporting?
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
-        self.losses_dict[constants.IDENTITY_LOSS_KEY].append(identity_loss.item())
         self.losses_dict[constants.LIKENESS_LOSS_KEY].append(A_likeness_loss.item())
         self.losses_dict[constants.PSNR_LOSS_KEY].append(A_color_loss.item())
         self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item())
@@ -259,7 +249,6 @@ class AlbedoTrainer:
         if (epoch % 20 == 0):
             self.losses_dict[constants.G_LOSS_KEY].clear()
             self.losses_dict[constants.D_OVERALL_LOSS_KEY].clear()
-            self.losses_dict[constants.IDENTITY_LOSS_KEY].clear()
             self.losses_dict[constants.LIKENESS_LOSS_KEY].clear()
             self.losses_dict[constants.PSNR_LOSS_KEY].clear()
             self.losses_dict[constants.G_ADV_LOSS_KEY].clear()
