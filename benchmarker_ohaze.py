@@ -1,7 +1,9 @@
+import kornia
 import torch.utils.data
 import numpy as np
 import matplotlib.pyplot as plt
 from model import vanilla_cycle_gan as cycle_gan
+from model import unet_gan as un
 import constants
 from torchvision import transforms
 import cv2
@@ -10,6 +12,7 @@ from utils import dark_channel_prior
 from utils import dehazing_proper
 import glob
 from skimage.metrics import peak_signal_noise_ratio
+from custom_losses import ssim_loss
 
 def benchmark_ohaze():
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
@@ -23,11 +26,12 @@ def benchmark_ohaze():
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OHaze/"
     EDPN_DEHAZE_PATH = "results/EDPN - Results - OHaze/"
 
-    MODEL_CHECKPOINT = "transmission_estimator_v1.02_2"
+    EXPERIMENT_NAME = "metrics - 1"
+    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_2.pt"
+    AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.04_1.pt"
 
     SAVE_PATH = "results/O-HAZE/"
-    BENCHMARK_PATH = SAVE_PATH + "metrics - " + str(MODEL_CHECKPOINT) + "_withairlightestimate.txt"
-
+    BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
@@ -50,8 +54,12 @@ def benchmark_ohaze():
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
+    ssim_op = transforms.Compose([transforms.ToPILImage(),
+                                   transforms.ToTensor()])
+
     transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    checkpt = torch.load('checkpoint/' + MODEL_CHECKPOINT + ".pt")
+    #transmission_G = un.UnetGenerator(input_nc= 3, output_nc = 1, num_downs = 8).to(self.gpu_device)
+    checkpt = torch.load(TRANSMISSION_CHECKPT)
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
 
@@ -74,10 +82,9 @@ def benchmark_ohaze():
                 count = count + 1
                 img_name = hazy_path.split("\\")[1]
                 hazy_img = cv2.imread(hazy_path)
-                #hazy_img = cv2.resize(hazy_img, (int(np.shape(hazy_img)[1] / 4), int(np.shape(hazy_img)[0] / 4)))
                 hazy_img = cv2.resize(hazy_img, (512, 512))
+
                 gt_img = cv2.imread(gt_path)
-                #gt_img = cv2.resize(gt_img, (int(np.shape(gt_img)[1] / 4), int(np.shape(gt_img)[0] / 4)))
                 gt_img = cv2.resize(gt_img, (512, 512))
 
                 aod_img = cv2.imread(aod_path)
@@ -95,7 +102,6 @@ def benchmark_ohaze():
                 cycle_dehaze_img = cv2.imread(cycle_dh_path)
                 cycle_dehaze_img = cv2.resize(cycle_dehaze_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
-                #input_tensor = gray_img_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2GRAY)).to(device)
                 input_tensor = rgb_img_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(device)
                 transmission_img = transmission_G(torch.unsqueeze(input_tensor, 0))
                 transmission_img = torch.squeeze(transmission_img).cpu().numpy()
@@ -112,7 +118,7 @@ def benchmark_ohaze():
                 transmission_blend = dcp_transmission * 0.0 + transmission_img * 1.0
 
                 dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
-                clear_img = dehazing_proper.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V1, 0.8)
+                clear_img = dehazing_proper.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V2, AIRLIGHT_CHECKPT, 0.8)
 
                 #normalize images
                 hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
@@ -219,7 +225,7 @@ def benchmark_ohaze():
 
                 if (column == FIG_COLS):
                     fig_num = fig_num + 1
-                    file_name = SAVE_PATH + "fig_" + str(fig_num) + "_" + MODEL_CHECKPOINT + ".jpg"
+                    file_name = SAVE_PATH + "fig_" + str(fig_num) + "_" + EXPERIMENT_NAME + ".jpg"
                     plt.savefig(file_name)
                     plt.show()
 

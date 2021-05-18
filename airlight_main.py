@@ -30,7 +30,7 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--airlight_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--airlight_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network using same architecture for A and B. \n "
                                                                                      "Accepts albedo input. \n"

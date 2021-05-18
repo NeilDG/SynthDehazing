@@ -284,7 +284,7 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num
                 average_MSE[2] += A2_error
 
                 count = count + 1
-                print("Errors: ", mean_error, A1_error, A2_error, file = f)
+                #print("Errors: ", mean_error, A1_error, A2_error, file = f)
                 print("Errors: ", mean_error, A1_error, A2_error)
 
         average_MSE[0] = np.round(average_MSE[0] / count * 1.0, 5)
@@ -300,8 +300,8 @@ def perform_transmission_map_estimation(model_checkpt_name):
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    #G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+    G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+    #G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
     G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
     G_A.eval()
@@ -390,8 +390,8 @@ def perform_albedo_reconstruction(model_checkpt_name, num_blocks):
             albedo_batch = (albedo_batch * 0.5) + 0.5  # remove tanh normalization
             albedo_like = (albedo_like * 0.5) + 0.5
 
-            #show_images(albedo_batch, "Albedo GT")
-            #show_images(albedo_like, "Albedo Like")
+            show_images(albedo_batch, "Albedo GT")
+            show_images(albedo_like, "Albedo Like")
 
             # use common losses in torch and kornia
             l1_loss = nn.L1Loss()
@@ -518,11 +518,13 @@ def perform_lightcoord_predictions(model_checkpt_name):
 
 
 def main():
-    perform_airlight_predictions("airlight_estimator_v1.04_1", "albedo_transfer_v1.04_1", 18)
-    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
+    #perform_airlight_predictions("airlight_estimator_v1.04_1", "albedo_transfer_v1.04_1", 18)
+    #perform_airlight_predictions("airlight_estimator_v1.04_2", "albedo_transfer_v1.04_1", 18)
+    perform_airlight_predictions("airlight_estimator_v1.04_3", "albedo_transfer_v1.04_1", 18)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_3")
-    #perform_albedo_reconstruction("albedo_transfer_v1.04_1", 18)
-    #perform_albedo_reconstruction("albedo_transfer_v1.04_2", 8)
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_5", 20)
     #perform_albedo_reconstruction("albedo_transfer_v1.04_3", 12)
 
 

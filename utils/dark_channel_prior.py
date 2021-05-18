@@ -60,11 +60,12 @@ def perform_dcp_dehaze(input_img, normalize = False):
     atmosphere = estimate_atmosphere(input_img, dark_channel)
     T = estimate_transmission(input_img, atmosphere, dark_channel)
 
-    if(normalize):
-        T = cv2.normalize(T, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    #if(normalize):
+    T = cv2.normalize(T, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     # plt.imshow(T)
     # plt.show()
 
-    clear_img = np.clip(recover(input_img, T, atmosphere, 0.01), 0.0, 1.0)
+    clear_img = np.clip(recover(input_img, T, atmosphere, 0.1), 0.0, 1.0)
+    #clear_img = recover(input_img, T, atmosphere, 0.8)
     return clear_img
 
