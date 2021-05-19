@@ -19,7 +19,7 @@ def benchmark_ots():
     FFA_RESULTS_PATH = "results/FFA Net - Results - OTS-Beta/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OTS-Beta/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OTS-Beta/"
-    EDPN_DEHAZE_PATH = "results/EDPN - Results - OHaze/"
+    EDPN_DEHAZE_PATH = "results/EDPN - Results - OTS-Beta/"
 
     EXPERIMENT_NAME = "metrics - 1"
     TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_2.pt"
@@ -113,7 +113,7 @@ def benchmark_ots():
                 transmission_blend = dcp_transmission * 0.0 + transmission_img * 1.0
 
                 dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
-                clear_img = dehazing_proper.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V1, AIRLIGHT_CHECKPT, 0.8)
+                clear_img = dehazing_proper.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V2, AIRLIGHT_CHECKPT, 0.8)
 
                 # normalize images
                 hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)

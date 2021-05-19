@@ -3,7 +3,6 @@
 
 import itertools
 import os
-
 import kornia
 import matplotlib.pyplot as plt
 import numpy as np
@@ -79,7 +78,6 @@ class AlbedoTrainer:
     def adversarial_loss(self, pred, target):
         # loss = nn.L1Loss()
         # return loss(pred, target)
-
         loss = nn.BCEWithLogitsLoss()
         return loss(pred, target)
 

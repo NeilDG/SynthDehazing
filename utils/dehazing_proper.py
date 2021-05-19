@@ -243,6 +243,8 @@ def perform_dehazing_equation_with_transmission(hazy_img, T, atmosphere_method, 
         hazy_tensor = torch.unsqueeze(transform_op(resized_hazy_img), 0).to(device)
         atmosphere = airlight_model(torch.cat([hazy_tensor, albedo_model(hazy_tensor)], 1)).cpu().item()
 
+        #S = np.full(np.shape(hazy_img[:, :, 0]), atmosphere) * (1 - T)
+
         clear_img = np.ones_like(hazy_img)
         T = np.resize(T, np.shape(clear_img[:, :, 0]))
         clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere)) / np.maximum(T,filter_strength)) + np.full(
