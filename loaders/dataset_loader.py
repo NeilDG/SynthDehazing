@@ -170,14 +170,26 @@ def load_model_based_transmission_dataset_test(img_a, img_b, light_path, crop_si
     )
     return data_loader
 
-def load_transmission_albedo_dataset(path_a, pseudo_path_a, path_b, batch_size=8, num_image_to_load=-1):
+
+def load_dehazing_dataset(path_a, path_b, return_ground_truth = False, batch_size=8, num_image_to_load=-1):
+    a_list = assemble_unpaired_data(path_a, num_image_to_load)
+    print("Length of training transmission dataset: %d" % (len(a_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.TransmissionAlbedoDataset(a_list, path_b, (32, 32), False, return_ground_truth),
+        batch_size=batch_size,
+        num_workers=6,
+        shuffle=True
+    )
+    return data_loader
+def load_transmission_albedo_dataset(path_a, pseudo_path_a, path_b, return_ground_truth = False, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
     pseudo_a_list = assemble_unpaired_data(pseudo_path_a, num_image_to_load)
     a_list = a_list + pseudo_a_list
     print("Length of training transmission dataset: %d" % (len(a_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.TransmissionAlbedoDataset(a_list, path_b, (32, 32), False),
+        image_dataset.TransmissionAlbedoDataset(a_list, path_b, (32, 32), False, return_ground_truth),
         batch_size=batch_size,
         num_workers=6,
         shuffle=True
@@ -196,17 +208,16 @@ def load_transmission_albedo_dataset_test(path_a, batch_size=8, num_image_to_loa
     )
     return data_loader
 
-def load_dehaze_dataset_test(path_a, path_b, batch_size=8, num_image_to_load=-1):
-    a_list, b_list = assemble_paired_data(path_a, path_b, num_image_to_load)
-    print("Length of dehazing test dataset: %d %d" % (len(a_list), len(b_list)))
+def load_dehaze_dataset_test(path_a, batch_size=8, num_image_to_load=-1):
+    a_list = assemble_unpaired_data(path_a, num_image_to_load)
+    print("Length of test dataset: %d" % (len(a_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.HazeTestPairedDataset(a_list, b_list),
+        image_dataset.TransmissionAlbedoDatasetTest(a_list),
         batch_size=batch_size,
         num_workers=2,
-        shuffle=False
+        shuffle=True
     )
-
     return data_loader
 
 

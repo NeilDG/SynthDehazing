@@ -19,7 +19,7 @@ def benchmark_ots():
     FFA_RESULTS_PATH = "results/FFA Net - Results - OTS-Beta/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OTS-Beta/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OTS-Beta/"
-    EDPN_DEHAZE_PATH = "results/EDPN - Results - OHaze/"
+    EDPN_DEHAZE_PATH = "results/EDPN - Results - OTS-Beta/"
 
     EXPERIMENT_NAME = "metrics - 1"
     TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_2.pt"

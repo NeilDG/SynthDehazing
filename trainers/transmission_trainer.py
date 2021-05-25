@@ -21,7 +21,7 @@ import kornia
 
 class TransmissionTrainer:
     
-    def __init__(self, gan_version, gan_iteration, gpu_device, g_lr = 0.0002, d_lr = 0.0002):
+    def __init__(self, gan_version, gan_iteration, gpu_device, batch_size, g_lr = 0.0002, d_lr = 0.0002):
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
@@ -37,8 +37,8 @@ class TransmissionTrainer:
 
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr=self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters()), lr=self.d_lr)
-        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 100000 / constants.batch_size, threshold = 0.00005)
-        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 100000 / constants.batch_size, threshold = 0.00005)
+        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 100000 / batch_size, threshold = 0.00005)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 100000 / batch_size, threshold = 0.00005)
 
         self.fp16_scaler = amp.GradScaler()  # for automatic mixed precision
         
@@ -83,13 +83,8 @@ class TransmissionTrainer:
             print("Edge weight: ", str(self.edge_weight), file=f)
     
     def adversarial_loss(self, pred, target):
-        if(constants.l1_based_disc == 1):
-            loss = nn.L1Loss()
-            return loss(pred, target)
-
-        else:
-            loss = nn.BCEWithLogitsLoss()
-            return loss(pred, target)
+        loss = nn.BCEWithLogitsLoss()
+        return loss(pred, target)
 
     def likeness_loss(self, pred, target):
         loss = nn.L1Loss()

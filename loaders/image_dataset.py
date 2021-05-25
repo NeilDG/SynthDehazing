@@ -19,11 +19,12 @@ from utils import tensor_utils
 import kornia
 
 class TransmissionAlbedoDataset(data.Dataset):
-    def __init__(self, image_list_a, depth_dir, crop_size, should_crop):
+    def __init__(self, image_list_a, depth_dir, crop_size, should_crop, return_ground_truth):
         self.image_list_a = image_list_a
         self.depth_dir = depth_dir
         self.crop_size = crop_size
         self.should_crop = should_crop
+        self.return_ground_truth = return_ground_truth
 
         self.initial_img_op = transforms.Compose([
             transforms.ToPILImage(),
@@ -47,6 +48,7 @@ class TransmissionAlbedoDataset(data.Dataset):
 
         clear_img = cv2.imread(img_id);
         clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        clear_img_uint = clear_img
         clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         img_id = self.depth_dir + file_name
@@ -79,8 +81,11 @@ class TransmissionAlbedoDataset(data.Dataset):
         img_a = self.final_transform_op(img_a)
         img_b = self.depth_transform_op(img_b)
 
-        airlight_tensor = torch.tensor(atmosphere, dtype=torch.float32)
-        return file_name, img_a, img_b #hazy albedo img, transmission map
+        if(self.return_ground_truth):
+            img_c = self.final_transform_op(self.initial_img_op(clear_img_uint))
+            return file_name, img_a, img_b, img_c
+        else:
+            return file_name, img_a, img_b #hazy albedo img, transmission map
 
     def __len__(self):
         return len(self.image_list_a)
@@ -95,8 +100,8 @@ class TransmissionAlbedoDatasetTest(data.Dataset):
         ])
 
         self.final_transform_op = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            transforms.ToTensor()
+            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
     def __getitem__(self, idx):
@@ -142,6 +147,10 @@ class AirlightDataset(data.Dataset):
         self.final_transform_op = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+        self.airlight_op = transforms.Compose([
+            transforms.Normalize((0.5,), (0.5,))
         ])
 
     def __getitem__(self, idx):
@@ -211,6 +220,7 @@ class AirlightDataset(data.Dataset):
         #normalize
         #atmosphere = (atmosphere - AirlightDataset.atmosphere_mean()) / AirlightDataset.atmosphere_std()
         airlight_tensor = torch.tensor(atmosphere, dtype = torch.float32)
+        airlight_tensor = self.airlight_op(airlight_tensor)
 
         return file_name, albedo_hazy_img, styled_hazy_img, airlight_tensor #hazy albedo img, transmission map, airlight
 

@@ -32,7 +32,7 @@ parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--use_disc_l1', type=int, help="L1 based discriminator?", default=0)
+parser.add_option('--batch_size', type=int, help="batch_size", default="32")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0005")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Transmission estimation network using U-Net architecture. Using BCE-discriminator loss.")
@@ -45,7 +45,6 @@ def update_config(opts):
     if (constants.is_coare == 1):
         print("Using COARE configuration.")
 
-        constants.ITERATION = str(opts.iteration)
         constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
 
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
@@ -70,7 +69,7 @@ def show_images(img_tensor, caption):
     plt.axis("off")
     plt.title(caption)
     plt.imshow(np.transpose(
-        vutils.make_grid(img_tensor.to(device)[:constants.batch_size], nrow=8, padding=2, normalize=True).cpu(),
+        vutils.make_grid(img_tensor.to(device)[:constants.display_size], nrow=8, padding=2, normalize=True).cpu(),
         (1, 2, 0)))
     plt.show()
 
@@ -90,7 +89,7 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    gt = transmission_trainer.TransmissionTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, opts.g_lr, opts.d_lr)
+    gt = transmission_trainer.TransmissionTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, opts.batch_size, opts.g_lr, opts.d_lr)
     gt.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
     start_epoch = 0
     iteration = 0
@@ -105,10 +104,10 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)
-    test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_COMPLETE_3,constants.batch_size, 500),
-                    dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3,constants.batch_size, 500),
-                    dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.batch_size, 500)]
+    train_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
+    test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_COMPLETE_3, opts.batch_size, 500),
+                    dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3,opts.batch_size, 500),
+                    dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500)]
     index = 0
 
     # Plot some training images
@@ -138,9 +137,9 @@ def main(argv):
 
                     index = (index + 1) % len(test_loaders[0])
                     if (index == 0):
-                        test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.batch_size, 500),
-                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.batch_size, 500),
-                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.batch_size, 500)]
+                        test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_COMPLETE_3, opts.batch_size, 500),
+                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, opts.batch_size, 500),
+                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500)]
                 gt.save_states(epoch, iteration)
 
 # FIX for broken pipe num_workers issue.

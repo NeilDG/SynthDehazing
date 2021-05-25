@@ -31,10 +31,12 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--airlight_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--batch_size', type=int, help="batch_size", default="256")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network using same architecture for A and B. \n "
                                                                                      "Accepts albedo input. \n"
-                                                                                     "New architecture based on DCGAN.")
+                                                                                     "New architecture based on DCGAN. \n"
+                                                                                     "Airlight is normalized to tanh range")
 
 #--img_to_load=-1 --load_previous=0
 # Update config if on COARE
@@ -62,7 +64,7 @@ def show_images(img_tensor, caption):
     plt.axis("off")
     plt.title(caption)
     plt.imshow(np.transpose(
-        vutils.make_grid(img_tensor.to(device)[:constants.batch_size], nrow=8, padding=2, normalize=True).cpu(),
+        vutils.make_grid(img_tensor.to(device)[:constants.display_size], nrow=8, padding=2, normalize=True).cpu(),
         (1, 2, 0)))
     plt.show()
 
@@ -81,7 +83,7 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    gt = airlight_trainer.AirlightTrainer(device, opts.d_lr)
+    gt = airlight_trainer.AirlightTrainer(device, opts.batch_size, opts.d_lr)
     gt.update_penalties(opts.airlight_weight, opts.comments)
     start_epoch = 0
 
@@ -96,10 +98,10 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    train_loaders = [dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load),
-                    dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, opts.img_to_load)]
+    train_loaders = [dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts.batch_size, opts.img_to_load),
+                    dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts.batch_size, opts.img_to_load)]
 
-    test_loader = dataset_loader.load_airlight_test_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_TEST, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, constants.batch_size, 5000)
+    test_loader = dataset_loader.load_airlight_test_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_TEST, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts.batch_size, 5000)
 
     # Plot some training images
     if (constants.is_coare == 0):
