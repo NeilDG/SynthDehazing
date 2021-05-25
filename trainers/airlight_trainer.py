@@ -13,7 +13,7 @@ from utils import plot_utils
 import torch.cuda.amp as amp
 
 class AirlightTrainer:
-    def __init__(self, gpu_device, lr=0.0002):
+    def __init__(self, gpu_device, batch_size, lr=0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
         # self.A1 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(self.gpu_device)
@@ -28,9 +28,9 @@ class AirlightTrainer:
         self.initialize_dict()
 
         self.optimizerDA = torch.optim.Adam(self.A1.parameters(), lr=self.lr)
-        self.schedulerDA = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDA, patience=100000 / constants.batch_size, threshold=0.00005)
+        self.schedulerDA = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDA, patience=100000 / batch_size, threshold=0.00005)
         self.optimizerDB = torch.optim.Adam(self.A2.parameters(), lr=self.lr)
-        self.schedulerDB = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDB, patience=100000 / constants.batch_size, threshold=0.00005)
+        self.schedulerDB = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDB, patience=100000 / batch_size, threshold=0.00005)
         # self.optimizerDC = torch.optim.Adam(self.A3.parameters(), lr=self.lr)
         # self.schedulerDC = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDC, patience=100000 / constants.batch_size, threshold=0.00005)
         # self.optimizerDD = torch.optim.Adam(self.A4.parameters(), lr=self.lr)

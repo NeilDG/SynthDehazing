@@ -218,7 +218,7 @@ def perform_dehazing_equation_with_transmission(hazy_img, T, atmosphere_method, 
             np.shape(hazy_img[:, :, 0]), atmosphere)
         clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere)) / np.maximum(T,filter_strength)) + np.full(
             np.shape(hazy_img[:, :, 1]), atmosphere)
-        clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere)) / np.maximum(T, filter_strength)) + np.full(
+        clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere)) / np.maximum(T,filter_strength)) + np.full(
             np.shape(hazy_img[:, :, 2]), atmosphere)
 
         # clear_img[:, :, 0] = (hazy_img[:, :, 0] - (np.full(np.shape(hazy_img[:, :, 0]), atmosphere) * (1 - T))) / T

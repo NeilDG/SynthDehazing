@@ -65,7 +65,7 @@ DEHAZER_VERSION = "dehazer_v2.00"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "1"
+ITERATION = "4"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -104,16 +104,13 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 200
+num_epochs = 100
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-#batch_size = 256
 infer_size = 32
 
-l1_based_disc = 0
-brightness_enhance = 1.0
-contrast_enhance = 1.0
+DEHAZE_FILTER_STRENGTH = 0.1
 
 #Running on COARE?
 is_coare = 0

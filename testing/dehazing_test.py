@@ -146,7 +146,7 @@ def show_images(img_tensor, caption):
     plt.axis("off")
     plt.title(caption)
     plt.imshow(np.transpose(
-        vutils.make_grid(img_tensor.to(device)[:constants.batch_size], nrow=8, padding=2, normalize=True).cpu(),
+        vutils.make_grid(img_tensor.to(device)[:constants.display_size], nrow=8, padding=2, normalize=True).cpu(),
         (1, 2, 0)))
     plt.show()
 
@@ -300,8 +300,8 @@ def perform_transmission_map_estimation(model_checkpt_name):
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    #G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+    #G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+    G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
     G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
     G_A.eval()
@@ -309,7 +309,7 @@ def perform_transmission_map_estimation(model_checkpt_name):
     print("G transmission network loaded")
     print("===================================================")
 
-    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, 128, 50000)
+    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 128, 50000)
 
     ave_losses = [0.0, 0.0, 0.0, 0.0]
     count = 0
@@ -390,8 +390,8 @@ def perform_albedo_reconstruction(model_checkpt_name, num_blocks):
             albedo_batch = (albedo_batch * 0.5) + 0.5  # remove tanh normalization
             albedo_like = (albedo_like * 0.5) + 0.5
 
-            show_images(albedo_batch, "Albedo GT")
-            show_images(albedo_like, "Albedo Like")
+            #show_images(albedo_batch, "Albedo GT")
+            #show_images(albedo_like, "Albedo Like")
 
             # use common losses in torch and kornia
             l1_loss = nn.L1Loss()
@@ -520,12 +520,18 @@ def perform_lightcoord_predictions(model_checkpt_name):
 def main():
     #perform_airlight_predictions("airlight_estimator_v1.04_1", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.04_2", "albedo_transfer_v1.04_1", 18)
-    perform_airlight_predictions("airlight_estimator_v1.04_3", "albedo_transfer_v1.04_1", 18)
-    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
-    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_3")
-    # perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
-    # perform_albedo_reconstruction("albedo_transfer_v1.04_5", 20)
-    #perform_albedo_reconstruction("albedo_transfer_v1.04_3", 12)
+    #perform_airlight_predictions("airlight_estimator_v1.04_3", "albedo_transfer_v1.04_1", 18)
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_3")
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_4")
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_5")
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_6")
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_7")
+
+    perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
+    perform_albedo_reconstruction("albedo_transfer_v1.04_5", 20)
+    perform_albedo_reconstruction("albedo_transfer_v1.04_6", 24)
+    perform_albedo_reconstruction("albedo_transfer_v1.04_7", 28)
 
 
 if __name__=="__main__": 

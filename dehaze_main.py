@@ -30,13 +30,14 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--adv_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--psnr_loss_weight', type=float, help="Weight", default="0.0")
-parser.add_option('--num_blocks', type=int, help="Num Blocks", default = 6)
-parser.add_option('--batch_size', type=int, help="batch_size", default="4")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
-parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--psnr_loss_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--num_blocks', type=int, help="Num Blocks", default = 12)
+parser.add_option('--batch_size', type=int, help="batch_size", default="16")
+parser.add_option('--g_lr', type=float, help="LR", default="0.00002")
+parser.add_option('--d_lr', type=float, help="LR", default="0.00002")
+parser.add_option('--dehaze_filter_strength', type=float, help="LR", default="0.5")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Cycle Dehazer GAN.")
 
 #--img_to_load=-1 --load_previous=0
@@ -48,6 +49,16 @@ def update_config(opts):
         print("Using COARE configuration.")
 
         constants.ITERATION = str(opts.iteration)
+        constants.DEHAZE_FILTER_STRENGTH = opts.dehaze_filter_strength
+
+        constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
+
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
+        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo - pseudo/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -123,6 +134,17 @@ def main(argv):
         show_images(c, "Training - Clear Images")
 
     print("Starting Training Loop...")
+    # for i in range(len(test_loaders)):
+    #     _, hazy_batch = next(iter(test_loaders[i]))
+    #     hazy_tensor = hazy_batch.to(device)
+    #
+    #     with torch.no_grad():
+    #         albedo_like = albedo_G(hazy_tensor)
+    #         transmission_like = transmission_G(albedo_like)
+    #         atmosphere_like = atmosphere_D(hazy_tensor)
+    #
+    #     dehazer.visdom_infer_test(hazy_tensor, transmission_like, atmosphere_like, i)
+
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
         for i, train_data in enumerate(train_loader, 0):
@@ -135,12 +157,12 @@ def main(argv):
                 transmission_like = transmission_G(albedo_like)
                 atmosphere_like = atmosphere_D(hazy_tensor)
 
-            dehazer.train(albedo_like, transmission_like, atmosphere_like, clear_tensor)
+            dehazer.train(hazy_tensor, transmission_like, atmosphere_like, clear_tensor)
 
-            if (i % 100 == 0):
+            if (i % 50 == 0):
                 dehazer.save_states(epoch, iteration)
                 dehazer.visdom_report(iteration)
-                dehazer.visdom_infer_train(albedo_like, transmission_like, atmosphere_like, clear_tensor)
+                dehazer.visdom_infer_train(hazy_tensor, transmission_like, atmosphere_like, clear_tensor)
 
                 iteration = iteration + 1
                 for i in range(len(test_loaders)):
@@ -152,7 +174,7 @@ def main(argv):
                         transmission_like = transmission_G(albedo_like)
                         atmosphere_like = atmosphere_D(hazy_tensor)
 
-                    dehazer.visdom_infer_test(albedo_like, transmission_like, atmosphere_like)
+                    dehazer.visdom_infer_test(hazy_tensor, transmission_like, atmosphere_like, i)
 
                     index = (index + 1) % len(test_loaders[0])
 

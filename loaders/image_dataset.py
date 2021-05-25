@@ -100,8 +100,8 @@ class TransmissionAlbedoDatasetTest(data.Dataset):
         ])
 
         self.final_transform_op = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            transforms.ToTensor()
+            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
     def __getitem__(self, idx):
@@ -147,6 +147,10 @@ class AirlightDataset(data.Dataset):
         self.final_transform_op = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+        self.airlight_op = transforms.Compose([
+            transforms.Normalize((0.5,), (0.5,))
         ])
 
     def __getitem__(self, idx):
@@ -216,6 +220,7 @@ class AirlightDataset(data.Dataset):
         #normalize
         #atmosphere = (atmosphere - AirlightDataset.atmosphere_mean()) / AirlightDataset.atmosphere_std()
         airlight_tensor = torch.tensor(atmosphere, dtype = torch.float32)
+        airlight_tensor = self.airlight_op(airlight_tensor)
 
         return file_name, albedo_hazy_img, styled_hazy_img, airlight_tensor #hazy albedo img, transmission map, airlight
 
