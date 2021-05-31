@@ -2,6 +2,7 @@ import torch.utils.data
 import numpy as np
 import matplotlib.pyplot as plt
 from model import vanilla_cycle_gan as cycle_gan
+from model import unet_gan as un
 import constants
 from torchvision import transforms
 import cv2
@@ -22,8 +23,8 @@ def benchmark_ots():
     EDPN_DEHAZE_PATH = "results/EDPN - Results - OTS-Beta/"
 
     EXPERIMENT_NAME = "metrics - 1"
-    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_2.pt"
-    AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.04_1.pt"
+    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.06_1.pt"
+    AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.05_2.pt"
 
     SAVE_PATH = "results/RESIDE-OTS Beta/"
     BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
@@ -48,6 +49,7 @@ def benchmark_ots():
                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
     transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+    #transmission_G = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
     checkpt = torch.load(TRANSMISSION_CHECKPT)
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
@@ -100,7 +102,7 @@ def benchmark_ots():
                 transmission_img = torch.squeeze(transmission_img).cpu().numpy()
 
                 # remove 0.5 normalization for dehazing equation
-                transmission_img = ((transmission_img * 0.5) + 0.5)
+                transmission_img = 1 - ((transmission_img * 0.5) + 0.5)
 
                 hazy_img = ((hazy_img * 0.5) + 0.5)
                 dark_channel = dark_channel_prior.get_dark_channel(hazy_img, 15)

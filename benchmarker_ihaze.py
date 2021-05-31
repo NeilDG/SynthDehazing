@@ -15,22 +15,22 @@ from skimage.metrics import peak_signal_noise_ratio
 from custom_losses import ssim_loss
 
 def benchmark_ohaze():
-    HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
-    GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+    GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
     #HAZY_PATH = constants.DATASET_HAZY_PATH_COMPLETE
     #GT_PATH = constants.DATASET_CLEAN_PATH_COMPLETE
 
-    AOD_RESULTS_PATH = "results/AODNet- Results - OHaze/"
-    FFA_RESULTS_PATH = "results/FFA Net - Results - OHaze/"
-    GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
-    CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OHaze/"
-    EDPN_DEHAZE_PATH = "results/EDPN - Results - OHaze/"
+    AOD_RESULTS_PATH = "results/AODNet- Results - IHaze/"
+    FFA_RESULTS_PATH = "results/FFA Net - Results - IHaze/"
+    GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - IHaze/"
+    CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - IHaze/"
+    EDPN_DEHAZE_PATH = "results/EDPN - Results - IHaze/"
 
     EXPERIMENT_NAME = "metrics - 1"
     TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_2.pt"
     AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.05_2.pt"
 
-    SAVE_PATH = "results/O-HAZE/"
+    SAVE_PATH = "results/I-HAZE/"
     BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -38,13 +38,18 @@ def benchmark_ohaze():
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
     gt_list = glob.glob(GT_PATH + "*.jpg")
     aod_list = glob.glob(AOD_RESULTS_PATH + "*.jpg")
-    ffa_list = glob.glob(FFA_RESULTS_PATH + "*.png")
+    ffa_list = glob.glob(FFA_RESULTS_PATH + "*.jpg")
     grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
     cycle_dh_list = glob.glob(CYCLE_DEHAZE_PATH + "*.jpg")
     edpn_list = glob.glob(EDPN_DEHAZE_PATH + "*.png")
 
     print(hazy_list)
     print(gt_list)
+    print(aod_list)
+    print(ffa_list)
+    print(grid_list)
+    print(cycle_dh_list)
+    print(edpn_list)
 
     gray_img_op = transforms.Compose([transforms.ToPILImage(),
                                        transforms.ToTensor(),
