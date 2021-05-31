@@ -9,8 +9,6 @@
 
 ITERATION=2
 
-#About this script:
-# CycleGAN using new dataset between synth hazy and places dataset
 echo "CUDA_DEVICE=/dev/nvidia/$CUDA_VISIBLE_DEVICES"
 nvidia-smi
 
@@ -20,5 +18,5 @@ module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
 
-srun python dehaze_main.py --iteration=$ITERATION --coare=1 --img_to_load=-1 --load_previous=0 --num_blocks=12 --batch_size=32 --dehaze_filter_strength=0.25
+srun python transmission_main.py --iteration=$ITERATION --coare=1 --is_unet=1 --edge_weight=1.0 --img_to_load=-1 --load_previous=0 --batch_size=32
 conda deactivate

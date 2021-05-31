@@ -176,14 +176,6 @@ def get_uv_channel(I):
     return cv2.merge((u, v))
 
 
-def generate_transmission(depth_map, beta, is_exponential_squared=False):
-    if is_exponential_squared:
-        return np.exp(-np.power(beta * depth_map, 2))
-    else:
-        return np.exp(-beta * depth_map).astype(float)
-    # return np.power(np.e, -beta * depth_map)
-
-
 def compare_transmissions(hazy_img, depth_map):
     T = generate_transmission(1 - depth_map, 1.2, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
     dc = get_dark_channel(hazy_img, w=7)

@@ -9,7 +9,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from loaders import image_dataset
-from loaders.image_dataset import AirlightDataset
 
 
 def weights_init(m):
@@ -244,7 +243,7 @@ class AirlightEstimator_Single(nn.Module):
         return self.output_block(img_features)
 
 class AirlightEstimator_V1(nn.Module):
-    def __init__(self, input_nc, downsampling_layers, residual_blocks, add_mean):
+    def __init__(self, input_nc, downsampling_layers, residual_blocks, out_features, add_mean):
         super(AirlightEstimator_V1, self).__init__()
 
         self.add_mean = add_mean
@@ -289,7 +288,7 @@ class AirlightEstimator_V1(nn.Module):
                                              #nn.Dropout2d(),
                                              nn.Linear(in_features=16, out_features=8),
                                              nn.LeakyReLU(0.2, inplace = True),
-                                             nn.Linear(in_features=8, out_features=1),
+                                             nn.Linear(in_features=8, out_features=out_features),
                                              nn.LeakyReLU(0.2, inplace = True))
 
         self.img_features.apply(xavier_init)
@@ -304,7 +303,7 @@ class AirlightEstimator_V1(nn.Module):
             return self.fully_connected(y)
 
 class AirlightEstimator_V2(nn.Module):
-    def __init__(self, num_channels, disc_feature_size):
+    def __init__(self, num_channels, out_features, disc_feature_size):
         super(AirlightEstimator_V2, self).__init__()
         self.main = nn.Sequential(
             nn.Conv2d(num_channels, disc_feature_size, 4, stride=2, padding=1, bias=False),
@@ -327,7 +326,7 @@ class AirlightEstimator_V2(nn.Module):
 
         self.fc_block = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(13 * 13, 1), #size of last input
+            nn.Linear(13 * 13, out_features), #size of last input
             nn.LeakyReLU(0.2, inplace = True))
 
         self.main.apply(xavier_init)

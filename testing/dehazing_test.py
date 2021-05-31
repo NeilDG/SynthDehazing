@@ -237,8 +237,8 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     #A1 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(device)
     #A2 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(device)
-    A1 = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64).to(device)
-    A2 = dh.AirlightEstimator_V2(num_channels = 6, disc_feature_size = 64).to(device)
+    A1 = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64,  out_features = 3).to(device)
+    A2 = dh.AirlightEstimator_V2(num_channels = 6, disc_feature_size = 64, out_features = 3).to(device)
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + airlight_checkpt_name + '.pt')
     A1.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "A"])
     A2.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "B"])
@@ -255,7 +255,7 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num
     print("G albedo network loaded")
     print("===================================================")
 
-    test_loader = dataset_loader.load_airlight_test_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_TEST, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, constants.batch_size, -1)
+    test_loader = dataset_loader.load_airlight_test_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_TEST, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, 256, -1)
     average_MSE = [0.0, 0.0, 0.0]
 
     count = 0
@@ -294,14 +294,17 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num
         print("Overall MSE for A1: " + str(average_MSE[1]), file=f)
         print("Overall MSE for A2: " + str(average_MSE[2]), file=f)
 
-def perform_transmission_map_estimation(model_checkpt_name):
+def perform_transmission_map_estimation(model_checkpt_name, is_unet):
     ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
     ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    #G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+    if(is_unet == True):
+        G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+    else:
+        G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
     G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
     G_A.eval()
@@ -518,7 +521,7 @@ def perform_lightcoord_predictions(model_checkpt_name):
 
 
 def main():
-    #perform_airlight_predictions("airlight_estimator_v1.04_1", "albedo_transfer_v1.04_1", 18)
+    perform_airlight_predictions("airlight_estimator_v1.05_2", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.04_2", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.04_3", "albedo_transfer_v1.04_1", 18)
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
@@ -527,11 +530,12 @@ def main():
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_5")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_6")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_7")
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_1", False)
 
-    perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
-    perform_albedo_reconstruction("albedo_transfer_v1.04_5", 20)
-    perform_albedo_reconstruction("albedo_transfer_v1.04_6", 24)
-    perform_albedo_reconstruction("albedo_transfer_v1.04_7", 28)
+    #perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_5", 20)
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_6", 24)
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_7", 28)
 
 
 if __name__=="__main__": 

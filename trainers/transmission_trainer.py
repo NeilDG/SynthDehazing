@@ -21,15 +21,18 @@ import kornia
 
 class TransmissionTrainer:
     
-    def __init__(self, gan_version, gan_iteration, gpu_device, batch_size, g_lr = 0.0002, d_lr = 0.0002):
+    def __init__(self, gan_version, gan_iteration, gpu_device, batch_size, is_unet, g_lr = 0.0002, d_lr = 0.0002):
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
         self.gan_version = gan_version
         self.gan_iteration = gan_iteration
-        #self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 8).to(self.gpu_device)
-        self.G_A = un.UnetGenerator(input_nc= 3, output_nc = 1, num_downs = 8).to(self.gpu_device)
-        #self.D_A = cg.Discriminator(input_nc = 1).to(self.gpu_device)  # use CycleGAN's discriminator
+
+        if(is_unet == 1):
+            self.G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(self.gpu_device)
+        else:
+            self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 8).to(self.gpu_device)
+
         self.D_A = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 
         self.visdom_reporter = plot_utils.VisdomReporter()
@@ -83,7 +86,8 @@ class TransmissionTrainer:
             print("Edge weight: ", str(self.edge_weight), file=f)
     
     def adversarial_loss(self, pred, target):
-        loss = nn.BCEWithLogitsLoss()
+        #loss = nn.BCEWithLogitsLoss()
+        loss = nn.L1Loss()
         return loss(pred, target)
 
     def likeness_loss(self, pred, target):
@@ -156,23 +160,23 @@ class TransmissionTrainer:
             #self.losses_dict[constants.D_B_FAKE_LOSS_KEY].append(D_B_fake_loss.item())
             #self.losses_dict[constants.D_B_REAL_LOSS_KEY].append(D_B_real_loss.item())
     
-    def visdom_report(self, iteration, train_gray_tensor, train_depth_tensor):
+    def visdom_report(self, iteration):
+        self.visdom_reporter.plot_finegrain_loss("Transmission loss - " +str(constants.TRANSMISSION_VERSION) +str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
+
+    def visdom_infer_train(self, train_gray_tensor, train_depth_tensor, id):
         with torch.no_grad():
             train_depth_like = self.G_A(train_gray_tensor)
-            # report to visdom
-            #self.visdom_reporter.plot_grad_flow(self.G_A.named_parameters(), "G_A grad flow")
-            #self.visdom_reporter.plot_grad_flow(self.D_A.named_parameters(), "D_A grad flow")
-            self.visdom_reporter.plot_finegrain_loss("Depth loss", iteration, self.losses_dict, self.caption_dict)
-            self.visdom_reporter.plot_image((train_gray_tensor), "Training RGB images")
-            self.visdom_reporter.plot_image((train_depth_tensor), "Training Depth images")
-            self.visdom_reporter.plot_image((train_depth_like), "Training Transmission-like images")
 
-    def visdom_infer(self, test_rgb_tensor, id):
+        self.visdom_reporter.plot_image((train_gray_tensor), str(id) + " Training - RGB "+str(constants.TRANSMISSION_VERSION) +str(constants.ITERATION))
+        self.visdom_reporter.plot_image((train_depth_tensor), str(id) +" Training - Transmission " +str(constants.TRANSMISSION_VERSION) +str(constants.ITERATION))
+        self.visdom_reporter.plot_image((train_depth_like), str(id) + " Training -  Transmission-Like " +str(constants.TRANSMISSION_VERSION) +str(constants.ITERATION))
+
+    def visdom_infer_test(self, test_rgb_tensor, id):
         with torch.no_grad():
             test_depth_like = self.G_A(test_rgb_tensor)
 
         self.visdom_reporter.plot_image(test_rgb_tensor, str(id) + " Test - RGB " +str(constants.TRANSMISSION_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_depth_like, str(id) + " Test - Transmission " + str(constants.TRANSMISSION_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_depth_like, str(id) + " Test - Transmission-Like" + str(constants.TRANSMISSION_VERSION) + str(constants.ITERATION))
     
     def load_saved_state(self, checkpoint):
         self.G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
