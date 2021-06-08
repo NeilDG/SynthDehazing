@@ -64,17 +64,27 @@ class TransmissionAlbedoDataset(data.Dataset):
         #T = T + ((T < 0.1) * T_offset) #threshold
 
         #formulate hazy img
-        #atmosphere = np.random.uniform(0.5, 1.2)
-        atmosphere = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        atmosphere = [0.0, 0.0, 0.0]
+        spread = 0.025
+        atmosphere[0] = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
+        atmosphere[2] = np.random.normal(atmosphere[0], spread)
         hazy_img_like = np.zeros_like(clear_img)
         T = np.resize(T, np.shape(clear_img[:, :, 0]))
-        hazy_img_like[:, :, 0] = (clear_img[:, :, 0] * T) + atmosphere * (1 - T)
-        hazy_img_like[:, :, 1] = (clear_img[:, :, 1] * T) + atmosphere * (1 - T)
-        hazy_img_like[:, :, 2] = (clear_img[:, :, 2] * T) + atmosphere * (1 - T)
+        hazy_img_like[:, :, 0] = (clear_img[:, :, 0] * T) + atmosphere[0] * (1 - T)
+        hazy_img_like[:, :, 1] = (clear_img[:, :, 1] * T) + atmosphere[1] * (1 - T)
+        hazy_img_like[:, :, 2] = (clear_img[:, :, 2] * T) + atmosphere[2] * (1 - T)
 
         img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         img_a = self.initial_img_op(img_a)
         img_b = cv2.resize(T, self.resize_shape)
+
+        img_atmosphere = np.zeros_like(clear_img)
+        img_atmosphere[:, :, 0] = atmosphere[0] * (1 - T)
+        img_atmosphere[:, :, 1] = atmosphere[1] * (1 - T)
+        img_atmosphere[:, :, 2] = atmosphere[2] * (1 - T)
+
+        img_atmosphere = self.depth_transform_op(img_atmosphere)
 
         if(self.should_crop):
             crop_indices = transforms.RandomCrop.get_params(img_a, output_size=self.crop_size)
@@ -89,9 +99,9 @@ class TransmissionAlbedoDataset(data.Dataset):
 
         if(self.return_ground_truth):
             img_c = self.final_transform_op(self.initial_img_op(clear_img_uint))
-            return file_name, img_a, img_b, img_c
+            return file_name, img_a, img_b, img_c, img_atmosphere
         else:
-            return file_name, img_a, img_b #hazy albedo img, transmission map
+            return file_name, img_a, img_b, img_atmosphere #hazy albedo img, transmission map
 
     def __len__(self):
         return len(self.image_list_a)

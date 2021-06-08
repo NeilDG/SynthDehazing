@@ -189,10 +189,10 @@ def load_transmission_albedo_dataset(path_a, pseudo_path_a, path_b, return_groun
     print("Length of training transmission dataset: %d" % (len(a_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.TransmissionAlbedoDataset(a_list, path_b, (32, 32), True, return_ground_truth),
+        image_dataset.TransmissionAlbedoDataset(a_list, path_b, (32, 32), False, return_ground_truth),
         batch_size=batch_size,
         num_workers=6,
-        shuffle=False
+        shuffle=True
     )
     return data_loader
 

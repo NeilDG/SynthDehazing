@@ -14,6 +14,37 @@ import glob
 from skimage.metrics import peak_signal_noise_ratio
 from custom_losses import ssim_loss
 
+#simply produces results without benchmarking
+def produce_ohaze():
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
+    SAVE_PATH = "results/Ours - Results - O-Haze/"
+    SAVE_TRANSMISSION_PATH = "results/Ours - Results - O-Haze/Transmission/"
+    SAVE_ATMOSPHERE_PATH = "results/Ours - Results - O-Haze/Atmosphere/"
+
+    hazy_list = glob.glob(HAZY_PATH + "*.jpg")
+
+    TRANSMISSION_CHECKPT = "transmission_albedo_estimator_v1.04_3"
+    AIRLIGHT_CHECKPT = "airlight_estimator_v1.05_1"
+
+    model_dehazer = dehazing_proper.ModelDehazer()
+    model_dehazer.set_models(TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V1)
+
+    for i, (hazy_path) in enumerate(hazy_list):
+        with torch.no_grad():
+            img_name = hazy_path.split("\\")[1]
+            hazy_img = cv2.imread(hazy_path)
+            hazy_img = cv2.resize(hazy_img, (512, 512))
+
+            clear_img = model_dehazer.perform_dehazing(hazy_img, 0.8, 0.3)
+            clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+            cv2.imwrite(SAVE_PATH + img_name, clear_img)
+
+            T_img, A_img = model_dehazer.derive_T_and_A(hazy_img)
+            cv2.imwrite(SAVE_TRANSMISSION_PATH + img_name, T_img)
+            cv2.imwrite(SAVE_ATMOSPHERE_PATH + img_name, A_img)
+
+            print("Saved: " + SAVE_PATH + img_name)
+
 def benchmark_ohaze():
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
@@ -27,8 +58,8 @@ def benchmark_ohaze():
     EDPN_DEHAZE_PATH = "results/EDPN - Results - OHaze/"
 
     EXPERIMENT_NAME = "metrics - 1"
-    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_2.pt"
-    AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.05_2.pt"
+    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_3.pt"
+    AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.05_1.pt"
 
     SAVE_PATH = "results/O-HAZE/"
     BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
@@ -46,19 +77,12 @@ def benchmark_ohaze():
     print(hazy_list)
     print(gt_list)
 
-    gray_img_op = transforms.Compose([transforms.ToPILImage(),
-                                       transforms.ToTensor(),
-                                       transforms.Normalize((0.5), (0.5))])
-
     rgb_img_op = transforms.Compose([transforms.ToPILImage(),
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    ssim_op = transforms.Compose([transforms.ToPILImage(),
-                                   transforms.ToTensor()])
-
-    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    #transmission_G = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+    #transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+    transmission_G = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
     checkpt = torch.load(TRANSMISSION_CHECKPT)
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
@@ -418,8 +442,9 @@ def benchmark_ohaze_inmodels():
         print("[Ours-Network Estimator V1] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
         print("[Ours-Network Estimator V2] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
 def main():
-    benchmark_ohaze()
+    #benchmark_ohaze()
     #benchmark_ohaze_inmodels()
+    produce_ohaze()
 
 
 # FIX for broken pipe num_workers issue.

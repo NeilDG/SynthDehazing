@@ -12,14 +12,13 @@ from utils import dehazing_proper
 import glob
 from skimage.metrics import peak_signal_noise_ratio
 
+def produce_reside():
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+    SAVE_PATH = "results/Ours - Results - RESIDE-3/"
+    SAVE_TRANSMISSION_PATH = "results/Ours - Results - RESIDE-3/Transmission/"
+    SAVE_ATMOSPHERE_PATH = "results/Ours - Results - RESIDE-3/Atmosphere/"
 
-def produce_ots():
-    HAZY_PATH = "D:/Datasets/OTS_BETA/haze/"
-    SAVE_PATH = "results/Ours - Results - OTS-Beta/"
-    SAVE_TRANSMISSION_PATH = "results/Ours - Results - OTS-Beta/Transmission/"
-    SAVE_ATMOSPHERE_PATH = "results/Ours - Results - OTS-Beta/Atmosphere/"
-
-    hazy_list = glob.glob(HAZY_PATH + "*0.95_0.2.jpg") #specify atmosphere intensity
+    hazy_list = glob.glob(HAZY_PATH + "*.jpeg")
 
     TRANSMISSION_CHECKPT = "transmission_albedo_estimator_v1.04_3"
     AIRLIGHT_CHECKPT = "airlight_estimator_v1.05_1"
@@ -33,7 +32,7 @@ def produce_ots():
             hazy_img = cv2.imread(hazy_path)
             hazy_img = cv2.resize(hazy_img, (512, 512))
 
-            clear_img = model_dehazer.perform_dehazing(hazy_img, 0.8, 0.3)
+            clear_img = model_dehazer.perform_dehazing(hazy_img, 0.7, 0.4)
             clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             cv2.imwrite(SAVE_PATH + img_name, clear_img)
 
@@ -43,33 +42,32 @@ def produce_ots():
 
             print("Saved: " + SAVE_PATH + img_name)
 
-def benchmark_ots():
-    HAZY_PATH = "D:/Datasets/OTS_BETA/haze/"
-    GT_PATH = "D:/Datasets/OTS_BETA/clear/"
+def benchmark_reside():
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
-    AOD_RESULTS_PATH = "results/AODNet- Results - OTS-Beta/"
-    FFA_RESULTS_PATH = "results/FFA Net - Results - OTS-Beta/"
-    GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OTS-Beta/"
-    CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OTS-Beta/"
-    EDPN_DEHAZE_PATH = "results/EDPN - Results - OTS-Beta/"
+    AOD_RESULTS_PATH = "results/AODNet- Results - RESIDE-3/"
+    FFA_RESULTS_PATH = "results/FFA Net - Results - RESIDE-3/"
+    GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - RESIDE-3/"
+    CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - RESIDE-3/"
+    EDPN_DEHAZE_PATH = "results/EDPN - Results - RESIDE-3/"
 
     EXPERIMENT_NAME = "metrics - 1"
-    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_3.pt"
+    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.06_1.pt"
     AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.05_1.pt"
 
-    SAVE_PATH = "results/RESIDE-OTS Beta/"
+    SAVE_PATH = "results/RESIDE-3/"
     BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
-    hazy_list = glob.glob(HAZY_PATH + "*0.95_0.2.jpg") #specify atmosphere intensity
-    aod_list = glob.glob(AOD_RESULTS_PATH + "*.jpg")
+    hazy_list = glob.glob(HAZY_PATH + "*.jpeg") #specify atmosphere intensity
+    aod_list = glob.glob(AOD_RESULTS_PATH + "*.jpeg")
     ffa_list = glob.glob(FFA_RESULTS_PATH + "*.jpg")
-    grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
-    cycle_dh_list = glob.glob(CYCLE_DEHAZE_PATH + "*.jpg")
+    grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpeg")
+    cycle_dh_list = glob.glob(CYCLE_DEHAZE_PATH + "*.jpeg")
     edpn_list = glob.glob(EDPN_DEHAZE_PATH + "*.png")
 
-    print("Found images: ", len(hazy_list), len(ffa_list), len(grid_list), len(cycle_dh_list), len(aod_list))
+    print("Found images: ", len(hazy_list), len(aod_list), len(ffa_list), len(grid_list), len(cycle_dh_list), len(edpn_list))
 
     gray_img_op = transforms.Compose([transforms.ToPILImage(),
                                       transforms.ToTensor(),
@@ -79,16 +77,16 @@ def benchmark_ots():
                                      transforms.ToTensor(),
                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    #transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    transmission_G = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+    #transmission_G = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
     checkpt = torch.load(TRANSMISSION_CHECKPT)
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
 
-    FIG_ROWS = 9
+    FIG_ROWS = 8
     FIG_COLS = 4
     FIG_WIDTH = 10
-    FIG_HEIGHT = 25
+    FIG_HEIGHT = 20
     fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
     fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
     column = 0
@@ -103,20 +101,15 @@ def benchmark_ots():
             with torch.no_grad():
                 count = count + 1
                 img_name = hazy_path.split("\\")[1]
-                gt_prefix = img_name.split("_")[0]
 
                 hazy_img = cv2.imread(hazy_path)
                 hazy_img = cv2.resize(hazy_img, (512, 512))
-
-                gt_path = GT_PATH + gt_prefix + ".jpg"
-                gt_img = cv2.imread(gt_path)
-                gt_img = cv2.resize(gt_img, (int(np.shape(hazy_img)[1]), int(np.shape(hazy_img)[0])))
 
                 aod_img = cv2.imread(aod_path)
                 aod_img = cv2.resize(aod_img, (int(np.shape(hazy_img)[1]), int(np.shape(hazy_img)[0])))
 
                 edpn_img = cv2.imread(edpn_path)
-                edpn_img = cv2.resize(edpn_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
+                edpn_img = cv2.resize(edpn_img, (int(np.shape(hazy_img)[1]), int(np.shape(hazy_img)[0])))
 
                 ffa_img = cv2.imread(ffa_path)
                 ffa_img = cv2.resize(ffa_img, (int(np.shape(hazy_img)[1]), int(np.shape(hazy_img)[0])))
@@ -125,7 +118,7 @@ def benchmark_ots():
                 grid_img = cv2.resize(grid_img, (int(np.shape(hazy_img)[1]), int(np.shape(hazy_img)[0])))
 
                 cycle_dehaze_img = cv2.imread(cycle_dh_path)
-                cycle_dehaze_img = cv2.resize(cycle_dehaze_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
+                cycle_dehaze_img = cv2.resize(cycle_dehaze_img, (int(np.shape(hazy_img)[1]), int(np.shape(hazy_img)[0])))
 
                 # input_tensor = gray_img_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2GRAY)).to(device)
                 input_tensor = rgb_img_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(device)
@@ -157,7 +150,6 @@ def benchmark_ots():
                 cycle_dehaze_img = cv2.normalize(cycle_dehaze_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 aod_img = cv2.normalize(aod_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,dtype=cv2.CV_8U)
                 edpn_img = cv2.normalize(edpn_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                gt_img = cv2.normalize(gt_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
                 # make images compatible with matplotlib
                 hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
@@ -168,67 +160,7 @@ def benchmark_ots():
                 cycle_dehaze_img = cv2.cvtColor(cycle_dehaze_img, cv2.COLOR_BGR2RGB)
                 aod_img = cv2.cvtColor(aod_img, cv2.COLOR_BGR2RGB)
                 edpn_img = cv2.cvtColor(edpn_img, cv2.COLOR_BGR2RGB)
-                gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
 
-                # measure PSNR
-                PSNR = np.round(peak_signal_noise_ratio(gt_img, dcp_clear_img), 4)
-                print("[DCP] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[0] += PSNR
-
-                PSNR = np.round(peak_signal_noise_ratio(gt_img, aod_img), 4)
-                print("[AOD-Net] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[1] += PSNR
-
-                PSNR = np.round(peak_signal_noise_ratio(gt_img, cycle_dehaze_img), 4)
-                print("[CycleDehaze] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[2] += PSNR
-
-                PSNR = np.round(peak_signal_noise_ratio(gt_img, ffa_img), 4)
-                print("[FFA-Net] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[3] += PSNR
-
-                PSNR = np.round(peak_signal_noise_ratio(gt_img, grid_img), 4)
-                print("[GridDehazeNet] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[4] += PSNR
-
-                PSNR = np.round(peak_signal_noise_ratio(gt_img, edpn_img), 4)
-                print("[EDPN] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[5] += PSNR
-
-                PSNR = np.round(peak_signal_noise_ratio(gt_img, clear_img), 4)
-                print("[Ours] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[6] += PSNR
-
-                # measure SSIM
-                SSIM = np.round(tensor_utils.measure_ssim(gt_img, dcp_clear_img), 4)
-                print("[DCP] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[0] += SSIM
-
-                SSIM = np.round(tensor_utils.measure_ssim(gt_img, aod_img), 4)
-                print("[AOD-Net] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[1] += SSIM
-
-                SSIM = np.round(tensor_utils.measure_ssim(gt_img, cycle_dehaze_img), 4)
-                print("[CycleDehaze] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[2] += SSIM
-
-                SSIM = np.round(tensor_utils.measure_ssim(gt_img, ffa_img), 4)
-                print("[FFA-Net] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[3] += SSIM
-
-                SSIM = np.round(tensor_utils.measure_ssim(gt_img, grid_img), 4)
-                print("[GridDehazeNet] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[4] += SSIM
-
-                SSIM = np.round(tensor_utils.measure_ssim(gt_img, edpn_img), 4)
-                print("[EDPN] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[5] += SSIM
-
-                SSIM = np.round(tensor_utils.measure_ssim(gt_img, clear_img), 4)
-                print("[Ours] SSIM of ", img_name, " : ", SSIM, file=f)
-                average_SSIM[6] += SSIM
-
-                print(file=f)
 
                 ax[0, column].imshow(hazy_img)
                 ax[0, column].axis('off')
@@ -246,8 +178,6 @@ def benchmark_ots():
                 ax[6, column].axis('off')
                 ax[7, column].imshow(clear_img)
                 ax[7, column].axis('off')
-                ax[8, column].imshow(gt_img)
-                ax[8, column].axis('off')
 
                 column = column + 1
 
@@ -262,31 +192,9 @@ def benchmark_ots():
                     fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
                     column = 0
 
-        for i in range(len(average_SSIM)):
-            average_SSIM[i] = average_SSIM[i] / count * 1.0
-            average_PSNR[i] = average_PSNR[i] / count * 1.0
-
-        print(file=f)
-        print("[DCP] Average PSNR: ", np.round(average_PSNR[0], 5), file=f)
-        print("[AOD-Net] Average PSNR: ", np.round(average_PSNR[1], 5), file=f)
-        print("[CycleDehaze] Average PSNR: ", np.round(average_PSNR[2], 5), file=f)
-        print("[FFA-Net] Average PSNR: ", np.round(average_PSNR[3], 5), file=f)
-        print("[GridDehazeNet] Average PSNR: ", np.round(average_PSNR[4], 5), file=f)
-        print("[EDPN] Average PSNR: ", np.round(average_PSNR[5], 5), file=f)
-        print("[Ours] Average PSNR: ", np.round(average_PSNR[6], 5), file=f)
-        print(file=f)
-        print("[DCP] Average SSIM: ", np.round(average_SSIM[0], 5), file=f)
-        print("[AOD-Net] Average SSIM: ", np.round(average_SSIM[1], 5), file=f)
-        print("[CycleDehaze] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
-        print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
-        print("[GridDehazeNet] Average SSIM: ", np.round(average_SSIM[4], 5), file=f)
-        print("[EDPN] Average SSIM: ", np.round(average_SSIM[5], 5), file=f)
-        print("[Ours] Average SSIM: ", np.round(average_SSIM[6], 5), file=f)
-
-
 def main():
-    #benchmark_ots()
-    produce_ots()
+    #benchmark_reside()
+    produce_reside()
 
 # FIX for broken pipe num_workers issue.
 if __name__ == "__main__":

@@ -27,8 +27,8 @@ def benchmark_ohaze():
     EDPN_DEHAZE_PATH = "results/EDPN - Results - IHaze/"
 
     EXPERIMENT_NAME = "metrics - 1"
-    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_2.pt"
-    AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.05_2.pt"
+    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_3.pt"
+    AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.05_1.pt"
 
     SAVE_PATH = "results/I-HAZE/"
     BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
@@ -62,8 +62,8 @@ def benchmark_ohaze():
     ssim_op = transforms.Compose([transforms.ToPILImage(),
                                    transforms.ToTensor()])
 
-    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    #transmission_G = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+    #transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+    transmission_G = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
     checkpt = torch.load(TRANSMISSION_CHECKPT)
     transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     print("Transmission GAN model loaded.")
