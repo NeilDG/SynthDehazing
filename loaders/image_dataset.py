@@ -49,6 +49,7 @@ class TransmissionAlbedoDataset(data.Dataset):
 
         clear_img = cv2.imread(img_id);
         clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        clear_img = cv2.resize(clear_img, self.resize_shape)
         clear_img_uint = clear_img
         clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
