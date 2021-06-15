@@ -29,9 +29,9 @@ class TransmissionTrainer:
         self.gan_iteration = gan_iteration
 
         if(is_unet == 1):
-            self.G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(self.gpu_device)
+            self.G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs = 8).to(self.gpu_device)
         else:
-            self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 8).to(self.gpu_device)
+            self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 10).to(self.gpu_device)
 
         self.D_A = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 

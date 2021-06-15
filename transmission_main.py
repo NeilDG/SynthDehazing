@@ -29,14 +29,14 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--adv_weight', type=float, help="Weight", default="2.0")
+parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--batch_size', type=int, help="batch_size", default="8")
+parser.add_option('--batch_size', type=int, help="batch_size", default="32")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
-parser.add_option('--d_lr', type=float, help="LR", default="0.0005")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--is_unet',type=int, help="Is Unet?", default="0")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. Using BCE-discriminator loss.")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. Using BCE-discriminator loss. 10 blocks.1")
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE

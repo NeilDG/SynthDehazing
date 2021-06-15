@@ -182,16 +182,17 @@ def load_dehazing_dataset(path_a, path_b, return_ground_truth = False, batch_siz
         shuffle=True
     )
     return data_loader
-def load_transmission_albedo_dataset(path_a, pseudo_path_a, path_b, return_ground_truth = False, batch_size=8, num_image_to_load=-1):
+def load_transmission_albedo_dataset(path_a, pseudo_path_a, path_b, return_ground_truth = False, batch_size=8, num_image_to_load=-1, num_workers=12):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
     pseudo_a_list = assemble_unpaired_data(pseudo_path_a, num_image_to_load)
     a_list = a_list + pseudo_a_list
     print("Length of training transmission dataset: %d" % (len(a_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.TransmissionAlbedoDataset(a_list, path_b, (32, 32), False, return_ground_truth),
+        image_dataset.TransmissionAlbedoDataset(a_list, path_b, (128, 128), True, return_ground_truth),
+        #image_dataset.TransmissionAlbedoDataset(a_list, path_b, (256, 256), False, return_ground_truth),
         batch_size=batch_size,
-        num_workers=6,
+        num_workers=num_workers,
         shuffle=True
     )
     return data_loader

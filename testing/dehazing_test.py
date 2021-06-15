@@ -294,16 +294,16 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num
         print("Overall MSE for A1: " + str(average_MSE[1]), file=f)
         print("Overall MSE for A2: " + str(average_MSE[2]), file=f)
 
-def perform_transmission_map_estimation(model_checkpt_name, is_unet):
-    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
-    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+def perform_transmission_map_estimation(model_checkpt_name, is_unet, blocks = 8):
+    ABS_PATH_RESULTS = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
+    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     if(is_unet == True):
-        G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+        G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs= blocks).to(device)
     else:
-        G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+        G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks= blocks).to(device)
 
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
     G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
@@ -312,13 +312,13 @@ def perform_transmission_map_estimation(model_checkpt_name, is_unet):
     print("G transmission network loaded")
     print("===================================================")
 
-    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 32, 50000)
+    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 128, 50000, 12)
 
     ave_losses = [0.0, 0.0, 0.0, 0.0]
     count = 0
     with open(PATH_TO_FILE, "w") as f, torch.no_grad():
         for i, (test_data) in enumerate(test_loader, 0):
-            _, rgb_batch, transmission_batch = test_data
+            _, rgb_batch, transmission_batch, _ = test_data
             rgb_tensor = rgb_batch.to(device).float()
             transmission_batch = transmission_batch.to(device).float()
             transmission_like = G_A(rgb_tensor)
@@ -521,8 +521,15 @@ def main():
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_5")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_6")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_7")
-    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_1", False)
-    save_transmissions("transmission_albedo_estimator_v1.06_1", False)
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_1", False)
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_2", True)
+    perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_3", True)
+    perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_4", False)
+    perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_5", False)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_1", False)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_2", False)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_3", False, 10)
+    #save_transmissions("transmission_albedo_estimator_v1.06_1", False)
 
     #perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
     # perform_albedo_reconstruction("albedo_transfer_v1.04_5", 20)
