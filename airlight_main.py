@@ -31,12 +31,12 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--airlight_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
 parser.add_option('--batch_size', type=int, help="batch_size", default="256")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network using same architecture for A and B. \n "
                                                                                      "Accepts albedo input. \n"
                                                                                      "New architecture based on DCGAN. \n"
-                                                                                     "Airlight is normalized to tanh range")
+                                                                                     "Airlight range increased to 0.25 - 1.8")
 
 #--img_to_load=-1 --load_previous=0
 # Update config if on COARE
@@ -134,8 +134,6 @@ def main(argv):
 
             gt.train_a1(styled_batch, airlight_batch)
             gt.train_a2(albedo_batch, styled_batch, airlight_batch)
-            #gt.train_a3(styled_batch, airlight_batch)
-            #gt.train_a4(albedo_batch, styled_batch, airlight_batch)
 
             _, albedo_batch, styled_batch, airlight_batch = pseudo_train_data
             albedo_batch = albedo_batch.to(device).float()
@@ -144,8 +142,6 @@ def main(argv):
 
             gt.train_a1(styled_batch, airlight_batch)
             gt.train_a2(albedo_batch, styled_batch, airlight_batch)
-            #gt.train_a3(styled_batch, airlight_batch)
-            #gt.train_a4(albedo_batch, styled_batch, airlight_batch)
 
             _, albedo_batch, styled_batch, airlight_batch = test_data
             albedo_batch = albedo_batch.to(device).float()
@@ -153,7 +149,7 @@ def main(argv):
             airlight_batch = airlight_batch.to(device).float()
 
             gt.test(albedo_batch, styled_batch, airlight_batch)
-            
+
             iteration = iteration + 1
 
         gt.save_states(epoch, iteration)

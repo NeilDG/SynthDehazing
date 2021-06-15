@@ -15,12 +15,11 @@ import glob
 from skimage.metrics import peak_signal_noise_ratio
 from custom_losses import ssim_loss
 
-#simply produces results without benchmarking
-def produce_ohaze():
-    HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
-    SAVE_PATH = "results/Ours - Results - O-Haze/"
-    SAVE_TRANSMISSION_PATH = "results/Ours - Results - O-Haze/Transmission/"
-    SAVE_ATMOSPHERE_PATH = "results/Ours - Results - O-Haze/Atmosphere/"
+def produce_ihaze():
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+    SAVE_PATH = "results/Ours - Results - I-Haze/"
+    SAVE_TRANSMISSION_PATH = "results/Ours - Results - I-Haze/Transmission/"
+    SAVE_ATMOSPHERE_PATH = "results/Ours - Results - I-Haze/Atmosphere/"
 
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
 
@@ -36,7 +35,7 @@ def produce_ohaze():
             hazy_img = cv2.imread(hazy_path)
             hazy_img = cv2.resize(hazy_img, (512, 512))
 
-            #clear_img = model_dehazer.perform_dehazing(hazy_img, 0.01, 0.3)
+            #clear_img = model_dehazer.perform_dehazing(hazy_img, 0.5, 0.3)
             clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.3)
             clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             cv2.imwrite(SAVE_PATH + img_name + ".png", clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
@@ -47,25 +46,25 @@ def produce_ohaze():
 
             print("Saved: " + SAVE_PATH + img_name)
 
-def benchmark_ohaze():
-    HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
-    GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
+def benchmark_ihaze():
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+    GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
 
-    AOD_RESULTS_PATH = "results/AODNet- Results - OHaze/"
-    FFA_RESULTS_PATH = "results/FFA Net - Results - OHaze/"
-    GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
-    CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OHaze/"
-    EDPN_DEHAZE_PATH = "results/EDPN - Results - OHaze/"
-    OUR_PATH = "results/Ours - Results - O-Haze/"
+    AOD_RESULTS_PATH = "results/AODNet- Results - IHaze/"
+    FFA_RESULTS_PATH = "results/FFA Net - Results - IHaze/"
+    GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - IHaze/"
+    CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - IHaze/"
+    EDPN_DEHAZE_PATH = "results/EDPN - Results - IHaze/"
+    OUR_PATH = "results/Ours - Results - I-Haze/"
 
     EXPERIMENT_NAME = "metrics - 1"
-    SAVE_PATH = "results/O-HAZE/"
+    SAVE_PATH = "results/I-HAZE/"
     BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
 
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
     gt_list = glob.glob(GT_PATH + "*.jpg")
     aod_list = glob.glob(AOD_RESULTS_PATH + "*.jpg")
-    ffa_list = glob.glob(FFA_RESULTS_PATH + "*.png")
+    ffa_list = glob.glob(FFA_RESULTS_PATH + "*.jpg")
     grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
     cycle_dh_list = glob.glob(CYCLE_DEHAZE_PATH + "*.jpg")
     edpn_list = glob.glob(EDPN_DEHAZE_PATH + "*.png")
@@ -73,6 +72,11 @@ def benchmark_ohaze():
 
     print(hazy_list)
     print(gt_list)
+    print(aod_list)
+    print(ffa_list)
+    print(grid_list)
+    print(cycle_dh_list)
+    print(edpn_list)
     print(our_list)
 
     FIG_ROWS = 9
@@ -119,18 +123,26 @@ def benchmark_ohaze():
                 clear_img = cv2.imread(our_path)
                 clear_img = cv2.resize(clear_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
-                #normalize images
-                hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,dtype=cv2.CV_8U)
-                dcp_clear_img = cv2.normalize(dcp_clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                ffa_img = cv2.normalize(ffa_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                grid_img = cv2.normalize(grid_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                cycle_dehaze_img = cv2.normalize(cycle_dehaze_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                aod_img = cv2.normalize(aod_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                edpn_img = cv2.normalize(edpn_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                # normalize images
+                hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+                                         dtype=cv2.CV_8U)
+                clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+                                          dtype=cv2.CV_8U)
+                dcp_clear_img = cv2.normalize(dcp_clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+                                              dtype=cv2.CV_8U)
+                ffa_img = cv2.normalize(ffa_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+                                        dtype=cv2.CV_8U)
+                grid_img = cv2.normalize(grid_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+                                         dtype=cv2.CV_8U)
+                cycle_dehaze_img = cv2.normalize(cycle_dehaze_img, dst=None, alpha=0, beta=255,
+                                                 norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                aod_img = cv2.normalize(aod_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+                                        dtype=cv2.CV_8U)
+                edpn_img = cv2.normalize(edpn_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+                                         dtype=cv2.CV_8U)
                 gt_img = cv2.normalize(gt_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
-                #make images compatible with matplotlib
+                # make images compatible with matplotlib
                 hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
                 clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
                 dcp_clear_img = cv2.cvtColor(dcp_clear_img, cv2.COLOR_BGR2RGB)
@@ -196,11 +208,11 @@ def benchmark_ohaze():
                 average_SSIM[5] += SSIM
 
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, clear_img), 4)
-                print("[Ours] SSIM of " ,img_name," : ", SSIM, file = f)
+                print("[Ours] SSIM of ", img_name, " : ", SSIM, file=f)
                 print("[Ours] SSIM of ", img_name, " : ", SSIM)
                 average_SSIM[6] += SSIM
 
-                print(file = f)
+                print(file=f)
 
                 ax[0, column].imshow(hazy_img)
                 ax[0, column].axis('off')
@@ -238,7 +250,7 @@ def benchmark_ohaze():
             average_SSIM[i] = average_SSIM[i] / count * 1.0
             average_PSNR[i] = average_PSNR[i] / count * 1.0
 
-        print(file = f)
+        print(file=f)
         print("[DCP] Average PSNR: ", np.round(average_PSNR[0], 5), file=f)
         print("[AOD-Net] Average PSNR: ", np.round(average_PSNR[1], 5), file=f)
         print("[CycleDehaze] Average PSNR: ", np.round(average_PSNR[2], 5), file=f)
@@ -246,11 +258,11 @@ def benchmark_ohaze():
         print("[GridDehazeNet] Average PSNR: ", np.round(average_PSNR[4], 5), file=f)
         print("[EDPN] Average PSNR: ", np.round(average_PSNR[5], 5), file=f)
         print("[Ours] Average PSNR: ", np.round(average_PSNR[6], 5), file=f)
-        print(file = f)
+        print(file=f)
         print("[DCP] Average SSIM: ", np.round(average_SSIM[0], 5), file=f)
         print("[AOD-Net] Average SSIM: ", np.round(average_SSIM[1], 5), file=f)
         print("[CycleDehaze] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
-        print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[3], 5), file = f)
+        print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
         print("[GridDehazeNet] Average SSIM: ", np.round(average_SSIM[4], 5), file=f)
         print("[EDPN] Average SSIM: ", np.round(average_SSIM[5], 5), file=f)
         print("[Ours] Average SSIM: ", np.round(average_SSIM[6], 5), file=f)
@@ -418,8 +430,8 @@ def benchmark_ohaze_inmodels():
         print("[Ours-Network Estimator V1] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
         print("[Ours-Network Estimator V2] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
 def main():
-    produce_ohaze()
-    benchmark_ohaze()
+    produce_ihaze()
+    benchmark_ihaze()
     #benchmark_ohaze_inmodels()
 
 

@@ -18,8 +18,8 @@ class AirlightTrainer:
         self.lr = lr
         # self.A1 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(self.gpu_device)
         # self.A2 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(self.gpu_device)
-        self.A1 = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64).to(self.gpu_device)
-        self.A2 = dh.AirlightEstimator_V2(num_channels = 6, disc_feature_size = 64).to(self.gpu_device)
+        self.A1 = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64, out_features = 3).to(self.gpu_device)
+        self.A2 = dh.AirlightEstimator_V2(num_channels = 6, disc_feature_size = 64, out_features = 3).to(self.gpu_device)
 
         #self.A3 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers=3, residual_blocks=5, add_mean=True).to(self.gpu_device)
         #self.A4 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers=3, residual_blocks=5, add_mean=True).to(self.gpu_device)
@@ -104,7 +104,7 @@ class AirlightTrainer:
 
     def train_a1(self, rgb_tensor, airlight_tensor):
         with amp.autocast():
-            airlight_tensor = torch.unsqueeze(airlight_tensor, 1)
+            #airlight_tensor = torch.unsqueeze(airlight_tensor, 1)
             self.optimizerDA.zero_grad()
             self.A1.train()
 
@@ -119,7 +119,7 @@ class AirlightTrainer:
 
     def train_a2(self, albedo_tensor, rgb_tensor, airlight_tensor):
         with amp.autocast():
-            airlight_tensor = torch.unsqueeze(airlight_tensor, 1)
+            #airlight_tensor = torch.unsqueeze(airlight_tensor, 1)
             self.optimizerDB.zero_grad()
             self.A2.train()
             errD = self.network_loss(self.A2(torch.cat([rgb_tensor, albedo_tensor], 1)), airlight_tensor) * self.loss_weight
@@ -201,7 +201,7 @@ class AirlightTrainer:
         # self.A4.eval()
 
         with torch.no_grad(), amp.autocast():
-            airlight_tensor = torch.unsqueeze(airlight_tensor, 1)
+            #airlight_tensor = torch.unsqueeze(airlight_tensor, 1)
             D_A1_loss = self.network_loss(self.A1(rgb_tensor), airlight_tensor) * self.loss_weight
             self.losses_dict[self.AIRLOSS_A_KEY_TEST].append(D_A1_loss.item())
 

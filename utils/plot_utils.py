@@ -27,7 +27,7 @@ class VisdomReporter:
 
     def __init__(self):
         if(constants.is_coare == 1):
-            self.vis = visdom.Visdom(SALIKSIK_SERVER, use_incoming_socket=True) #TODO: Note that this is set to TRUE for observation.
+            self.vis = visdom.Visdom(SALIKSIK_SERVER, use_incoming_socket=False) #TODO: Note that this is set to TRUE for observation.
         else:
             self.vis= visdom.Visdom()
         

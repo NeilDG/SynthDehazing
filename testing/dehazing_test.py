@@ -237,8 +237,8 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     #A1 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(device)
     #A2 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(device)
-    A1 = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64).to(device)
-    A2 = dh.AirlightEstimator_V2(num_channels = 6, disc_feature_size = 64).to(device)
+    A1 = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64,  out_features = 3).to(device)
+    A2 = dh.AirlightEstimator_V2(num_channels = 6, disc_feature_size = 64, out_features = 3).to(device)
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + airlight_checkpt_name + '.pt')
     A1.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "A"])
     A2.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "B"])
@@ -255,7 +255,7 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num
     print("G albedo network loaded")
     print("===================================================")
 
-    test_loader = dataset_loader.load_airlight_test_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_TEST, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, constants.batch_size, -1)
+    test_loader = dataset_loader.load_airlight_test_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_TEST, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, 256, -1)
     average_MSE = [0.0, 0.0, 0.0]
 
     count = 0
@@ -294,14 +294,17 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num
         print("Overall MSE for A1: " + str(average_MSE[1]), file=f)
         print("Overall MSE for A2: " + str(average_MSE[2]), file=f)
 
-def perform_transmission_map_estimation(model_checkpt_name):
-    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
-    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+def perform_transmission_map_estimation(model_checkpt_name, is_unet, blocks = 8):
+    ABS_PATH_RESULTS = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
+    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    #G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+    if(is_unet == True):
+        G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs= blocks).to(device)
+    else:
+        G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks= blocks).to(device)
+
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
     G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
     G_A.eval()
@@ -309,13 +312,13 @@ def perform_transmission_map_estimation(model_checkpt_name):
     print("G transmission network loaded")
     print("===================================================")
 
-    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 128, 50000)
+    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 128, 50000, 12)
 
     ave_losses = [0.0, 0.0, 0.0, 0.0]
     count = 0
     with open(PATH_TO_FILE, "w") as f, torch.no_grad():
         for i, (test_data) in enumerate(test_loader, 0):
-            _, rgb_batch, transmission_batch = test_data
+            _, rgb_batch, transmission_batch, _ = test_data
             rgb_tensor = rgb_batch.to(device).float()
             transmission_batch = transmission_batch.to(device).float()
             transmission_like = G_A(rgb_tensor)
@@ -357,6 +360,86 @@ def perform_transmission_map_estimation(model_checkpt_name):
         print("Overall MSE: " + str(ave_losses[1]), file=f)
         print("Overall PSNR: " + str(ave_losses[2]), file=f)
         print("Overall SSIM: " + str(ave_losses[3]), file=f)
+
+def save_transmissions(model_checkpt_name, is_unet):
+    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    SAVE_PATH_HAZY = "E:/Synth Hazy 3/hazy - styled/"
+    SAVE_PATH_GT = "E:/Synth Hazy 3/transmission/"
+    SAVE_PATH_PSEUDO = "E:/Synth Hazy 3/transmission - pseudo/"
+    SAVE_PATH_ATMOSPHERE_GT = "E:/Synth Hazy 3/atmosphere/"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    if (is_unet == True):
+        G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
+    else:
+        G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
+
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
+    G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
+    G_A.eval()
+
+    print("G transmission network loaded")
+    print("===================================================")
+
+    #test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 32, -1)
+    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 32, -1)
+
+    #visdom_reporter = plot_utils.VisdomReporter()
+
+    with torch.no_grad():
+        for i, (test_data) in enumerate(test_loader, 0):
+            name_batch, rgb_batch, transmission_batch, atmosphere_batch = test_data
+            rgb_tensor = rgb_batch.to(device).float()
+            transmission_batch = transmission_batch.to(device).float()
+            atmosphere_batch = atmosphere_batch.to(device).float()
+
+            transmission_like = G_A(rgb_tensor)
+            transmission_batch = (transmission_batch * 0.5) + 0.5  # remove tanh normalization
+            transmission_like = (transmission_like * 0.5) + 0.5
+            atmosphere_batch = (atmosphere_batch * 0.5) + 0.5  # remove tanh normalization
+
+            #Save results in drive
+            for k in range(0, len(name_batch)):
+                file_name = name_batch[k]
+
+                # hazy_img = rgb_batch[k].cpu().numpy()
+                # hazy_img = np.moveaxis(hazy_img, 0, 2)
+                # hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                # hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
+                #
+                # cv2.imwrite(SAVE_PATH_HAZY + file_name, hazy_img)
+
+                # transmission_gt = transmission_batch[k].cpu().numpy()
+                # transmission_gt = np.moveaxis(transmission_gt, 0, 2)
+                # transmission_gt = cv2.normalize(transmission_gt, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                # transmission_gt = cv2.cvtColor(transmission_gt, cv2.COLOR_BGR2RGB)
+                #
+                # cv2.imwrite(SAVE_PATH_GT + file_name, transmission_gt)
+                #
+                # transmission_pseudo = transmission_like[k].cpu().numpy()
+                # transmission_pseudo = np.moveaxis(transmission_pseudo, 0, 2)
+                # transmission_pseudo = cv2.normalize(transmission_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                # transmission_pseudo = cv2.cvtColor(transmission_pseudo, cv2.COLOR_BGR2RGB)
+
+                atmosphere_gt = atmosphere_batch[k].cpu().numpy()
+                atmosphere_gt = np.moveaxis(atmosphere_gt, 0, 2)
+                atmosphere_gt = cv2.normalize(atmosphere_gt, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                atmosphere_gt = cv2.cvtColor(atmosphere_gt, cv2.COLOR_BGR2RGB)
+
+                cv2.imwrite(SAVE_PATH_ATMOSPHERE_GT + file_name, atmosphere_gt)
+                #
+                # transmission_pseudo = transmission_like[k].cpu().numpy()
+                # transmission_pseudo = np.moveaxis(transmission_pseudo, 0, 2)
+                # transmission_pseudo = cv2.normalize(transmission_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                # transmission_pseudo = cv2.cvtColor(transmission_pseudo, cv2.COLOR_BGR2RGB)
+
+                # cv2.imwrite(SAVE_PATH_PSEUDO + file_name, transmission_pseudo)
+                print("Saved img name: " + file_name)
+
+
+
+        # visdom_reporter.plot_image(transmission_batch, "Transmission GT " +str(i))
+        # visdom_reporter.plot_image(transmission_like, "Transmission Like " +str(i))
 
 def perform_albedo_reconstruction(model_checkpt_name, num_blocks):
     ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
@@ -428,97 +511,8 @@ def perform_albedo_reconstruction(model_checkpt_name, num_blocks):
         print("Overall PSNR: " + str(ave_losses[2]), file=f)
         print("Overall SSIM: " + str(ave_losses[3]), file=f)
 
-def perform_lightcoord_predictions(model_checkpt_name):
-    img_list = dataset_loader.assemble_unpaired_data(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED, num_image_to_load=1000)
-    print("Reading images in ", img_list)
-
-    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
-    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
-    #MODEL_CHECKPOINT = "lightcoords_estimator_V1.00_6"
-    PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
-
-    LIGHT_MEAN = [150.29387908289183, 97.35015686388994]
-    LIGHT_STD = [108.93871124236733, 72.016361696062]
-
-    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    light_estimator = dh.LightCoordsEstimator_V2(input_nc=3, num_layers=4).to(device)
-    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name+ '.pt')
-    light_estimator.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY])
-    light_estimator.eval()
-    print("Light estimator network loaded")
-    print("===================================================")
-
-    # load color transfer
-    # color_transfer_checkpt = torch.load(ABS_PATH_CHECKPOINT + 'color_transfer_v1.11_2.pt')
-    # color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
-    # color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
-    # color_transfer_gan.eval()
-    # print("Color transfer GAN model loaded.")
-    # print("===================================================")
-
-    img_op = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.Resize((256, 256)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5), (0.5))
-    ])
-
-    average_mse = 0.0
-    with open(PATH_TO_FILE, "w") as f, torch.no_grad():
-        for i in range(len(img_list)):
-            img_name = img_list[i].split("/")[3].split(".")[0]
-            img_id = int(img_name.split("_")[1]) + 5  # offset
-
-            light_path = constants.DATASET_LIGHTCOORDS_PATH_COMPLETE + "lights_" + str(img_id) + ".txt"
-
-            light_file = open(light_path, "r")
-            light_string = light_file.readline()
-            light_vector = str.split(light_string, ",")
-            light_vector = [float(light_vector[0]), float(light_vector[1])]
-
-            img = cv2.imread(img_list[i])
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-            # img_b = cv2.imread(constants.DATASET_DEPTH_PATH_COMPLETE + img_name+".png")
-            # img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
-            # img_b = cv2.normalize(img_b, dst=None, alpha=0
-            # , beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-            # T = tensor_utils.generate_transmission(1 - img_b, np.random.uniform(0.0, 2.5))
-            #
-            # # formulate hazy img
-            # atmosphere = np.random.uniform(0.5, 1.2)
-            # hazy_img_like = np.zeros_like(clear_img)
-            # T = np.resize(T, np.shape(clear_img[:, :, 0]))
-            # hazy_img_like[:, :, 0] = (T * clear_img[:, :, 0]) + atmosphere * (1 - T)
-            # hazy_img_like[:, :, 1] = (T * clear_img[:, :, 1]) + atmosphere * (1 - T)
-            # hazy_img_like[:, :, 2] = (T * clear_img[:, :, 2]) + atmosphere * (1 - T)
-            # img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-            # img_tensor = img_op(img_a).to(device)
-
-            img_tensor = img_op(img).to(device)
-
-            #light_preds = light_estimator(color_transfer_gan(torch.unsqueeze(img_tensor, 0)))
-            light_preds = light_estimator(torch.unsqueeze(img_tensor, 0))
-            light_preds = torch.squeeze(light_preds).cpu().numpy()
-
-            light_preds[0] = (light_preds[0] * LIGHT_STD[0]) + LIGHT_MEAN[0]
-            light_preds[1] = (light_preds[1] * LIGHT_STD[1]) + LIGHT_MEAN[1]
-
-            mse_result = mse(light_vector, light_preds)
-            average_mse += mse_result
-
-            print("Img id: " + str(img_id) + " GT light vector: " + str(light_vector) + " Pred light vector: " +str(light_preds)+
-                   " MSE: " +str(mse_result), file=f)
-            print("Img id: " + str(img_id) + " GT light vector: " + str(light_vector) + " Pred light vector: " + str(light_preds) +
-                  " MSE: " + str(mse_result))
-
-        average_mse = np.round(average_mse / len(img_list) * 1.0, 5)
-        print("Overall MSE: " + str(average_mse), file = f)
-
-
-
 def main():
-    #perform_airlight_predictions("airlight_estimator_v1.04_1", "albedo_transfer_v1.04_1", 18)
+    #perform_airlight_predictions("airlight_estimator_v1.05_2", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.04_2", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.04_3", "albedo_transfer_v1.04_1", 18)
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
@@ -527,11 +521,20 @@ def main():
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_5")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_6")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_7")
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_1", False)
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_2", True)
+    perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_3", True)
+    perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_4", False)
+    perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_5", False)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_1", False)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_2", False)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_3", False, 10)
+    #save_transmissions("transmission_albedo_estimator_v1.06_1", False)
 
-    perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
-    perform_albedo_reconstruction("albedo_transfer_v1.04_5", 20)
-    perform_albedo_reconstruction("albedo_transfer_v1.04_6", 24)
-    perform_albedo_reconstruction("albedo_transfer_v1.04_7", 28)
+    #perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_5", 20)
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_6", 24)
+    # perform_albedo_reconstruction("albedo_transfer_v1.04_7", 28)
 
 
 if __name__=="__main__": 

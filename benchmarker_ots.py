@@ -2,8 +2,10 @@ import torch.utils.data
 import numpy as np
 import matplotlib.pyplot as plt
 from model import vanilla_cycle_gan as cycle_gan
+from model import unet_gan as un
 import constants
 from torchvision import transforms
+from torchvision import utils as torchutils
 import cv2
 from utils import tensor_utils
 from utils import dark_channel_prior
@@ -11,24 +13,51 @@ from utils import dehazing_proper
 import glob
 from skimage.metrics import peak_signal_noise_ratio
 
+
+def produce_ots():
+    HAZY_PATH = "E:Hazy Dataset Benchmark/OTS_BETA/haze/"
+    SAVE_PATH = "results/Ours - Results - OTS-Beta/"
+    SAVE_TRANSMISSION_PATH = "results/Ours - Results - OTS-Beta/Transmission/"
+    SAVE_ATMOSPHERE_PATH = "results/Ours - Results - OTS-Beta/Atmosphere/"
+
+    hazy_list = glob.glob(HAZY_PATH + "*0.95_0.2.jpg") #specify atmosphere intensity
+
+    TRANSMISSION_CHECKPT = "transmission_albedo_estimator_v1.07_3"
+    AIRLIGHT_CHECKPT = "airlight_estimator_v1.05_1"
+
+    model_dehazer = dehazing_proper.ModelDehazer()
+    model_dehazer.set_models(TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V1)
+
+    for i, (hazy_path) in enumerate(hazy_list):
+        with torch.no_grad():
+            img_name = hazy_path.split("\\")[1]
+            hazy_img = cv2.imread(hazy_path)
+            hazy_img = cv2.resize(hazy_img, (512, 512))
+
+            clear_img = model_dehazer.perform_dehazing(hazy_img, 0.8, 0.3)
+            clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+            cv2.imwrite(SAVE_PATH + img_name, clear_img)
+
+            T_tensor, A_tensor = model_dehazer.derive_T_and_A(hazy_img)
+            torchutils.save_image(T_tensor, SAVE_TRANSMISSION_PATH + img_name + ".png")
+            torchutils.save_image(A_tensor, SAVE_ATMOSPHERE_PATH + img_name + ".png")
+
+            print("Saved: " + SAVE_PATH + img_name)
+
 def benchmark_ots():
-    HAZY_PATH = "D:/Datasets/OTS_BETA/haze/"
-    GT_PATH = "D:/Datasets/OTS_BETA/clear/"
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/OTS_BETA/haze/"
+    GT_PATH = "E:/Hazy Dataset Benchmark/OTS_BETA/clear/"
 
     AOD_RESULTS_PATH = "results/AODNet- Results - OTS-Beta/"
     FFA_RESULTS_PATH = "results/FFA Net - Results - OTS-Beta/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OTS-Beta/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OTS-Beta/"
     EDPN_DEHAZE_PATH = "results/EDPN - Results - OTS-Beta/"
+    OUR_PATH = "results/Ours - Results - OTS-Beta/"
 
     EXPERIMENT_NAME = "metrics - 1"
-    TRANSMISSION_CHECKPT = "checkpoint/transmission_albedo_estimator_v1.04_2.pt"
-    AIRLIGHT_CHECKPT = "checkpoint/airlight_estimator_v1.04_1.pt"
-
     SAVE_PATH = "results/RESIDE-OTS Beta/"
     BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
-
-    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
     hazy_list = glob.glob(HAZY_PATH + "*0.95_0.2.jpg") #specify atmosphere intensity
     aod_list = glob.glob(AOD_RESULTS_PATH + "*.jpg")
@@ -36,21 +65,15 @@ def benchmark_ots():
     grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
     cycle_dh_list = glob.glob(CYCLE_DEHAZE_PATH + "*.jpg")
     edpn_list = glob.glob(EDPN_DEHAZE_PATH + "*.png")
+    our_list = glob.glob(OUR_PATH + "*.jpg")
 
-    print("Found images: ", len(hazy_list), len(ffa_list), len(grid_list), len(cycle_dh_list), len(aod_list))
-
-    gray_img_op = transforms.Compose([transforms.ToPILImage(),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize((0.5), (0.5))])
-
-    rgb_img_op = transforms.Compose([transforms.ToPILImage(),
-                                     transforms.ToTensor(),
-                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    checkpt = torch.load(TRANSMISSION_CHECKPT)
-    transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-    print("Transmission GAN model loaded.")
+    print(len(hazy_list))
+    print(len(aod_list))
+    print(len(ffa_list))
+    print(len(grid_list))
+    print(len(cycle_dh_list))
+    print(len(edpn_list))
+    print(len(our_list))
 
     FIG_ROWS = 9
     FIG_COLS = 4
@@ -65,8 +88,8 @@ def benchmark_ots():
     count = 0
 
     with open(BENCHMARK_PATH, "w") as f:
-        for i, (hazy_path, ffa_path, grid_path, cycle_dh_path, aod_path, edpn_path) in \
-                enumerate(zip(hazy_list, ffa_list, grid_list, cycle_dh_list, aod_list, edpn_list)):
+        for i, (hazy_path, ffa_path, grid_path, cycle_dh_path, aod_path, edpn_path, our_path) in \
+                enumerate(zip(hazy_list, ffa_list, grid_list, cycle_dh_list, aod_list, edpn_list, our_list)):
             with torch.no_grad():
                 count = count + 1
                 img_name = hazy_path.split("\\")[1]
@@ -94,26 +117,10 @@ def benchmark_ots():
                 cycle_dehaze_img = cv2.imread(cycle_dh_path)
                 cycle_dehaze_img = cv2.resize(cycle_dehaze_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
-                # input_tensor = gray_img_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2GRAY)).to(device)
-                input_tensor = rgb_img_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(device)
-                transmission_img = transmission_G(torch.unsqueeze(input_tensor, 0))
-                transmission_img = torch.squeeze(transmission_img).cpu().numpy()
-
-                # remove 0.5 normalization for dehazing equation
-                transmission_img = ((transmission_img * 0.5) + 0.5)
-
-                hazy_img = ((hazy_img * 0.5) + 0.5)
-                dark_channel = dark_channel_prior.get_dark_channel(hazy_img, 15)
-                dcp_transmission = dark_channel_prior.estimate_transmission(hazy_img, dark_channel_prior.estimate_atmosphere(hazy_img, dark_channel),
-                                                                            dark_channel)
-
-                # DCP is not 0-1 range
-                dcp_transmission = cv2.normalize(dcp_transmission, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX,
-                                                 dtype=cv2.CV_32F)
-                transmission_blend = dcp_transmission * 0.0 + transmission_img * 1.0
-
                 dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
-                clear_img = dehazing_proper.perform_dehazing_equation_with_transmission(hazy_img, transmission_blend, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V1, AIRLIGHT_CHECKPT, 0.8)
+
+                clear_img = cv2.imread(our_path)
+                clear_img = cv2.resize(clear_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
                 # normalize images
                 hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
@@ -193,6 +200,7 @@ def benchmark_ots():
 
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, clear_img), 4)
                 print("[Ours] SSIM of ", img_name, " : ", SSIM, file=f)
+                print("[Ours] SSIM of ", img_name, " : ", SSIM)
                 average_SSIM[6] += SSIM
 
                 print(file=f)
@@ -252,6 +260,7 @@ def benchmark_ots():
 
 
 def main():
+    produce_ots()
     benchmark_ots()
 
 # FIX for broken pipe num_workers issue.
