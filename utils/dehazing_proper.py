@@ -257,12 +257,63 @@ class ModelDehazer():
             dh.AirlightEstimator_V2(num_channels=3, disc_feature_size=64, out_features=3).to(self.gpu_device)
         self.atmosphere_models["airlight_estimator_v1.06_1" + str(AtmosphereMethod.NETWORK_ESTIMATOR_V1)].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
+        checkpt = torch.load("checkpoint/airlight_gen_v1.01_1.pt")
+        self.atmosphere_models["airlight_gen_v1.01_1"] = cg.Generator(input_nc=3, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        self.atmosphere_models["airlight_gen_v1.01_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+
+        checkpt = torch.load("checkpoint/airlight_gen_v1.01_2.pt")
+        self.atmosphere_models["airlight_gen_v1.01_2"] = cg.Generator(input_nc=3, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        self.atmosphere_models["airlight_gen_v1.01_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+
         print("Dehazing models loaded.")
 
     def set_models(self, albedo_model_name, transmission_model_name, airlight_estimator_name, atmosphere_method):
         self.albedo_model_key = albedo_model_name
         self.transmission_model_key = transmission_model_name
         self.airlight_model_key = airlight_estimator_name + str(atmosphere_method)
+
+
+    def set_models_v2(self, albedo_model_name, transmission_model_name, airlight_estimator_name):
+        self.albedo_model_key = albedo_model_name
+        self.transmission_model_key = transmission_model_name
+        self.airlight_model_key = airlight_estimator_name
+
+    def perform_dehazing_direct_v2(self, hazy_img):
+        transform_op = transforms.Compose([transforms.ToTensor(),
+                                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+        hazy_tensor = transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
+        hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
+
+        # translate to albedo first
+        hazy_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
+
+        transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
+        transmission_img = torch.squeeze(transmission_img).cpu().numpy()
+
+        # remove 0.5 normalization for dehazing equation
+        T = ((transmission_img * 0.5) + 0.5)
+        # T = T * 0.9
+        #hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
+        # print("Shape: ", np.shape(hazy_tensor))
+
+        atmosphere_map = (self.atmosphere_models[self.airlight_model_key](hazy_tensor).cpu() * 0.5) + 0.5  # normalize to 0.0 - 1.0
+        atmosphere_map = torch.squeeze(atmosphere_map)
+        #atmosphere_map = atmosphere_map - atmosphere_sensitivity
+        atmosphere_map = atmosphere_map.numpy()
+
+        print("Shape of atmosphere map: ", np.shape(atmosphere_map))
+
+        hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        clear_img = np.ones_like(hazy_img)
+        T = np.resize(T, np.shape(clear_img[:, :, 0]))
+        # print("Airlight estimator network loaded. Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T), " Atmosphere estimate: ", np.shape(atmosphere))
+
+        clear_img[:, :, 0] = (hazy_img[:, :, 0] - atmosphere_map[0]) / T
+        clear_img[:, :, 1] = (hazy_img[:, :, 1] - atmosphere_map[1]) / T
+        clear_img[:, :, 2] = (hazy_img[:, :, 2] - atmosphere_map[2]) / T
+
+        return np.clip(clear_img, 0.0, 1.0)
 
     def perform_dehazing_direct(self, hazy_img, atmosphere_sensitivity):
 

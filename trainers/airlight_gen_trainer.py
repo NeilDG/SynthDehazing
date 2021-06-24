@@ -23,7 +23,7 @@ class AirlightGenTrainer:
         self.d_lr = d_lr
 
         if (is_unet == 1):
-            self.G_A = un.UnetGenerator(input_nc=3, output_nc=3, num_downs=8).to(self.gpu_device)
+            self.G_A = un.UnetGenerator(input_nc=3, output_nc=3, num_downs=6).to(self.gpu_device)
         else:
             self.G_A = cg.Generator(input_nc=3, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
 

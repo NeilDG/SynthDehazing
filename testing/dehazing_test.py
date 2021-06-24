@@ -585,7 +585,7 @@ def main():
     #perform_airlight_predictions("airlight_estimator_v1.04_2", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.04_3", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.06_1", "albedo_transfer_v1.04_1", 18)
-    perform_atmospheric_map_estimation("airlight_gen_v1.01_1", False, 10)
+    perform_atmospheric_map_estimation("airlight_gen_v1.01_2", False, 10)
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_3")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_4")

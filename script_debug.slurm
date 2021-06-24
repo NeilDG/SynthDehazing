@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J TR_DB
+#SBATCH -J AG_DB
 #SBATCH --partition=debug
 #SBATCH --qos=240c-1h_debug
 #SBATCH --ntasks=1
@@ -18,5 +18,5 @@ module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
 
-srun python transmission_main.py --iteration=$ITERATION --coare=1 --is_unet=0 --edge_weight=5.0 --img_to_load=-1 --load_previous=0 --batch_size=64
+srun python airlight_gen_main.py --iteration=$ITERATION --coare=1 --is_unet=1 --edge_weight=5.0 --img_to_load=-1 --load_previous=0 --batch_size=512
 conda deactivate
