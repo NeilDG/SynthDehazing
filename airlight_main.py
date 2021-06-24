@@ -32,11 +32,12 @@ parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--airlight_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
-parser.add_option('--batch_size', type=int, help="batch_size", default="256")
+parser.add_option('--batch_size', type=int, help="batch_size", default="512")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network using same architecture for A and B. \n "
                                                                                      "Accepts albedo input. \n"
                                                                                      "New architecture based on DCGAN. \n"
-                                                                                     "Airlight range increased to 0.25 - 1.8")
+                                                                                     "Airlight range converted to uniform [0.5 - 1.8] \n"
+                                                                                     "Range value deducted by 0.3 to account for discrepancies in real-world data.")
 
 #--img_to_load=-1 --load_previous=0
 # Update config if on COARE

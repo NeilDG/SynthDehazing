@@ -321,7 +321,7 @@ def load_airlight_train_dataset(path_albedo, path_styled, path_depth, batch_size
     data_loader = torch.utils.data.DataLoader(
         image_dataset.AirlightDataset(albedo_list, path_styled, path_depth, (32, 32), False),
         batch_size=batch_size,
-        num_workers=3,
+        num_workers=5,
         shuffle=True
     )
 
@@ -335,7 +335,7 @@ def load_airlight_test_dataset(path_albedo, path_styled, path_depth, batch_size=
     data_loader = torch.utils.data.DataLoader(
         image_dataset.AirlightDataset(albedo_list, path_styled, path_depth, (32, 32), False),
         batch_size=batch_size,
-        num_workers=2,
+        num_workers=1,
         shuffle=True
     )
 

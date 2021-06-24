@@ -23,11 +23,12 @@ def produce_ihaze():
 
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
 
-    TRANSMISSION_CHECKPT = "transmission_albedo_estimator_v1.06_4"
-    AIRLIGHT_CHECKPT = "airlight_estimator_v1.05_1"
+    ALBEDO_CHECKPT = "albedo_transfer_v1.04_1"
+    TRANSMISSION_CHECKPT = "transmission_albedo_estimator_v1.08_1"
+    AIRLIGHT_CHECKPT = "airlight_estimator_v1.06_1"
 
     model_dehazer = dehazing_proper.ModelDehazer()
-    model_dehazer.set_models(TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V1)
+    model_dehazer.set_models(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V1)
 
     for i, (hazy_path) in enumerate(hazy_list):
         with torch.no_grad():
@@ -35,8 +36,8 @@ def produce_ihaze():
             hazy_img = cv2.imread(hazy_path)
             hazy_img = cv2.resize(hazy_img, (512, 512))
 
-            #clear_img = model_dehazer.perform_dehazing(hazy_img, 0.5, 0.3)
-            clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.3)
+            clear_img = model_dehazer.perform_dehazing(hazy_img, 0.7, 0.3)
+            #clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.3)
             clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             cv2.imwrite(SAVE_PATH + img_name + ".png", clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
 

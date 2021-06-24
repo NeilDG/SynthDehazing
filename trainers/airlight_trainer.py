@@ -16,13 +16,8 @@ class AirlightTrainer:
     def __init__(self, gpu_device, batch_size, lr=0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
-        # self.A1 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(self.gpu_device)
-        # self.A2 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers = 3, residual_blocks = 7, add_mean = False).to(self.gpu_device)
         self.A1 = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64, out_features = 3).to(self.gpu_device)
         self.A2 = dh.AirlightEstimator_V2(num_channels = 6, disc_feature_size = 64, out_features = 3).to(self.gpu_device)
-
-        #self.A3 = dh.AirlightEstimator_V1(input_nc=3, downsampling_layers=3, residual_blocks=5, add_mean=True).to(self.gpu_device)
-        #self.A4 = dh.AirlightEstimator_V1(input_nc=6, downsampling_layers=3, residual_blocks=5, add_mean=True).to(self.gpu_device)
 
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
@@ -31,10 +26,6 @@ class AirlightTrainer:
         self.schedulerDA = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDA, patience=100000 / batch_size, threshold=0.00005)
         self.optimizerDB = torch.optim.Adam(self.A2.parameters(), lr=self.lr)
         self.schedulerDB = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDB, patience=100000 / batch_size, threshold=0.00005)
-        # self.optimizerDC = torch.optim.Adam(self.A3.parameters(), lr=self.lr)
-        # self.schedulerDC = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDC, patience=100000 / constants.batch_size, threshold=0.00005)
-        # self.optimizerDD = torch.optim.Adam(self.A4.parameters(), lr=self.lr)
-        # self.schedulerDD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerDD, patience=100000 / constants.batch_size, threshold=0.00005)
 
         self.fp16_scalers = [amp.GradScaler(),
                              amp.GradScaler()]

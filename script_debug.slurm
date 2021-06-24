@@ -18,5 +18,5 @@ module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
 
-srun python transmission_main.py --iteration=$ITERATION --coare=1 --is_unet=1 --edge_weight=1.0 --img_to_load=-1 --load_previous=0 --batch_size=32
+srun python transmission_main.py --iteration=$ITERATION --coare=1 --is_unet=0 --edge_weight=5.0 --img_to_load=-1 --load_previous=0 --batch_size=64
 conda deactivate

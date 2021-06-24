@@ -54,15 +54,14 @@ class TransmissionAlbedoDataset(data.Dataset):
         clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
 
         img_id = self.depth_dir + file_name
-        img_b = cv2.imread(img_id)
-        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2GRAY)
-        img_b = cv2.resize(img_b, np.shape(clear_img[:, :, 0]))
-        img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        transmission_img = cv2.imread(img_id)
+        transmission_img = cv2.cvtColor(transmission_img, cv2.COLOR_BGR2GRAY)
+        transmission_img = cv2.resize(transmission_img, np.shape(clear_img[:, :, 0]))
+        transmission_img = cv2.normalize(transmission_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         #T = dehazing_proper.generate_transmission(1 - img_b, np.random.uniform(0.0, 2.5)) #also include clear samples
-        T = dehazing_proper.generate_transmission(1 - img_b, np.random.normal(1.25, 0.75))
-        #T = dehazing_proper.generate_transmission(1 - img_b, 2.5)
-        #T_offset = np.full_like(T, 0.2)
-        #T = T + ((T < 0.1) * T_offset) #threshold
+        #T = dehazing_proper.generate_transmission(1 - img_b, np.random.normal(1.25, 0.75))
+        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.8, 0.75))
+        #T = np.maximum(T, 0.7)
 
         #formulate hazy img
         atmosphere = [0.0, 0.0, 0.0]
@@ -78,14 +77,14 @@ class TransmissionAlbedoDataset(data.Dataset):
 
         img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         img_a = self.initial_img_op(img_a)
-        img_b = cv2.resize(T, self.resize_shape)
+        transmission_img = cv2.resize(T, self.resize_shape)
 
         img_atmosphere = np.zeros_like(clear_img)
         img_atmosphere[:, :, 0] = atmosphere[0] * (1 - T)
         img_atmosphere[:, :, 1] = atmosphere[1] * (1 - T)
         img_atmosphere[:, :, 2] = atmosphere[2] * (1 - T)
 
-        img_atmosphere = self.depth_transform_op(img_atmosphere)
+        #img_atmosphere = self.initial_img_op(img_atmosphere)
 
         if(self.should_crop):
             crop_indices = transforms.RandomCrop.get_params(img_a, output_size=self.crop_size)
@@ -93,16 +92,19 @@ class TransmissionAlbedoDataset(data.Dataset):
 
             img_a = transforms.functional.crop(img_a, i, j, h, w)
             #img_b = transforms.functional.crop(img_b, i, j, h, w)
-            img_b = img_b[i: i + h, j: j + w]
+            transmission_img = transmission_img[i: i + h, j: j + w]
+            img_atmosphere = img_atmosphere[i: i + h, j: j + w]
+
 
         img_a = self.final_transform_op(img_a)
-        img_b = self.depth_transform_op(img_b)
+        transmission_img = self.depth_transform_op(transmission_img)
+        img_atmosphere = self.final_transform_op(img_atmosphere)
 
         if(self.return_ground_truth):
-            img_c = self.final_transform_op(self.initial_img_op(clear_img_uint))
-            return file_name, img_a, img_b, img_c, img_atmosphere
+            ground_truth_img = self.final_transform_op(self.initial_img_op(clear_img_uint))
+            return file_name, img_a, transmission_img, ground_truth_img, img_atmosphere
         else:
-            return file_name, img_a, img_b, img_atmosphere #hazy albedo img, transmission map
+            return file_name, img_a, transmission_img, img_atmosphere #hazy albedo img, transmission map
 
     def __len__(self):
         return len(self.image_list_a)
@@ -138,10 +140,10 @@ class TransmissionAlbedoDatasetTest(data.Dataset):
         return len(self.image_list_a)
 
 class AirlightDataset(data.Dataset):
-    #ATMOSPHERE_MIN = 0.5
-    #ATMOSPHERE_MAX = 1.2
-    ATMOSPHERE_MIN = 0.25
+    ATMOSPHERE_MIN = 0.5
     ATMOSPHERE_MAX = 1.8
+    # ATMOSPHERE_MIN = 0.2
+    # ATMOSPHERE_MAX = 1.2
 
     @staticmethod
     def atmosphere_mean():
@@ -185,14 +187,17 @@ class AirlightDataset(data.Dataset):
         img_b = cv2.resize(img_b, np.shape(albedo_img[:, :, 0]))
         img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         #img_b = cv2.resize(img_b, self.resize_shape)
-        T = dehazing_proper.generate_transmission(1 - img_b, np.random.normal(1.25, 0.75))
+        #T = dehazing_proper.generate_transmission(1 - img_b, np.random.normal(1.25, 0.75))
+        T = dehazing_proper.generate_transmission(1 - img_b, np.random.normal(1.8, 0.75))
 
         #formulate hazy img
         atmosphere = [0.0, 0.0, 0.0]
         spread = 0.025
-        atmosphere[0] = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        # atmosphere[0] = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        atmosphere[0] = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
         atmosphere[1] = np.random.normal(atmosphere[0], spread) #randomize by gaussian on other channels using R channel atmosphere
         atmosphere[2] = np.random.normal(atmosphere[0], spread)
+
 
         T = np.resize(T, np.shape(albedo_img[:, :, 0]))
         albedo_hazy_img = np.zeros_like(albedo_img)
@@ -234,7 +239,7 @@ class AirlightDataset(data.Dataset):
             transforms.Normalize((0.5,), (0.5,))
         ])
 
-        airlight_tensor = torch.tensor(atmosphere, dtype = torch.float32)
+        airlight_tensor = torch.tensor(atmosphere, dtype = torch.float32) - 0.3
         #airlight_tensor = self.airlight_op(airlight_tensor)
 
         return file_name, albedo_hazy_img, styled_hazy_img, airlight_tensor #hazy albedo img, transmission map, airlight

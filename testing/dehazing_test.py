@@ -230,8 +230,8 @@ def mse(predictions, targets):
     return ((predictions - targets) ** 2).mean()
 
 def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num_albedo_blocks):
-    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
-    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    ABS_PATH_RESULTS = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
+    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(airlight_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -300,6 +300,7 @@ def perform_transmission_map_estimation(model_checkpt_name, is_unet, blocks = 8)
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+
     if(is_unet == True):
         G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs= blocks).to(device)
     else:
@@ -335,6 +336,74 @@ def perform_transmission_map_estimation(model_checkpt_name, is_unet, blocks = 8)
             mse = l2_loss(transmission_like, transmission_batch).cpu().item()
             psnr = kornia.losses.psnr(transmission_batch, transmission_like, torch.max(transmission_batch).item()).cpu().item()
             ssim_val = ssim(transmission_batch, transmission_like).cpu().item()
+
+            ave_losses[0] += mae
+            ave_losses[1] += mse
+            ave_losses[2] += psnr
+            ave_losses[3] += ssim_val
+
+            count = count + 1
+            print("MAE: ", np.round(mae, 5))
+            print("MSE: ", np.round(mse, 5))
+            print("PSNR: ", np.round(psnr, 5))
+            print("SSIM: ", np.round(ssim_val, 5))
+            print("MAE: ", np.round(mae, 5), file = f)
+            print("MSE: ", np.round(mse, 5), file = f)
+            print("PSNR: ", np.round(psnr, 5), file = f)
+            print("SSIM: ", np.round(ssim_val, 5), file = f)
+
+        ave_losses[0] = np.round(ave_losses[0] / count * 1.0, 5)
+        ave_losses[1] = np.round(ave_losses[1] / count * 1.0, 5)
+        ave_losses[2] = np.round(ave_losses[2] / count * 1.0, 5)
+        ave_losses[3] = np.round(ave_losses[3] / count * 1.0, 5)
+
+        print("Overall MAE: " + str(ave_losses[0]), file=f)
+        print("Overall MSE: " + str(ave_losses[1]), file=f)
+        print("Overall PSNR: " + str(ave_losses[2]), file=f)
+        print("Overall SSIM: " + str(ave_losses[3]), file=f)
+
+def perform_atmospheric_map_estimation(model_checkpt_name, is_unet, blocks = 8):
+    ABS_PATH_RESULTS = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
+    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+
+    if (is_unet == 1):
+        G_A = un.UnetGenerator(input_nc=3, output_nc=3, num_downs=8).to(device)
+    else:
+        G_A = cycle_gan.Generator(input_nc=3, output_nc=3, n_residual_blocks=10).to(device)
+
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
+    G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
+    G_A.eval()
+
+    print("G atmospheric network loaded")
+    print("===================================================")
+
+    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 128, 50000, 12)
+
+    ave_losses = [0.0, 0.0, 0.0, 0.0]
+    count = 0
+    with open(PATH_TO_FILE, "w") as f, torch.no_grad():
+        for i, (test_data) in enumerate(test_loader, 0):
+            _, rgb_batch, _, atmospheric_batch = test_data
+            rgb_tensor = rgb_batch.to(device).float()
+            atmospheric_batch = atmospheric_batch.to(device).float()
+            atmospheric_like = G_A(rgb_tensor)
+
+            atmospheric_batch = (atmospheric_batch * 0.5) + 0.5 #remove tanh normalization
+            atmospheric_like = (atmospheric_like * 0.5) + 0.5
+
+            #use common losses in torch and kornia
+            l1_loss = nn.L1Loss()
+            l2_loss = nn.MSELoss()
+            ssim = ssim_loss.SSIM()
+
+            mae = l1_loss(atmospheric_like, atmospheric_batch).cpu().item()
+            mse = l2_loss(atmospheric_like, atmospheric_batch).cpu().item()
+            psnr = kornia.losses.psnr(atmospheric_batch, atmospheric_like, torch.max(atmospheric_batch).item()).cpu().item()
+            ssim_val = ssim(atmospheric_batch, atmospheric_like).cpu().item()
 
             ave_losses[0] += mae
             ave_losses[1] += mse
@@ -515,20 +584,24 @@ def main():
     #perform_airlight_predictions("airlight_estimator_v1.05_2", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.04_2", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.04_3", "albedo_transfer_v1.04_1", 18)
+    #perform_airlight_predictions("airlight_estimator_v1.06_1", "albedo_transfer_v1.04_1", 18)
+    perform_atmospheric_map_estimation("airlight_gen_v1.01_1", False, 10)
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_3")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_4")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_5")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_6")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_7")
-    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_1", False)
-    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_2", True)
-    perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_3", True)
-    perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_4", False)
-    perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_5", False)
-    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_1", False)
-    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_2", False)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_1", False, 8)
+    # #perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_2", True, 8)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_3", True, 8)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_4", False, 8)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.06_5", False, 8)
+    # # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_1", False)
+    # # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_2", False)
+    # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_4", False, 10)
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_3", False, 10)
+    #perform_transmission_map_estimation("transmission_albedo_estimator_v1.08_1", False, 10)
     #save_transmissions("transmission_albedo_estimator_v1.06_1", False)
 
     #perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
