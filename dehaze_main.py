@@ -30,13 +30,16 @@ parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--adv_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--psnr_loss_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--num_blocks', type=int, help="Num Blocks", default = 12)
-parser.add_option('--batch_size', type=int, help="batch_size", default="16")
-parser.add_option('--g_lr', type=float, help="LR", default="0.00002")
-parser.add_option('--d_lr', type=float, help="LR", default="0.00002")
+parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
+parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
+parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
+parser.add_option('--is_a_unet',type=int, help="Is Unet?", default="0")
+parser.add_option('--a_num_blocks', type=int, help="Num Blocks", default = 10)
+parser.add_option('--batch_size', type=int, help="batch_size", default="8")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--dehaze_filter_strength', type=float, help="LR", default="0.5")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Cycle Dehazer GAN.")
 
@@ -54,7 +57,7 @@ def update_config(opts):
         constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
 
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
-        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_ALBED1O_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
         constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo - pseudo/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
@@ -83,32 +86,12 @@ def main(argv):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    dehazer = dehaze_trainer.DehazeTrainer(device, opts.g_lr, opts.d_lr, opts.num_blocks, opts.batch_size)
-    dehazer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.psnr_loss_weight, opts.comments)
+    dehazer = dehaze_trainer.DehazeTrainer(device, opts.g_lr, opts.d_lr, opts.batch_size)
+    dehazer.declare_models(opts.t_num_blocks, opts.is_t_unet, opts.a_num_blocks, opts.is_a_unet)
+    dehazer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
 
     start_epoch = 0
     iteration = 0
-
-    #load transmission network
-    checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.04_2.pt")
-    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-    transmission_G.eval()
-    print("Transmission network loaded.")
-
-    #load albedo
-    checkpt = torch.load("checkpoint/albedo_transfer_v1.04_1.pt")
-    albedo_G = ffa_gan.FFA(gps = 3, blocks = 18).to(device)
-    albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-    albedo_G.eval()
-    print("Albedo network loaded.")
-
-    # load atmosphere estimator
-    checkpt = torch.load("checkpoint/airlight_estimator_v1.04_1.pt")
-    atmosphere_D = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64).to(device)
-    atmosphere_D.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
-    atmosphere_D.eval()
-    print("Albedo network loaded.")
 
     if(opts.load_previous):
         dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
@@ -128,53 +111,52 @@ def main(argv):
 
     # Plot some training images
     if(constants.is_coare == 0):
-        _, a, b, c = next(iter(train_loader))
+        _, a, b, c, d = next(iter(train_loader))
         show_images(a, "Training - Hazy Images")
         show_images(b, "Training - Transmission Images")
         show_images(c, "Training - Clear Images")
+        show_images(d, "Training - Atmosphere Images")
 
     print("Starting Training Loop...")
     # for i in range(len(test_loaders)):
     #     _, hazy_batch = next(iter(test_loaders[i]))
     #     hazy_tensor = hazy_batch.to(device)
     #
-    #     with torch.no_grad():
-    #         albedo_like = albedo_G(hazy_tensor)
-    #         transmission_like = transmission_G(albedo_like)
-    #         atmosphere_like = atmosphere_D(hazy_tensor)
+    #     dehazer.visdom_infer_test(hazy_tensor, i)
+    #     break
     #
-    #     dehazer.visdom_infer_test(hazy_tensor, transmission_like, atmosphere_like, i)
+    # for i, train_data in enumerate(train_loader, 0):
+    #     _, hazy_batch, transmission_batch, clear_batch, atmosphere_batch = train_data
+    #     hazy_tensor = hazy_batch.to(device)
+    #     clear_tensor = clear_batch.to(device)
+    #     transmission_tensor = transmission_batch.to(device).float()
+    #     atmosphere_tensor = atmosphere_batch.to(device).float()
+    #
+    #     dehazer.visdom_infer_train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
+    #     break
 
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
         for i, train_data in enumerate(train_loader, 0):
-            _, hazy_batch, transmission_batch, clear_batch = train_data
+            _, hazy_batch, transmission_batch, clear_batch, atmosphere_batch = train_data
             hazy_tensor = hazy_batch.to(device)
             clear_tensor = clear_batch.to(device)
+            transmission_tensor = transmission_batch.to(device).float()
+            atmosphere_tensor = atmosphere_batch.to(device).float()
 
-            with torch.no_grad():
-                albedo_like = albedo_G(hazy_tensor)
-                transmission_like = transmission_G(albedo_like)
-                atmosphere_like = atmosphere_D(hazy_tensor)
+            dehazer.train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
 
-            dehazer.train(hazy_tensor, transmission_like, atmosphere_like, clear_tensor)
-
-            if (i % 50 == 0):
+            if (i % 5000 == 0):
                 dehazer.save_states(epoch, iteration)
                 dehazer.visdom_report(iteration)
-                dehazer.visdom_infer_train(hazy_tensor, transmission_like, atmosphere_like, clear_tensor)
+                dehazer.visdom_infer_train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
 
                 iteration = iteration + 1
-                for i in range(len(test_loaders)):
-                    _, hazy_batch = next(iter(test_loaders[i]))
+                for k in range(len(test_loaders)):
+                    _, hazy_batch = next(iter(test_loaders[k]))
                     hazy_tensor = hazy_batch.to(device)
 
-                    with torch.no_grad():
-                        albedo_like = albedo_G(hazy_tensor)
-                        transmission_like = transmission_G(albedo_like)
-                        atmosphere_like = atmosphere_D(hazy_tensor)
-
-                    dehazer.visdom_infer_test(hazy_tensor, transmission_like, atmosphere_like, i)
+                    dehazer.visdom_infer_test(hazy_tensor, k)
 
                     index = (index + 1) % len(test_loaders[0])
 
