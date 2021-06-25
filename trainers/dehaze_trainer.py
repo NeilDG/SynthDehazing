@@ -185,7 +185,7 @@ class DehazeTrainer:
             real_tensor = torch.ones_like(prediction)
             A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            clear_like = self.provide_clean_like(hazy_tensor, transmission_tensor, atmosphere_tensor)
+            clear_like = self.provide_clean_like(hazy_tensor, self.G_T(hazy_tensor), self.G_A(hazy_tensor))
             clear_like_loss = self.likeness_loss(clear_like, clear_tensor) * self.likeness_weight
 
             errG = T_likeness_loss + T_edge_loss + T_adv_loss + T_likeness_loss + T_edge_loss + T_adv_loss + \
@@ -215,7 +215,7 @@ class DehazeTrainer:
     def visdom_infer_train(self, hazy_tensor, transmission_tensor, atmosphere_tensor, clean_tensor):
         with torch.no_grad():
             albedo_tensor = self.albedo_G(hazy_tensor)
-            clear_like = self.provide_clean_like(hazy_tensor, transmission_tensor, atmosphere_tensor)
+            clear_like = self.provide_clean_like(hazy_tensor, self.G_T(hazy_tensor), self.G_A(hazy_tensor))
             #transmission_like = self.G_T(hazy_tensor)
             #atmosphere_like = self.G_A(atmosphere_tensor)
 
