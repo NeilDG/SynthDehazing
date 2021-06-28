@@ -15,7 +15,7 @@ cd scratch2/Visdom
 sbatch slurm_install.slurm
 sbatch slurm_visdom_test.slurm
 sbatch -w saliksik-cpu-23 visdom_run.slurm
-sbatch -w saliksik-cpu-23 --dependency=afterany:235228 visdom_run.slurm
+sbatch -w saliksik-cpu-23 --dependency=afterany:235321 visdom_run.slurm
 
 sbatch script_debug.slurm
 sbatch script_1.slurm
