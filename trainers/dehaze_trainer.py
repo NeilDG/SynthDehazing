@@ -41,9 +41,9 @@ class DehazeTrainer:
         self.D_T = dh.Discriminator(input_nc=1).to(self.gpu_device)
 
         if (is_a_unet == 1):
-            self.G_A = un.UnetGenerator(input_nc=3, output_nc=3, num_downs= a_blocks).to(self.gpu_device)
+            self.G_A = un.UnetGenerator(input_nc=6, output_nc=3, num_downs= a_blocks).to(self.gpu_device)
         else:
-            self.G_A = cg.Generator(input_nc=3, output_nc=3, n_residual_blocks= a_blocks).to(self.gpu_device)
+            self.G_A = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks= a_blocks).to(self.gpu_device)
 
         self.D_A = dh.Discriminator(input_nc=3).to(self.gpu_device)
 
@@ -66,6 +66,7 @@ class DehazeTrainer:
         self.losses_dict[constants.G_LOSS_KEY] = []
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
         self.losses_dict[constants.LIKENESS_LOSS_KEY] = []
+        self.losses_dict[constants.CYCLE_LOSS_KEY] = []
         self.losses_dict[constants.EDGE_LOSS_KEY] = []
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
@@ -75,17 +76,19 @@ class DehazeTrainer:
         self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
+        self.caption_dict[constants.CYCLE_LOSS_KEY] = "Clear like loss per iteration"
         self.caption_dict[constants.EDGE_LOSS_KEY] = "Edge loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
 
 
-    def update_penalties(self, adv_weight, likeness_weight, edge_weight, comments):
+    def update_penalties(self, adv_weight, likeness_weight, edge_weight, clear_like_weight, comments):
         # what penalties to use for losses?
         self.adv_weight = adv_weight
         self.likeness_weight = likeness_weight
         self.edge_weight = edge_weight
+        self.clear_like_weight = clear_like_weight
 
         HYPERPARAMS_PATH = "checkpoint/" + constants.DEHAZER_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
@@ -97,6 +100,7 @@ class DehazeTrainer:
             print("Adv weight: ", str(self.adv_weight), file=f)
             print("Likeness weight: ", str(self.likeness_weight), file=f)
             print("Edge loss weight: ", str(self.edge_weight), file=f)
+            print("Clear like loss weight: ", str(self.clear_like_weight), file=f)
 
     def adversarial_loss(self, pred, target):
         loss = nn.BCEWithLogitsLoss()
@@ -131,7 +135,7 @@ class DehazeTrainer:
         # print("Range of T: ", torch.min(transmission_tensor), torch.max(transmission_tensor))
         # print("Range of A: ", torch.min(atmosphere_tensor), torch.max(atmosphere_tensor))
 
-        clean_like = (hazy_tensor - atmosphere_tensor) / transmission_tensor
+        clean_like = ((hazy_tensor - atmosphere_tensor) / transmission_tensor)
         clean_like = torch.clip(clean_like, 0.0, 1.0)
 
         return clean_like
@@ -141,7 +145,8 @@ class DehazeTrainer:
         with amp.autocast():
             albedo_tensor = self.albedo_G(hazy_tensor)
             transmission_like = self.G_T(albedo_tensor)
-            atmosphere_like = self.G_A(atmosphere_tensor)
+            concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
+            atmosphere_like = self.G_A(concat_input)
 
             self.D_A.train()
             self.optimizerD.zero_grad()
@@ -178,15 +183,15 @@ class DehazeTrainer:
             real_tensor = torch.ones_like(prediction)
             T_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            A_likeness_loss = self.likeness_loss(self.G_A(hazy_tensor), atmosphere_tensor) * self.likeness_weight
-            A_edge_loss = self.edge_loss(self.G_A(hazy_tensor), atmosphere_tensor) * self.edge_weight
+            A_likeness_loss = self.likeness_loss(self.G_A(concat_input), atmosphere_tensor) * self.likeness_weight
+            A_edge_loss = self.edge_loss(self.G_A(concat_input), atmosphere_tensor) * self.edge_weight
 
-            prediction = self.D_A(self.G_A(hazy_tensor))
+            prediction = self.D_A(self.G_A(concat_input))
             real_tensor = torch.ones_like(prediction)
             A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            clear_like = self.provide_clean_like(hazy_tensor, self.G_T(hazy_tensor), self.G_A(hazy_tensor))
-            clear_like_loss = self.likeness_loss(clear_like, clear_tensor) * self.likeness_weight
+            clear_like = self.provide_clean_like(hazy_tensor, self.G_T(hazy_tensor), self.G_A(concat_input))
+            clear_like_loss = self.likeness_loss(clear_like, clear_tensor) * self.clear_like_weight
 
             errG = T_likeness_loss + T_edge_loss + T_adv_loss + T_likeness_loss + T_edge_loss + T_adv_loss + \
                    A_likeness_loss + A_edge_loss + A_adv_loss + A_likeness_loss + A_edge_loss + A_adv_loss + clear_like_loss
@@ -201,7 +206,8 @@ class DehazeTrainer:
         # what to put to losses dict for visdom reporting?
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
-        self.losses_dict[constants.LIKENESS_LOSS_KEY].append(T_likeness_loss.item() + A_likeness_loss.item() + clear_like_loss.item())
+        self.losses_dict[constants.LIKENESS_LOSS_KEY].append(T_likeness_loss.item() + A_likeness_loss.item())
+        self.losses_dict[constants.CYCLE_LOSS_KEY].append(clear_like_loss.item())
         self.losses_dict[constants.EDGE_LOSS_KEY].append(T_edge_loss.item() + A_edge_loss.item())
         self.losses_dict[constants.G_ADV_LOSS_KEY].append(T_adv_loss.item() + A_adv_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_T_fake_loss.item() + D_A_fake_loss.item())
@@ -215,25 +221,27 @@ class DehazeTrainer:
     def visdom_infer_train(self, hazy_tensor, transmission_tensor, atmosphere_tensor, clean_tensor):
         with torch.no_grad():
             albedo_tensor = self.albedo_G(hazy_tensor)
-            clear_like = self.provide_clean_like(hazy_tensor, self.G_T(hazy_tensor), self.G_A(hazy_tensor))
-            #transmission_like = self.G_T(hazy_tensor)
-            #atmosphere_like = self.G_A(atmosphere_tensor)
+            concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
+            transmission_like = self.G_T(hazy_tensor)
+            atmosphere_like = self.G_A(concat_input)
+            clear_like = self.provide_clean_like(hazy_tensor, transmission_like, atmosphere_like)
 
             self.visdom_reporter.plot_image(hazy_tensor, "Train Hazy images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
             self.visdom_reporter.plot_image(albedo_tensor, "Train Albedo-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
             self.visdom_reporter.plot_image(transmission_tensor, "Train Transmission images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
-            #self.visdom_reporter.plot_image(transmission_like, "Train Transmission-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
+            self.visdom_reporter.plot_image(transmission_like, "Train Transmission-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
             self.visdom_reporter.plot_image(atmosphere_tensor, "Train Atmosphere images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
-            #self.visdom_reporter.plot_image(atmosphere_like, "Train Atmosphere-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
+            self.visdom_reporter.plot_image(atmosphere_like, "Train Atmosphere-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
             self.visdom_reporter.plot_image(clear_like, "Train Clean-Like Images " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
             self.visdom_reporter.plot_image(clean_tensor, "Train Clean Images " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
 
     def visdom_infer_test(self, hazy_tensor, number):
         with torch.no_grad():
             albedo_tensor = self.albedo_G(hazy_tensor)
-            clear_like = self.provide_clean_like(hazy_tensor, self.G_T(albedo_tensor), self.G_A(hazy_tensor))
+            concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
             transmission_like = self.G_T(albedo_tensor)
-            atmosphere_like = self.G_A(hazy_tensor)
+            atmosphere_like = self.G_A(concat_input)
+            clear_like = self.provide_clean_like(hazy_tensor, transmission_like, atmosphere_like)
 
             self.visdom_reporter.plot_image(hazy_tensor, "Train Hazy images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
             self.visdom_reporter.plot_image(albedo_tensor, "Train Albedo-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))

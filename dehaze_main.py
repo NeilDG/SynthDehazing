@@ -31,17 +31,17 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="5.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--clear_like_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
-parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
+parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 8)
 parser.add_option('--is_a_unet',type=int, help="Is Unet?", default="0")
-parser.add_option('--a_num_blocks', type=int, help="Num Blocks", default = 10)
-parser.add_option('--batch_size', type=int, help="batch_size", default="8")
+parser.add_option('--a_num_blocks', type=int, help="Num Blocks", default = 8)
+parser.add_option('--batch_size', type=int, help="batch_size", default="16")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
-parser.add_option('--dehaze_filter_strength', type=float, help="LR", default="0.5")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Cycle Dehazer GAN.")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Joint training for transmission and atmospheric map. Size 256x256")
 
 #--img_to_load=-1 --load_previous=0
 #Update config if on COARE
@@ -88,7 +88,7 @@ def main(argv):
 
     dehazer = dehaze_trainer.DehazeTrainer(device, opts.g_lr, opts.d_lr, opts.batch_size)
     dehazer.declare_models(opts.t_num_blocks, opts.is_t_unet, opts.a_num_blocks, opts.is_a_unet)
-    dehazer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
+    dehazer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.clear_like_weight, opts.comments)
 
     start_epoch = 0
     iteration = 0
@@ -146,7 +146,7 @@ def main(argv):
 
             dehazer.train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
 
-            if (i % 5000 == 0):
+            if (i % 3000 == 0):
                 dehazer.save_states(epoch, iteration)
                 dehazer.visdom_report(iteration)
                 dehazer.visdom_infer_train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)

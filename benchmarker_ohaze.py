@@ -43,8 +43,8 @@ def produce_ohaze():
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
 
     ALBEDO_CHECKPT = "albedo_transfer_v1.04_1"
-    TRANSMISSION_CHECKPT = "transmission_albedo_estimator_v1.08_1"
-    AIRLIGHT_CHECKPT = "airlight_gen_v1.01_2"
+    TRANSMISSION_CHECKPT = "dehazer_v2.01_1"
+    AIRLIGHT_CHECKPT = "dehazer_v2.01_1"
 
     model_dehazer = dehazing_proper.ModelDehazer()
     model_dehazer.set_models_v2(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT)
@@ -66,7 +66,6 @@ def produce_ohaze():
             torchutils.save_image(A_tensor, SAVE_ATMOSPHERE_PATH + img_name + ".png")
 
             print("Saved: " + SAVE_PATH + img_name)
-            print("Network A atmosphere: ", np.average(A_tensor.cpu().numpy()))
 
 def benchmark_ohaze():
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"

@@ -23,11 +23,11 @@ def produce_ots():
     hazy_list = glob.glob(HAZY_PATH + "*0.95_0.2.jpg") #specify atmosphere intensity
 
     ALBEDO_CHECKPT = "albedo_transfer_v1.04_1"
-    TRANSMISSION_CHECKPT = "transmission_albedo_estimator_v1.07_3"
-    AIRLIGHT_CHECKPT = "airlight_estimator_v1.06_1"
+    TRANSMISSION_CHECKPT = "transmission_albedo_estimator_v1.08_1"
+    AIRLIGHT_CHECKPT = "airlight_gen_v1.03_1"
 
     model_dehazer = dehazing_proper.ModelDehazer()
-    model_dehazer.set_models(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT, dehazing_proper.AtmosphereMethod.NETWORK_ESTIMATOR_V1)
+    model_dehazer.set_models_v2(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT)
 
     for i, (hazy_path) in enumerate(hazy_list):
         with torch.no_grad():
@@ -36,13 +36,14 @@ def produce_ots():
             hazy_img = cv2.resize(hazy_img, (512, 512))
 
             #clear_img = model_dehazer.perform_dehazing(hazy_img, 0.8, 0.3)
-            clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.3)
+            #clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.3)
+            clear_img = model_dehazer.perform_dehazing_direct_v2(hazy_img)
             clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             cv2.imwrite(SAVE_PATH + img_name, clear_img)
 
-            T_tensor, A_tensor = model_dehazer.derive_T_and_A(hazy_img)
-            torchutils.save_image(T_tensor, SAVE_TRANSMISSION_PATH + img_name + ".png")
-            torchutils.save_image(A_tensor, SAVE_ATMOSPHERE_PATH + img_name + ".png")
+            # T_tensor, A_tensor = model_dehazer.derive_T_and_A(hazy_img)
+            # torchutils.save_image(T_tensor, SAVE_TRANSMISSION_PATH + img_name + ".png")
+            # torchutils.save_image(A_tensor, SAVE_ATMOSPHERE_PATH + img_name + ".png")
 
             print("Saved: " + SAVE_PATH + img_name)
 

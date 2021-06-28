@@ -59,9 +59,8 @@ class DehazingDataset(data.Dataset):
         transmission_img = cv2.resize(transmission_img, np.shape(clear_img[:, :, 0]))
         transmission_img = cv2.normalize(transmission_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         #T = dehazing_proper.generate_transmission(1 - img_b, np.random.uniform(0.0, 2.5)) #also include clear samples
-        #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.25, 0.75))
-        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.8, 0.75))
-        #T = np.maximum(T, 0.7)
+        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.25, 0.75))
+        #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.8, 0.75))
 
         #formulate hazy img
         atmosphere = [0.0, 0.0, 0.0]
@@ -83,9 +82,14 @@ class DehazingDataset(data.Dataset):
 
         img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         img_a = self.initial_img_op(img_a)
-        transmission_img = cv2.resize(T, self.resize_shape)
 
-        #img_atmosphere = self.initial_img_op(img_atmosphere)
+        #loosen T, A prediction
+        #T = np.maximum(T, 0.5)
+        #img_atmosphere = np.maximum(img_atmosphere, 0.5)
+        T = T - 0.5
+        img_atmosphere = img_atmosphere - 0.5
+
+        transmission_img = cv2.resize(T, self.resize_shape)
 
         if(self.should_crop):
             crop_indices = transforms.RandomCrop.get_params(img_a, output_size=self.crop_size)

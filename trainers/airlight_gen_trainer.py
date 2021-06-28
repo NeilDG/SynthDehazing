@@ -8,6 +8,7 @@ from model import vanilla_cycle_gan as cg
 from model import style_transfer_gan as sg
 from model import unet_gan as un
 from model import dehaze_discriminator as dh
+from model import ffa_net as ffa_gan
 import constants
 import torch
 import itertools
@@ -23,9 +24,9 @@ class AirlightGenTrainer:
         self.d_lr = d_lr
 
         if (is_unet == 1):
-            self.G_A = un.UnetGenerator(input_nc=3, output_nc=3, num_downs=6).to(self.gpu_device)
+            self.G_A = un.UnetGenerator(input_nc=6, output_nc=3, num_downs=6).to(self.gpu_device)
         else:
-            self.G_A = cg.Generator(input_nc=3, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+            self.G_A = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
 
         self.D_A = dh.Discriminator(input_nc=3).to(self.gpu_device)
 
@@ -38,6 +39,13 @@ class AirlightGenTrainer:
         self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience=100000 / batch_size, threshold=0.00005)
 
         self.fp16_scaler = amp.GradScaler()  # for automatic mixed precision
+
+        # load albedo
+        checkpt = torch.load("checkpoint/albedo_transfer_v1.04_1.pt")
+        self.albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(self.gpu_device)
+        self.albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        self.albedo_G.eval()
+        print("Albedo network loaded.")
 
     def initialize_dict(self):
         # what to store in visdom?
@@ -92,28 +100,20 @@ class AirlightGenTrainer:
 
         return loss(pred_grad, target_grad)
 
-    def train(self, rgb_tensor, depth_tensor):
+    def train(self, hazy_tensor, airlight_tensor):
         with amp.autocast():
-            depth_like = self.G_A(rgb_tensor)
-            # rgb_like = self.G_B(depth_tensor)
+            concat_input = torch.cat([hazy_tensor, self.albedo_G(hazy_tensor)], 1)
+            depth_like = self.G_A(concat_input)
 
             self.D_A.train()
-            # self.D_B.train()
             self.optimizerD.zero_grad()
 
-            prediction = self.D_A(depth_tensor)
+            prediction = self.D_A(airlight_tensor)
             real_tensor = torch.ones_like(prediction)
             fake_tensor = torch.zeros_like(prediction)
 
-            D_A_real_loss = self.adversarial_loss(self.D_A(depth_tensor), real_tensor) * self.adv_weight
+            D_A_real_loss = self.adversarial_loss(self.D_A(airlight_tensor), real_tensor) * self.adv_weight
             D_A_fake_loss = self.adversarial_loss(self.D_A(depth_like.detach()), fake_tensor) * self.adv_weight
-
-            # prediction = self.D_B(rgb_tensor)
-            # real_tensor = torch.ones_like(prediction)
-            # fake_tensor = torch.zeros_like(prediction)
-
-            # D_B_real_loss = self.adversarial_loss(self.D_B(rgb_tensor), real_tensor) * self.adv_weight
-            # D_B_fake_loss = self.adversarial_loss(self.D_B(rgb_like.detach()), fake_tensor) * self.adv_weight
 
             errD = D_A_real_loss + D_A_fake_loss
             if (self.fp16_scaler.scale(errD).item() > 0.1):
@@ -122,14 +122,13 @@ class AirlightGenTrainer:
                 self.schedulerD.step(errD)
 
             self.G_A.train()
-            # self.G_B.train()
             self.optimizerG.zero_grad()
 
             # print("Shape: ", np.shape(rgb_tensor), np.shape(depth_tensor))
-            A_likeness_loss = self.likeness_loss(self.G_A(rgb_tensor), depth_tensor) * self.likeness_weight
-            A_edge_loss = self.edge_loss(self.G_A(rgb_tensor), depth_tensor) * self.edge_weight
+            A_likeness_loss = self.likeness_loss(self.G_A(concat_input), airlight_tensor) * self.likeness_weight
+            A_edge_loss = self.edge_loss(self.G_A(concat_input), airlight_tensor) * self.edge_weight
 
-            prediction = self.D_A(self.G_A(rgb_tensor))
+            prediction = self.D_A(self.G_A(concat_input))
             real_tensor = torch.ones_like(prediction)
             A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
@@ -148,15 +147,14 @@ class AirlightGenTrainer:
             self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item())
             self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
             self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
-            # self.losses_dict[constants.D_B_FAKE_LOSS_KEY].append(D_B_fake_loss.item())
-            # self.losses_dict[constants.D_B_REAL_LOSS_KEY].append(D_B_real_loss.item())
 
     def visdom_report(self, iteration):
         self.visdom_reporter.plot_finegrain_loss("Transmission loss - " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
 
     def visdom_infer_train(self, train_gray_tensor, train_depth_tensor, id):
         with torch.no_grad():
-            train_depth_like = self.G_A(train_gray_tensor)
+            concat_input = torch.cat([train_gray_tensor, self.albedo_G(train_gray_tensor)], 1)
+            train_depth_like = self.G_A(concat_input)
 
         self.visdom_reporter.plot_image((train_gray_tensor), str(id) + " Training - RGB " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION))
         self.visdom_reporter.plot_image((train_depth_tensor), str(id) + " Training - Airlight " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION))
@@ -164,7 +162,8 @@ class AirlightGenTrainer:
 
     def visdom_infer_test(self, test_rgb_tensor, id):
         with torch.no_grad():
-            test_depth_like = self.G_A(test_rgb_tensor)
+            concat_input = torch.cat([test_rgb_tensor, self.albedo_G(test_rgb_tensor)], 1)
+            test_depth_like = self.G_A(concat_input)
 
         self.visdom_reporter.plot_image(test_rgb_tensor, str(id) + " Test - RGB " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION))
         self.visdom_reporter.plot_image(test_depth_like, str(id) + " Test - Airlight-Like" + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION))

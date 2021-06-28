@@ -32,14 +32,14 @@ parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
-parser.add_option('--batch_size', type=int, help="batch_size", default="32")
+parser.add_option('--batch_size', type=int, help="batch_size", default="8")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--is_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n"
                                                                                      "Using BCE-discriminator loss. 10 blocks. \n"
                                                                                      "128 x 128 patch size. \n"
-                                                                                     "Trained on styled images")
+                                                                                     "Trained on styled + unlit images")
 
 # --img_to_load=-1 --load_previous=0
 # Update config if on COARE
@@ -143,16 +143,17 @@ def main(argv):
             if ((i) % 2000 == 0):
                 gt.visdom_report(iteration)
                 gt.visdom_infer_train(rgb_tensor, atmosphere_tensor, 0)
-                for i in range(len(test_loaders)):
-                    _, rgb_batch = next(iter(test_loaders[i]))
+                for j in range(len(test_loaders)):
+                    _, rgb_batch = next(iter(test_loaders[j]))
                     rgb_batch = rgb_batch.to(device)
-                    gt.visdom_infer_test(rgb_batch, i)
+                    gt.visdom_infer_test(rgb_batch, j)
 
                     index = (index + 1) % len(test_loaders[0])
                     if (index == 0):
-                        test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_COMPLETE_3, opts.batch_size, 500),
+                        test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
                                         dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, opts.batch_size, 500),
-                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500)]
+                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
+                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
                 gt.save_states(epoch, iteration)
 
 # FIX for broken pipe num_workers issue.
