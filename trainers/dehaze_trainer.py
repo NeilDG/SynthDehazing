@@ -131,6 +131,10 @@ class DehazeTrainer:
         atmosphere_tensor = (atmosphere_tensor * 0.5) + 0.5
         transmission_tensor = (transmission_tensor * 0.5) + 0.5
 
+        #apply opening
+        #atmosphere_tensor = kornia.morphology.opening(atmosphere_tensor, torch.ones(5, 5).to(self.gpu_device))
+        #transmission_tensor = kornia.morphology.opening(transmission_tensor, torch.ones(5, 5).to(self.gpu_device))
+
         # print("Range of hazy: ", torch.min(hazy_tensor), torch.max(hazy_tensor))
         # print("Range of T: ", torch.min(transmission_tensor), torch.max(transmission_tensor))
         # print("Range of A: ", torch.min(atmosphere_tensor), torch.max(atmosphere_tensor))

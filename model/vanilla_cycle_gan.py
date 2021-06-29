@@ -57,7 +57,8 @@ class Generator(nn.Module):
         for _ in range(downsampling_blocks):
             model += [  nn.Conv2d(in_features, out_features, 4, stride=2, padding=1),
                         nn.InstanceNorm2d(out_features),
-                        nn.ReLU(inplace=True) ]
+                        nn.ReLU(inplace=True),
+                        nn.Dropout2d(p = 0.4)]
             in_features = out_features
             out_features = clamp(in_features*2, 1024)
 
@@ -70,7 +71,8 @@ class Generator(nn.Module):
         for _ in range(downsampling_blocks):
             model += [  nn.ConvTranspose2d(in_features, out_features, 4, stride=2, padding=1, output_padding=1),
                         nn.InstanceNorm2d(out_features),
-                        nn.ReLU(inplace=True) ]
+                        nn.ReLU(inplace=True),
+                        nn.Dropout2d(p = 0.4)]
             in_features = out_features
             out_features = in_features//2
 

@@ -219,13 +219,13 @@ class ModelDehazer():
         self.albedo_models["albedo_transfer_v1.04_1"] = ffa_gan.FFA(gps=3, blocks=18).to(self.gpu_device)
         self.albedo_models["albedo_transfer_v1.04_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.04_3.pt")
-        self.transmission_models["transmission_albedo_estimator_v1.04_3"] = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(self.gpu_device)
-        self.transmission_models["transmission_albedo_estimator_v1.04_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.06_4.pt")
-        self.transmission_models["transmission_albedo_estimator_v1.06_4"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(self.gpu_device)
-        self.transmission_models["transmission_albedo_estimator_v1.06_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        # checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.04_3.pt")
+        # self.transmission_models["transmission_albedo_estimator_v1.04_3"] = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(self.gpu_device)
+        # self.transmission_models["transmission_albedo_estimator_v1.04_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        #
+        # checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.06_4.pt")
+        # self.transmission_models["transmission_albedo_estimator_v1.06_4"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(self.gpu_device)
+        # self.transmission_models["transmission_albedo_estimator_v1.06_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
         # checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.07_1.pt")
         # self.transmission_models["transmission_albedo_estimator_v1.07_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(self.gpu_device)
@@ -239,20 +239,20 @@ class ModelDehazer():
         # self.transmission_models["transmission_albedo_estimator_v1.07_3"] = cg.Generator(input_nc=3, output_nc=1,n_residual_blocks=10).to(self.gpu_device)
         # self.transmission_models["transmission_albedo_estimator_v1.07_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.08_1.pt")
-        self.transmission_models["transmission_albedo_estimator_v1.08_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["transmission_albedo_estimator_v1.08_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.09_1.pt")
-        self.transmission_models["transmission_albedo_estimator_v1.09_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["transmission_albedo_estimator_v1.09_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        # checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.08_1.pt")
+        # self.transmission_models["transmission_albedo_estimator_v1.08_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        # self.transmission_models["transmission_albedo_estimator_v1.08_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        #
+        # checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.09_1.pt")
+        # self.transmission_models["transmission_albedo_estimator_v1.09_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        # self.transmission_models["transmission_albedo_estimator_v1.09_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
         checkpt = torch.load("checkpoint/dehazer_v2.01_1.pt")
-        self.transmission_models["dehazer_v2.01_1"] = un.UnetGenerator(input_nc=3, output_nc=1, num_downs= 6).to(self.gpu_device)
+        self.transmission_models["dehazer_v2.01_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks= 8).to(self.gpu_device)
         self.transmission_models["dehazer_v2.01_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
         checkpt = torch.load("checkpoint/dehazer_v2.01_1.pt")
-        self.atmosphere_models["dehazer_v2.01_1"] = un.UnetGenerator(input_nc=6, output_nc=3, num_downs= 6).to(self.gpu_device)
+        self.atmosphere_models["dehazer_v2.01_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks= 8).to(self.gpu_device)
         self.atmosphere_models["dehazer_v2.01_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
         checkpt = torch.load("checkpoint/airlight_estimator_v1.05_1.pt")
@@ -265,17 +265,17 @@ class ModelDehazer():
             dh.AirlightEstimator_V2(num_channels=3, disc_feature_size=64, out_features=3).to(self.gpu_device)
         self.atmosphere_models["airlight_estimator_v1.06_1" + str(AtmosphereMethod.NETWORK_ESTIMATOR_V1)].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/airlight_gen_v1.01_1.pt")
-        self.atmosphere_models["airlight_gen_v1.01_1"] = cg.Generator(input_nc=3, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["airlight_gen_v1.01_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_gen_v1.01_2.pt")
-        self.atmosphere_models["airlight_gen_v1.01_2"] = cg.Generator(input_nc=3, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["airlight_gen_v1.01_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_gen_v1.03_1.pt")
-        self.atmosphere_models["airlight_gen_v1.03_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["airlight_gen_v1.03_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        # checkpt = torch.load("checkpoint/airlight_gen_v1.01_1.pt")
+        # self.atmosphere_models["airlight_gen_v1.01_1"] = cg.Generator(input_nc=3, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        # self.atmosphere_models["airlight_gen_v1.01_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        #
+        # checkpt = torch.load("checkpoint/airlight_gen_v1.01_2.pt")
+        # self.atmosphere_models["airlight_gen_v1.01_2"] = cg.Generator(input_nc=3, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        # self.atmosphere_models["airlight_gen_v1.01_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        #
+        # checkpt = torch.load("checkpoint/airlight_gen_v1.03_1.pt")
+        # self.atmosphere_models["airlight_gen_v1.03_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        # self.atmosphere_models["airlight_gen_v1.03_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
         print("Dehazing models loaded.")
 
