@@ -131,6 +131,10 @@ class DehazeTrainer:
         atmosphere_tensor = (atmosphere_tensor * 0.5) + 0.5
         transmission_tensor = (transmission_tensor * 0.5) + 0.5
 
+        #reduce intensity
+        #atmosphere_tensor = atmosphere_tensor * 1.55
+        #transmission_tensor = transmission_tensor * 1.25
+
         #apply opening
         #atmosphere_tensor = kornia.morphology.opening(atmosphere_tensor, torch.ones(5, 5).to(self.gpu_device))
         #transmission_tensor = kornia.morphology.opening(transmission_tensor, torch.ones(5, 5).to(self.gpu_device))
@@ -195,10 +199,10 @@ class DehazeTrainer:
             A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
             clear_like = self.provide_clean_like(hazy_tensor, self.G_T(hazy_tensor), self.G_A(concat_input))
-            clear_like_loss = self.likeness_loss(clear_like, clear_tensor) * self.clear_like_weight
+            clear_like_loss = self.likeness_loss(clear_like, clear_tensor) #only use for profiling purposes
 
             errG = T_likeness_loss + T_edge_loss + T_adv_loss + T_likeness_loss + T_edge_loss + T_adv_loss + \
-                   A_likeness_loss + A_edge_loss + A_adv_loss + A_likeness_loss + A_edge_loss + A_adv_loss + clear_like_loss
+                   A_likeness_loss + A_edge_loss + A_adv_loss + A_likeness_loss + A_edge_loss + A_adv_loss
 
             self.fp16_scaler.scale(errG).backward()
             self.fp16_scaler.step(self.optimizerG)

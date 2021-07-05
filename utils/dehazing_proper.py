@@ -255,6 +255,14 @@ class ModelDehazer():
         self.atmosphere_models["dehazer_v2.01_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks= 8).to(self.gpu_device)
         self.atmosphere_models["dehazer_v2.01_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
+        checkpt = torch.load("checkpoint/dehazer_v2.01_2.pt")
+        self.transmission_models["dehazer_v2.01_2"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(self.gpu_device)
+        self.transmission_models["dehazer_v2.01_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/dehazer_v2.01_2.pt")
+        self.atmosphere_models["dehazer_v2.01_2"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=8).to(self.gpu_device)
+        self.atmosphere_models["dehazer_v2.01_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+
         checkpt = torch.load("checkpoint/airlight_estimator_v1.05_1.pt")
         self.atmosphere_models["airlight_estimator_v1.05_1" + str(AtmosphereMethod.NETWORK_ESTIMATOR_V1)] = \
             dh.AirlightEstimator_V2(num_channels=3, disc_feature_size=64, out_features=3).to(self.gpu_device)
@@ -306,7 +314,7 @@ class ModelDehazer():
 
         # remove 0.5 normalization for dehazing equation
         T = ((transmission_img * 0.5) + 0.5)
-        #T = T * 0.5
+        #T = T * 0.85
         #hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
         # print("Shape: ", np.shape(hazy_tensor))
 
@@ -316,7 +324,7 @@ class ModelDehazer():
 
         # remove 0.5 normalization for dehazing equation
         A = ((atmosphere_map * 0.5) + 0.5)
-        #A = A * 1.2
+        #A = A * 1.15
 
         print("Shape of atmosphere map: ", np.shape(atmosphere_map))
 

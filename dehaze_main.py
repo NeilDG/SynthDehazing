@@ -31,17 +31,19 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="5.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--clear_like_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
+parser.add_option('--clear_like_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 8)
 parser.add_option('--is_a_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--a_num_blocks', type=int, help="Num Blocks", default = 8)
-parser.add_option('--batch_size', type=int, help="batch_size", default="32")
+parser.add_option('--batch_size', type=int, help="batch_size", default="16")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Joint training for transmission and atmospheric map. Size 256x256")
+parser.add_option('--num_workers', type=int, help="Workers", default="12")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Joint training for transmission and atmospheric map. Size 256x256\n"
+                                                                                     "0.35 - 1.0 = A range")
 
 #--img_to_load=-1 --load_previous=0
 #Update config if on COARE
@@ -49,12 +51,11 @@ def update_config(opts):
     constants.is_coare = opts.coare
 
     if(constants.is_coare == 1):
-        print("Using COARE configuration.")
-
         constants.ITERATION = str(opts.iteration)
-        constants.DEHAZE_FILTER_STRENGTH = opts.dehaze_filter_strength
+        constants.num_workers =opts.num_workers
+        constants.DEHAZER_CHECKPATH = 'checkpoint/' + constants.DEHAZER_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
+        print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.DEHAZER_CHECKPATH)
 
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
         constants.DATASET_ALBED1O_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"

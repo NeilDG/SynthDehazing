@@ -58,7 +58,7 @@ class Generator(nn.Module):
             model += [  nn.Conv2d(in_features, out_features, 4, stride=2, padding=1),
                         nn.InstanceNorm2d(out_features),
                         nn.ReLU(inplace=True),
-                        nn.Dropout2d(p = 0.4)]
+                        nn.Dropout2d(p = 0.1)]
             in_features = out_features
             out_features = clamp(in_features*2, 1024)
 
@@ -72,7 +72,7 @@ class Generator(nn.Module):
             model += [  nn.ConvTranspose2d(in_features, out_features, 4, stride=2, padding=1, output_padding=1),
                         nn.InstanceNorm2d(out_features),
                         nn.ReLU(inplace=True),
-                        nn.Dropout2d(p = 0.4)]
+                        nn.Dropout2d(p = 0.1)]
             in_features = out_features
             out_features = in_features//2
 

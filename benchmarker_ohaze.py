@@ -13,6 +13,7 @@ from utils import dark_channel_prior
 from utils import dehazing_proper
 import glob
 from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import mean_squared_error
 from custom_losses import ssim_loss
 
 
@@ -43,8 +44,8 @@ def produce_ohaze():
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
 
     ALBEDO_CHECKPT = "albedo_transfer_v1.04_1"
-    TRANSMISSION_CHECKPT = "dehazer_v2.01_1"
-    AIRLIGHT_CHECKPT = "dehazer_v2.01_1"
+    TRANSMISSION_CHECKPT = "dehazer_v2.01_2"
+    AIRLIGHT_CHECKPT = "dehazer_v2.01_2"
 
     model_dehazer = dehazing_proper.ModelDehazer()
     model_dehazer.set_models_v2(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT)
@@ -105,6 +106,7 @@ def benchmark_ohaze():
     fig_num = 0
     average_SSIM = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     average_PSNR = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    average_MSE = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     count = 0
 
     with open(BENCHMARK_PATH, "w") as f:
@@ -190,6 +192,36 @@ def benchmark_ohaze():
                 print("[Ours] PSNR of ", img_name, " : ", PSNR, file=f)
                 average_PSNR[6] += PSNR
 
+                # measure MSE
+                MSE = np.round(mean_squared_error(gt_img, dcp_clear_img), 4)
+                print("[DCP] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[0] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, aod_img), 4)
+                print("[AOD-Net] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[1] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, cycle_dehaze_img), 4)
+                print("[CycleDehaze] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[2] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, ffa_img), 4)
+                print("[FFA-Net] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[3] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, grid_img), 4)
+                print("[GridDehazeNet] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[4] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, edpn_img), 4)
+                print("[EDPN] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[5] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, clear_img), 4)
+                print("[Ours] MSE of ", img_name, " : ", MSE, file=f)
+                print("[Ours] MSE of ", img_name, " : ", MSE)
+                average_MSE[6] += MSE
+
                 # measure SSIM
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, dcp_clear_img), 4)
                 print("[DCP] SSIM of ", img_name, " : ", SSIM, file=f)
@@ -274,6 +306,14 @@ def benchmark_ohaze():
         print("[GridDehazeNet] Average SSIM: ", np.round(average_SSIM[4], 5), file=f)
         print("[EDPN] Average SSIM: ", np.round(average_SSIM[5], 5), file=f)
         print("[Ours] Average SSIM: ", np.round(average_SSIM[6], 5), file=f)
+        print(file=f)
+        print("[DCP] Average MSE: ", np.round(average_MSE[0], 5), file=f)
+        print("[AOD-Net] Average MSE: ", np.round(average_MSE[1], 5), file=f)
+        print("[CycleDehaze] Average MSE: ", np.round(average_MSE[2], 5), file=f)
+        print("[FFA-Net] Average MSE: ", np.round(average_MSE[3], 5), file=f)
+        print("[GridDehazeNet] Average MSE: ", np.round(average_MSE[4], 5), file=f)
+        print("[EDPN] Average MSE: ", np.round(average_MSE[5], 5), file=f)
+        print("[Ours] Average MSE: ", np.round(average_MSE[6], 5), file=f)
 
 def benchmark_ohaze_inmodels():
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
