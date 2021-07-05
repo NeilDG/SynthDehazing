@@ -117,6 +117,7 @@ class DehazingDataset(data.Dataset):
     def __len__(self):
         return len(self.image_list_a)
 
+
 class DehazingDatasetTest(data.Dataset):
     def __init__(self, image_list_a):
         self.image_list_a = image_list_a
@@ -143,6 +144,45 @@ class DehazingDatasetTest(data.Dataset):
         img_a = self.final_transform_op(img_a)
 
         return file_name, img_a
+
+    def __len__(self):
+        return len(self.image_list_a)
+
+class DehazingDatasetPaired(data.Dataset):
+    def __init__(self, image_list_a, image_list_b, resize_shape):
+        self.image_list_a = image_list_a
+        self.image_list_b = image_list_b
+        self.resize_shape = resize_shape
+
+        self.initial_img_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(self.resize_shape)
+        ])
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        img_a = cv2.imread(img_id);
+        img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        img_a = cv2.normalize(img_a, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        img_a = self.initial_img_op(img_a)
+        img_a = self.final_transform_op(img_a)
+
+        img_id = self.image_list_b[idx]
+        img_b = cv2.imread(img_id);
+        img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        img_b = self.initial_img_op(img_b)
+        img_b = self.final_transform_op(img_b)
+
+        return file_name, img_a, img_b
 
     def __len__(self):
         return len(self.image_list_a)

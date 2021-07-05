@@ -6,13 +6,6 @@ DATASET_VEMON_PATH_PATCH_32 = "E:/VEMON_Transfer/train/32_patch/"
 DATASET_VEMON_PATH_PATCH_64 = "E:/VEMON_Transfer/train/64_patch/"
 DATASET_VEMON_PATH_PATCH_128 = "E:/VEMON_Transfer/train/128_patch/"
 
-DATASET_HAZY_PATH_COMPLETE = "E:/Synth Hazy 2/hazy/"
-DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy 2/clean/"
-DATASET_CLEAN_PATH_COMPLETE_STYLED = "E:/Synth Hazy 2/clean - styled/"
-DATASET_DEPTH_PATH_COMPLETE = "E:/Synth Hazy 2/depth/"
-DATASET_LIGHTCOORDS_PATH_COMPLETE = "E:/Synth Hazy 2/light/"
-DATASET_LIGHTDIRECTIONS_PATH_COMPLETE = "E:/Synth Hazy 2/directionality/"
-
 DATASET_ALBEDO_PATH_COMPLETE_3 = "E:/Synth Hazy 3/albedo/"
 DATASET_ALBEDO_PATH_PSEUDO_3 = "E:/Synth Hazy 3/albedo - pseudo/"
 DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
@@ -33,6 +26,8 @@ DATASET_LIGHTCOORDS_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/light/"
 DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
 DATASET_DEPTH_PATH_PATCH = "E:/Synth Hazy - Patch/depth/"
+
+DATASET_STANDARD_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/Standard/"
 
 DATASET_OHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
 DATASET_OHAZE_CLEAN_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"

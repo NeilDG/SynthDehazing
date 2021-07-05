@@ -62,6 +62,8 @@ class DehazeTrainer:
 
     def initialize_dict(self):
         # what to store in visdom?
+        self.SSIM_KEY = "SSIM_KEY"
+
         self.losses_dict = {}
         self.losses_dict[constants.G_LOSS_KEY] = []
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
@@ -71,6 +73,7 @@ class DehazeTrainer:
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
+        self.losses_dict[self.SSIM_KEY] = []
 
         self.caption_dict = {}
         self.caption_dict[constants.G_LOSS_KEY] = "G loss per iteration"
@@ -81,6 +84,14 @@ class DehazeTrainer:
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
+        self.caption_dict[self.SSIM_KEY] = "SSIM-test per iteration"
+
+        #what to store in visdom testing?
+        #self.test_dict = {}
+        #self.test_dict[self.SSIM_KEY] = []
+
+        #self.test_caption_dict = {}
+        #self.test_caption_dict[self.SSIM_KEY] = "SSIM per iteration"
 
 
     def update_penalties(self, adv_weight, likeness_weight, edge_weight, clear_like_weight, comments):
@@ -117,6 +128,10 @@ class DehazeTrainer:
     def psnr_loss(self, pred, target):
         loss = kornia.losses.PSNRLoss(max_val=0.5)
         return loss(pred, target)
+
+    def measure_ssim(self, pred, target):
+        ssim_metric = kornia.losses.SSIMLoss(window_size=5, max_val=0.5)
+        return ssim_metric(pred, target)
 
     def edge_loss(self, pred, target):
         loss = nn.L1Loss()
@@ -210,7 +225,6 @@ class DehazeTrainer:
 
             self.fp16_scaler.update()
 
-
         # what to put to losses dict for visdom reporting?
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
@@ -220,6 +234,16 @@ class DehazeTrainer:
         self.losses_dict[constants.G_ADV_LOSS_KEY].append(T_adv_loss.item() + A_adv_loss.item())
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_T_fake_loss.item() + D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_T_real_loss.item() + D_A_real_loss.item())
+
+    def test(self, hazy_tensor, clear_tensor):
+        with torch.no_grad():
+            albedo_tensor = self.albedo_G(hazy_tensor)
+            concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
+            transmission_like = self.G_T(albedo_tensor)
+            atmosphere_like = self.G_A(concat_input)
+            clear_like = self.provide_clean_like(hazy_tensor, transmission_like, atmosphere_like)
+            ssim_metric = self.measure_ssim(clear_like, clear_tensor)
+            self.losses_dict[self.SSIM_KEY].append(ssim_metric.item())
 
     def visdom_report(self, iteration):
         with torch.no_grad():
@@ -251,11 +275,27 @@ class DehazeTrainer:
             atmosphere_like = self.G_A(concat_input)
             clear_like = self.provide_clean_like(hazy_tensor, transmission_like, atmosphere_like)
 
-            self.visdom_reporter.plot_image(hazy_tensor, "Train Hazy images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
-            self.visdom_reporter.plot_image(albedo_tensor, "Train Albedo-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
-            self.visdom_reporter.plot_image(transmission_like, "Train Transmission-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION)+ "-" + str(number))
-            self.visdom_reporter.plot_image(atmosphere_like, "Train Atmosphere-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION)+ "-" + str(number))
-            self.visdom_reporter.plot_image(clear_like, "Train Clean-Like Images " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            self.visdom_reporter.plot_image(hazy_tensor, "Unseen Hazy images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            # self.visdom_reporter.plot_image(albedo_tensor, "Test Albedo-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            # self.visdom_reporter.plot_image(transmission_like, "Test Transmission-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION)+ "-" + str(number))
+            # self.visdom_reporter.plot_image(atmosphere_like, "Test Atmosphere-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION)+ "-" + str(number))
+            self.visdom_reporter.plot_image(clear_like, "Unseen Clean-Like Images " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+
+    def visdom_infer_test_paired(self, hazy_tensor, clear_tensor, number):
+        with torch.no_grad():
+            albedo_tensor = self.albedo_G(hazy_tensor)
+            concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
+            transmission_like = self.G_T(albedo_tensor)
+            atmosphere_like = self.G_A(concat_input)
+            clear_like = self.provide_clean_like(hazy_tensor, transmission_like, atmosphere_like)
+
+            self.visdom_reporter.plot_image(hazy_tensor, "Test Hazy images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            #self.visdom_reporter.plot_image(albedo_tensor, "Test Albedo-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            self.visdom_reporter.plot_image(transmission_like, "Test Transmission-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            self.visdom_reporter.plot_image(atmosphere_like, "Test Atmosphere-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            self.visdom_reporter.plot_image(clear_like, "Test Clean-Like Images " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            self.visdom_reporter.plot_image(clear_tensor, "Test Clean Images " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            self.visdom_reporter.plot_image(clear_tensor, "Test Clean Images " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
 
     def load_saved_state(self, checkpoint):
         self.G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])

@@ -7,7 +7,6 @@ Created on Sun Apr 19 13:22:06 2020
 """
 
 from __future__ import print_function
-import os
 import sys
 from optparse import OptionParser
 import random
@@ -15,15 +14,12 @@ import torch
 import torch.nn.parallel
 import torch.utils.data
 import torchvision.utils as vutils
-from utils import tensor_utils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import dehaze_trainer
-from model import ffa_net as ffa_gan
-from model import vanilla_cycle_gan as cycle_gan
-from model import dehaze_discriminator as dh
 import constants
+import itertools
 
 parser = OptionParser()
 parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
@@ -105,7 +101,8 @@ def main(argv):
 
     # Create the dataloader
     train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, True, opts.batch_size, opts.img_to_load)
-    test_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
+    test_loaders = [dataset_loader.load_dehaze_dataset_test_paired(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, opts.batch_size, -1)]
+    unseen_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_STANDARD_PATH_COMPLETE, opts.batch_size, 500),
                     dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
 
     index = 0
@@ -119,26 +116,24 @@ def main(argv):
         show_images(d, "Training - Atmosphere Images")
 
     print("Starting Training Loop...")
-    # for i in range(len(test_loaders)):
-    #     _, hazy_batch = next(iter(test_loaders[i]))
+    # for i in range(len(unseen_loaders)):
+    #     _, hazy_batch = next(iter(unseen_loaders[i]))
     #     hazy_tensor = hazy_batch.to(device)
     #
     #     dehazer.visdom_infer_test(hazy_tensor, i)
-    #     break
+    #     #break
     #
-    # for i, train_data in enumerate(train_loader, 0):
-    #     _, hazy_batch, transmission_batch, clear_batch, atmosphere_batch = train_data
+    # for i, test_data in enumerate(test_loaders[0], 0):
+    #     _, hazy_batch, clear_batch = test_data
     #     hazy_tensor = hazy_batch.to(device)
     #     clear_tensor = clear_batch.to(device)
-    #     transmission_tensor = transmission_batch.to(device).float()
-    #     atmosphere_tensor = atmosphere_batch.to(device).float()
     #
-    #     dehazer.visdom_infer_train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
-    #     break
+    #     dehazer.visdom_infer_test_paired(hazy_tensor, clear_tensor, i)
+    #     #break
 
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        for i, train_data in enumerate(train_loader, 0):
+        for i, (train_data, test_data) in enumerate(zip(train_loader, itertools.cycle(test_loaders[0]))):
             _, hazy_batch, transmission_batch, clear_batch, atmosphere_batch = train_data
             hazy_tensor = hazy_batch.to(device)
             clear_tensor = clear_batch.to(device)
@@ -147,23 +142,40 @@ def main(argv):
 
             dehazer.train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
 
+            _, hazy_batch, clear_batch = test_data
+            hazy_tensor = hazy_batch.to(device)
+            clear_tensor = clear_batch.to(device)
+            dehazer.test(hazy_tensor, clear_tensor)
+
             if (i % 3000 == 0):
                 dehazer.save_states(epoch, iteration)
                 dehazer.visdom_report(iteration)
+
+                _, hazy_batch, transmission_batch, clear_batch, atmosphere_batch = train_data
+                hazy_tensor = hazy_batch.to(device)
+                clear_tensor = clear_batch.to(device)
+                transmission_tensor = transmission_batch.to(device).float()
+                atmosphere_tensor = atmosphere_batch.to(device).float()
+
                 dehazer.visdom_infer_train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
 
+                _, hazy_batch, clear_batch = test_data
+                hazy_tensor = hazy_batch.to(device)
+                clear_tensor = clear_batch.to(device)
+                dehazer.visdom_infer_test_paired(hazy_tensor, clear_tensor, 0)
+
                 iteration = iteration + 1
-                for k in range(len(test_loaders)):
-                    _, hazy_batch = next(iter(test_loaders[k]))
+                for k in range(len(unseen_loaders)):
+                    _, hazy_batch = next(iter(unseen_loaders[k]))
                     hazy_tensor = hazy_batch.to(device)
 
                     dehazer.visdom_infer_test(hazy_tensor, k)
 
-                    index = (index + 1) % len(test_loaders[0])
+                    index = (index + 1) % len(unseen_loaders[0])
 
                     if (index == 0):
-                        test_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
-                                        dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+                        unseen_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_STANDARD_PATH_COMPLETE, opts.batch_size, 500),
+                                          dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__":
