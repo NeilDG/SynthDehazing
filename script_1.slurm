@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J AH_2
+#SBATCH -J DZ_2
 #SBATCH --partition=gpu
 #SBATCH --qos=12c-1h_2gpu
 #SBATCH --cpus-per-task=6
@@ -20,5 +20,5 @@ module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
 
-srun python airlight_gen_main.py --iteration=$ITERATION --coare=1 --is_unet=1 --edge_weight=5.0 --img_to_load=-1 --load_previous=0 --batch_size=512
+srun python dehaze_main.py --iteration=$ITERATION --coare=1 --num_workers=6 --likeness_weight=10.0 --edge_weight=10.0 --img_to_load=-1 --load_previous=0 --batch_size=32
 conda deactivate
