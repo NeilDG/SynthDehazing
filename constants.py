@@ -55,9 +55,9 @@ LATENT_VECTOR_KEY = "latent_vector"
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "albedo_transfer_v1.04"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.09"
-AIRLIGHT_GEN_VERSION = "airlight_gen_v1.03"
-AIRLIGHT_VERSION = "airlight_estimator_v1.06"
-DEHAZER_VERSION = "dehazer_v2.02"
+AIRLIGHT_GEN_VERSION = "airlight_gen_v1.04"
+AIRLIGHT_VERSION = "airlight_estimator_v1.07"
+DEHAZER_VERSION = "dehazer_v2.03"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
@@ -101,7 +101,7 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 150
+num_epochs = 100
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
@@ -109,7 +109,8 @@ infer_size = 32
 
 DEHAZE_FILTER_STRENGTH = 0.1
 
-#Running on COARE?
-is_coare = 0
+#Running on local = 0, Running on COARE = 1, Running on CCS server = 2
+server_config = 0
 num_workers = 12
+ALBEDO_CHECKPT = "checkpoint/albedo_transfer_v1.04_1.pt"
     

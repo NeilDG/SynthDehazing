@@ -307,7 +307,7 @@ def perform_transmission_map_estimation(model_checkpt_name, is_unet, blocks = 8)
         G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks= blocks).to(device)
 
     checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
-    G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
+    G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "T"])
     G_A.eval()
 
     print("G transmission network loaded")
@@ -585,7 +585,7 @@ def main():
     #perform_airlight_predictions("airlight_estimator_v1.04_2", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.04_3", "albedo_transfer_v1.04_1", 18)
     #perform_airlight_predictions("airlight_estimator_v1.06_1", "albedo_transfer_v1.04_1", 18)
-    perform_atmospheric_map_estimation("airlight_gen_v1.01_2", False, 10)
+    #perform_atmospheric_map_estimation("airlight_gen_v1.01_2", False, 10)
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_2")
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_3")
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.04_4")
@@ -602,6 +602,7 @@ def main():
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_4", False, 10)
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_3", False, 10)
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.08_1", False, 10)
+    perform_transmission_map_estimation("dehazer_v2.02_1", False, 10)
     #save_transmissions("transmission_albedo_estimator_v1.06_1", False)
 
     #perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)

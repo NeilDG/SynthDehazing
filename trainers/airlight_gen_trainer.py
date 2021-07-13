@@ -22,6 +22,7 @@ class AirlightGenTrainer:
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
+        self.batch_size = batch_size
 
         if (is_unet == 1):
             self.G_A = un.UnetGenerator(input_nc=6, output_nc=3, num_downs=6).to(self.gpu_device)
@@ -100,7 +101,7 @@ class AirlightGenTrainer:
 
         return loss(pred_grad, target_grad)
 
-    def train(self, hazy_tensor, airlight_tensor):
+    def train(self, iteration, hazy_tensor, airlight_tensor):
         with amp.autocast():
             concat_input = torch.cat([hazy_tensor, self.albedo_G(hazy_tensor)], 1)
             depth_like = self.G_A(concat_input)
@@ -116,8 +117,8 @@ class AirlightGenTrainer:
             D_A_fake_loss = self.adversarial_loss(self.D_A(depth_like.detach()), fake_tensor) * self.adv_weight
 
             errD = D_A_real_loss + D_A_fake_loss
-            if (self.fp16_scaler.scale(errD).item() > 0.1):
-                self.fp16_scaler.scale(errD).backward()
+            self.fp16_scaler.scale(errD).backward()
+            if (self.fp16_scaler.scale(errD).item() > 0.1 and iteration % (512 / self.batch_size) == 0):
                 self.fp16_scaler.step(self.optimizerD)
                 self.schedulerD.step(errD)
 
@@ -134,10 +135,10 @@ class AirlightGenTrainer:
 
             errG = A_likeness_loss + A_adv_loss + A_edge_loss
             self.fp16_scaler.scale(errG).backward()
-            self.fp16_scaler.step(self.optimizerG)
-            self.schedulerG.step(errG)
-
-            self.fp16_scaler.update()
+            if(iteration % (512 / self.batch_size) == 0): #accumulate grad to simulate 512 batch size
+                self.fp16_scaler.step(self.optimizerG)
+                self.schedulerG.step(errG)
+                self.fp16_scaler.update()
 
             # what to put to losses dict for visdom reporting?
             self.losses_dict[constants.G_LOSS_KEY].append(errG.item())

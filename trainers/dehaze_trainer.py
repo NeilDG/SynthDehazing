@@ -54,7 +54,7 @@ class DehazeTrainer:
         self.fp16_scaler = amp.GradScaler()  # for automatic mixed precision
 
         # load albedo
-        checkpt = torch.load("checkpoint/albedo_transfer_v1.04_1.pt")
+        checkpt = torch.load(constants.ALBEDO_CHECKPT)
         self.albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(self.gpu_device)
         self.albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
         self.albedo_G.eval()
@@ -206,7 +206,7 @@ class DehazeTrainer:
             real_tensor = torch.ones_like(prediction)
             T_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            A_likeness_loss = self.likeness_loss(self.G_A(concat_input), atmosphere_tensor) * self.likeness_weight
+            A_likeness_loss = self.likeness_loss(self.G_A(concat_input),  ) * self.likeness_weight
             A_edge_loss = self.edge_loss(self.G_A(concat_input), atmosphere_tensor) * self.edge_weight
 
             prediction = self.D_A(self.G_A(concat_input))

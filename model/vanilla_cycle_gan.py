@@ -86,6 +86,49 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
+class GeneratorNoDropOut(nn.Module):
+    def __init__(self, input_nc=3, output_nc=3, downsampling_blocks = 2, n_residual_blocks=6):
+        super(GeneratorNoDropOut, self).__init__()
+
+        # Initial convolution block
+        model = [   nn.ReflectionPad2d(2),
+                    nn.Conv2d(input_nc, 64, 8),
+                    nn.InstanceNorm2d(64),
+                    nn.ReLU(inplace=True) ]
+
+        # Downsampling
+        in_features = 64
+        out_features = in_features*2
+        for _ in range(downsampling_blocks):
+            model += [  nn.Conv2d(in_features, out_features, 4, stride=2, padding=1),
+                        nn.InstanceNorm2d(out_features),
+                        nn.ReLU(inplace=True)]
+            in_features = out_features
+            out_features = clamp(in_features*2, 1024)
+
+        # Residual blocks
+        for _ in range(n_residual_blocks):
+            model += [ResidualBlock(in_features)]
+
+        # Upsampling
+        out_features = in_features//2
+        for _ in range(downsampling_blocks):
+            model += [  nn.ConvTranspose2d(in_features, out_features, 4, stride=2, padding=1, output_padding=1),
+                        nn.InstanceNorm2d(out_features),
+                        nn.ReLU(inplace=True)]
+            in_features = out_features
+            out_features = in_features//2
+
+        # Output layer
+        model += [  nn.ReflectionPad2d(4),
+                    nn.Conv2d(64, output_nc, 8),
+                    nn.Tanh() ]
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self, x):
+        return self.model(x)
+
 class Discriminator(nn.Module):
     def __init__(self, input_nc = 3):
         super(Discriminator, self).__init__()

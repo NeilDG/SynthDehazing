@@ -58,8 +58,8 @@ class DehazingDataset(data.Dataset):
         transmission_img = cv2.cvtColor(transmission_img, cv2.COLOR_BGR2GRAY)
         transmission_img = cv2.resize(transmission_img, np.shape(clear_img[:, :, 0]))
         transmission_img = cv2.normalize(transmission_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.uniform(0.3, 0.9)) #also include clear samples
-        #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.25, 0.75))
+        #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.uniform(0.3, 0.9)) #also include clear samples
+        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.25, 0.75))
         #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(0.625, 0.55))
 
         #formulate hazy img
@@ -315,10 +315,10 @@ class TransmissionAlbedoDatasetTest(data.Dataset):
 class AirlightDataset(data.Dataset):
     # ATMOSPHERE_MIN = 0.5
     # ATMOSPHERE_MAX = 1.8
-    #ATMOSPHERE_MIN = 0.7
+    ATMOSPHERE_MIN = 0.5
+    ATMOSPHERE_MAX = 0.95
+    #ATMOSPHERE_MIN = 0.35
     #ATMOSPHERE_MAX = 1.0
-    ATMOSPHERE_MIN = 0.35
-    ATMOSPHERE_MAX = 1.0
 
     @staticmethod
     def atmosphere_mean():
@@ -367,10 +367,11 @@ class AirlightDataset(data.Dataset):
 
         #formulate hazy img
         atmosphere = [0.0, 0.0, 0.0]
-        spread = 0.025
-        # atmosphere[0] = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
-        atmosphere[0] = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
-        atmosphere[1] = np.random.normal(atmosphere[0], spread) #randomize by gaussian on other channels using R channel atmosphere
+        spread = 0.125
+        atmosphere[0] = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        #atmosphere[1] = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        #atmosphere[2] = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
         atmosphere[2] = np.random.normal(atmosphere[0], spread)
 
 
@@ -414,7 +415,7 @@ class AirlightDataset(data.Dataset):
             transforms.Normalize((0.5,), (0.5,))
         ])
 
-        airlight_tensor = torch.tensor(atmosphere, dtype = torch.float32) - 0.3
+        airlight_tensor = torch.tensor(atmosphere, dtype = torch.float32)
         #airlight_tensor = self.airlight_op(airlight_tensor)
 
         return file_name, albedo_hazy_img, styled_hazy_img, airlight_tensor #hazy albedo img, transmission map, airlight

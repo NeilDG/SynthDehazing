@@ -35,7 +35,7 @@ def atmosphere_benchmark():
 
 
 #simply produces results without benchmarking
-def produce_ohaze():
+def produce_ohaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     SAVE_PATH = "results/Ours - Results - O-Haze/"
     SAVE_TRANSMISSION_PATH = "results/Ours - Results - O-Haze/Transmission/"
@@ -44,8 +44,8 @@ def produce_ohaze():
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
 
     ALBEDO_CHECKPT = "albedo_transfer_v1.04_1"
-    TRANSMISSION_CHECKPT = "dehazer_v2.01_2"
-    AIRLIGHT_CHECKPT = "dehazer_v2.01_2"
+    TRANSMISSION_CHECKPT = T_CHECKPT_NAME
+    AIRLIGHT_CHECKPT = A_CHECKPT_NAME
 
     model_dehazer = dehazing_proper.ModelDehazer()
     model_dehazer.set_models_v2(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT)
@@ -57,18 +57,19 @@ def produce_ohaze():
             hazy_img = cv2.resize(hazy_img, (512, 512))
 
             #clear_img = model_dehazer.perform_dehazing(hazy_img, 0.6, 0.3)
-            #clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.3)
-            clear_img = model_dehazer.perform_dehazing_direct_v2(hazy_img)
+            #clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.2)
+            #clear_img = model_dehazer.perform_dehazing_direct_v2(hazy_img)
+            clear_img = model_dehazer.perform_dehazing_direct_v3(hazy_img, 0.8)
             clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             cv2.imwrite(SAVE_PATH + img_name + ".png", clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
 
-            T_tensor, A_tensor = model_dehazer.derive_T_and_A(hazy_img)
-            torchutils.save_image(T_tensor, SAVE_TRANSMISSION_PATH + img_name + ".png")
-            torchutils.save_image(A_tensor, SAVE_ATMOSPHERE_PATH + img_name + ".png")
+            #T_tensor, A_tensor = model_dehazer.derive_T_and_A(hazy_img)
+            #torchutils.save_image(T_tensor, SAVE_TRANSMISSION_PATH + img_name + ".png")
+            #torchutils.save_image(A_tensor, SAVE_ATMOSPHERE_PATH + img_name + ".png")
 
             print("Saved: " + SAVE_PATH + img_name)
 
-def benchmark_ohaze():
+def benchmark_ohaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
 
@@ -79,7 +80,7 @@ def benchmark_ohaze():
     EDPN_DEHAZE_PATH = "results/EDPN - Results - OHaze/"
     OUR_PATH = "results/Ours - Results - O-Haze/"
 
-    EXPERIMENT_NAME = "metrics - 1"
+    EXPERIMENT_NAME = "metrics - " +str(T_CHECKPT_NAME) + " - " +str(A_CHECKPT_NAME)
     SAVE_PATH = "results/O-HAZE/"
     BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
 
@@ -478,10 +479,66 @@ def benchmark_ohaze_inmodels():
         print("[Ours-Network Estimator V1] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
         print("[Ours-Network Estimator V2] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
 def main():
-    #atmosphere_benchmark()
-    produce_ohaze()
-    benchmark_ohaze()
-    #benchmark_ohaze_inmodels()
+    # CHECKPT_NAME = "dehazer_v2.01_1"
+    # produce_ohaze(CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.01_2"
+    # produce_ohaze(CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.01_3"
+    # produce_ohaze(CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.01_4"
+    # produce_ohaze(CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.01_5"
+    # produce_ohaze(CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME)
+
+    # T_CHECKPT_NAME = "transmission_albedo_estimator_v1.06_4"
+    # A_CHECKPT_NAME = "airlight_estimator_v1.07_1"
+    # produce_ohaze(T_CHECKPT_NAME, A_CHECKPT_NAME)
+    # benchmark_ohaze(T_CHECKPT_NAME, A_CHECKPT_NAME)
+
+    # CHECKPT_NAME = "dehazer_v2.03_2"
+    # produce_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.03_3"
+    # produce_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+    #
+
+    CHECKPT_NAME = "dehazer_v2.03_3"
+    produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+
+    CHECKPT_NAME = "dehazer_v2.03_4"
+    produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+
+    CHECKPT_NAME = "dehazer_v2.03_5"
+    produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+
+    # CHECKPT_NAME = "dehazer_v2.03_3"
+    # produce_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.03_4"
+    # produce_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.03_5"
+    # produce_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
+
+    #produce_ohaze("transmission_albedo_estimator_v1.06_4", "dehazer_v2.03_5")
+    #benchmark_ohaze("transmission_albedo_estimator_v1.06_4", "dehazer_v2.03_5")
 
 
 # FIX for broken pipe num_workers issue.

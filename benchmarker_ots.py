@@ -14,7 +14,7 @@ import glob
 from skimage.metrics import peak_signal_noise_ratio
 
 
-def produce_ots():
+def produce_ots(T_CHECKPT_NAME, A_CHECKPT_NAME):
     HAZY_PATH = "E:Hazy Dataset Benchmark/OTS_BETA/haze/"
     SAVE_PATH = "results/Ours - Results - OTS-Beta/"
     SAVE_TRANSMISSION_PATH = "results/Ours - Results - OTS-Beta/Transmission/"
@@ -23,8 +23,8 @@ def produce_ots():
     hazy_list = glob.glob(HAZY_PATH + "*0.95_0.2.jpg") #specify atmosphere intensity
 
     ALBEDO_CHECKPT = "albedo_transfer_v1.04_1"
-    TRANSMISSION_CHECKPT = "transmission_albedo_estimator_v1.08_1"
-    AIRLIGHT_CHECKPT = "airlight_gen_v1.03_1"
+    TRANSMISSION_CHECKPT = T_CHECKPT_NAME
+    AIRLIGHT_CHECKPT = A_CHECKPT_NAME
 
     model_dehazer = dehazing_proper.ModelDehazer()
     model_dehazer.set_models_v2(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT)
@@ -35,9 +35,10 @@ def produce_ots():
             hazy_img = cv2.imread(hazy_path)
             hazy_img = cv2.resize(hazy_img, (512, 512))
 
-            #clear_img = model_dehazer.perform_dehazing(hazy_img, 0.8, 0.3)
+            #clear_img = model_dehazer.perform_dehazing(hazy_img, 0.8, 0.0)
             #clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.3)
-            clear_img = model_dehazer.perform_dehazing_direct_v2(hazy_img)
+            #clear_img = model_dehazer.perform_dehazing_direct_v2(hazy_img)
+            clear_img = model_dehazer.perform_dehazing_direct_v3(hazy_img, 0.8)
             clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             cv2.imwrite(SAVE_PATH + img_name, clear_img)
 
@@ -47,7 +48,7 @@ def produce_ots():
 
             print("Saved: " + SAVE_PATH + img_name)
 
-def benchmark_ots():
+def benchmark_ots(T_CHECKPT_NAME, A_CHECKPT_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/OTS_BETA/haze/"
     GT_PATH = "E:/Hazy Dataset Benchmark/OTS_BETA/clear/"
 
@@ -58,7 +59,7 @@ def benchmark_ots():
     EDPN_DEHAZE_PATH = "results/EDPN - Results - OTS-Beta/"
     OUR_PATH = "results/Ours - Results - OTS-Beta/"
 
-    EXPERIMENT_NAME = "metrics - 1"
+    EXPERIMENT_NAME = "metrics - " +str(T_CHECKPT_NAME) + " - " +str(A_CHECKPT_NAME)
     SAVE_PATH = "results/RESIDE-OTS Beta/"
     BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
 
@@ -263,8 +264,17 @@ def benchmark_ots():
 
 
 def main():
-    produce_ots()
-    benchmark_ots()
+    # CHECKPT_NAME = "dehazer_v2.03_2"
+    # produce_ots(CHECKPT_NAME)
+    # benchmark_ots(CHECKPT_NAME)
+
+    CHECKPT_NAME = "dehazer_v2.03_3"
+    produce_ots(CHECKPT_NAME, CHECKPT_NAME)
+    benchmark_ots(CHECKPT_NAME, CHECKPT_NAME)
+
+    CHECKPT_NAME = "dehazer_v2.03_5"
+    produce_ots(CHECKPT_NAME, CHECKPT_NAME)
+    benchmark_ots(CHECKPT_NAME, CHECKPT_NAME)
 
 # FIX for broken pipe num_workers issue.
 if __name__ == "__main__":

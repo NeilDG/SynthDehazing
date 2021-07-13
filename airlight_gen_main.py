@@ -25,46 +25,57 @@ from model import vanilla_cycle_gan as cycle_gan
 import constants
 
 parser = OptionParser()
-parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
+parser.add_option('--server_config', type=int, help="Is running on COARE?", default=0)
+parser.add_option('--cuda_device', type=str, help="CUDA Device?", default="cuda:0")
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
-parser.add_option('--batch_size', type=int, help="batch_size", default="8")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="50.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--batch_size', type=int, help="batch_size", default="32")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--is_unet',type=int, help="Is Unet?", default="0")
+parser.add_option('--num_workers', type=int, help="Workers", default="12")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n"
-                                                                                     "Using BCE-discriminator loss. 10 blocks. \n"
-                                                                                     "128 x 128 patch size. \n"
-                                                                                     "Trained on styled + unlit images")
+                                                                                     "32 x 32 patch size. \n"
+                                                                                     "0.5 - 0.95 = A range")
 
 # --img_to_load=-1 --load_previous=0
 # Update config if on COARE
 def update_config(opts):
-    constants.is_coare = opts.coare
+    constants.server_config = opts.server_config
 
-    if (constants.is_coare == 1):
-        print("Using COARE configuration.")
+    if (constants.server_config == 1):
+        constants.ITERATION = str(opts.iteration)
+        constants.num_workers = opts.num_workers
+        constants.AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_GEN_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_VERSION + "_" + constants.ITERATION + '.pt'
+        print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_GEN_CHECKPATH)
 
-        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
-        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean - styled/"
+        constants.DATASET_ALBED1O_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
         constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo - pseudo/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
-        constants.DATASET_ALBEDO_PATH_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo/"
-        constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo - pseudo/"
-        constants.DATASET_CLEAN_PATH_PATCH_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/clean - styled/"
+    elif (constants.server_config == 2):
+        constants.ITERATION = str(opts.iteration)
+        constants.num_workers = opts.num_workers
+        constants.ALBEDO_CHECKPT = opts.albedo_checkpt
+        constants.AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_GEN_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
-        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
+        print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_GEN_CHECKPATH)
 
-        constants.num_workers = 4
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "Hazy Dataset Benchmark/Standard/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
 
 def show_images(img_tensor, caption):
@@ -82,8 +93,7 @@ def main(argv):
     (opts, args) = parser.parse_args(argv)
     update_config(opts)
     print("=====================BEGIN============================")
-    print("Is Coare? %d Has GPU available? %d Count: %d" % (
-    constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
+    print("Server config? %d Has GPU available? %d Count: %d" % (constants.server_config, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
 
     manualSeed = random.randint(1, 10000)  # use if you want new results
@@ -108,15 +118,15 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_airlight_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
-    test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
-                    dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3,opts.batch_size, 500),
-                    dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
-                    dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+    train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
+    test_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
+                    dataset_loader.load_dehaze_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3,opts.batch_size, 500),
+                    dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
+                    dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
     index = 0
 
     # Plot some training images
-    if (constants.is_coare == 0):
+    if (constants.server_config == 0):
         _, a, b, c = next(iter(train_loader))
         _, d = next(iter(test_loaders[0]))
         show_images(a, "Training - RGB Images")
@@ -138,7 +148,7 @@ def main(argv):
             rgb_tensor = rgb_batch.to(device).float()
             atmosphere_tensor = atmosphere_batch.to(device).float()
 
-            gt.train(rgb_tensor, atmosphere_tensor)
+            gt.train(iteration, rgb_tensor, atmosphere_tensor)
             iteration = iteration + 1
             if ((i) % 2000 == 0):
                 gt.visdom_report(iteration)
@@ -150,10 +160,10 @@ def main(argv):
 
                     index = (index + 1) % len(test_loaders[0])
                     if (index == 0):
-                        test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
-                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, opts.batch_size, 500),
-                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
-                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+                        test_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
+                                        dataset_loader.load_dehaze_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, opts.batch_size, 500),
+                                        dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
+                                        dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
                 gt.save_states(epoch, iteration)
 
 # FIX for broken pipe num_workers issue.
