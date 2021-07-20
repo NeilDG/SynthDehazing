@@ -311,6 +311,30 @@ class ModelDehazer():
         self.atmosphere_models["dehazer_v2.03_5"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
         self.atmosphere_models["dehazer_v2.03_5"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
+        checkpt = torch.load("checkpoint/dehazer_v2.03_8.pt", map_location=self.gpu_device)
+        self.transmission_models["dehazer_v2.03_8"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["dehazer_v2.03_8"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/dehazer_v2.03_8.pt", map_location=self.gpu_device)
+        self.atmosphere_models["dehazer_v2.03_8"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        self.atmosphere_models["dehazer_v2.03_8"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+
+        checkpt = torch.load("checkpoint/dehazer_v2.03_9.pt", map_location=self.gpu_device)
+        self.transmission_models["dehazer_v2.03_9"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["dehazer_v2.03_9"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/dehazer_v2.03_9.pt", map_location=self.gpu_device)
+        self.atmosphere_models["dehazer_v2.03_9"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        self.atmosphere_models["dehazer_v2.03_9"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+
+        checkpt = torch.load("checkpoint/dehazer_v2.05_1.pt", map_location=self.gpu_device)
+        self.transmission_models["dehazer_v2.05_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["dehazer_v2.05_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/dehazer_v2.05_1.pt", map_location=self.gpu_device)
+        self.atmosphere_models["dehazer_v2.05_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        self.atmosphere_models["dehazer_v2.05_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+
         checkpt = torch.load("checkpoint/airlight_estimator_v1.05_1.pt")
         self.atmosphere_models["airlight_estimator_v1.05_1" + str(AtmosphereMethod.NETWORK_ESTIMATOR_V1)] = \
             dh.AirlightEstimator_V2(num_channels=3, disc_feature_size=64, out_features=3).to(self.gpu_device)
@@ -377,7 +401,7 @@ class ModelDehazer():
 
         # remove 0.5 normalization for dehazing equation
         A = ((atmosphere_map * 0.5) + 0.5)
-        A = A * 1.2
+        #A = A * 1.2
 
         print("Shape of atmosphere map: ", np.shape(atmosphere_map))
 
@@ -416,7 +440,7 @@ class ModelDehazer():
 
         # remove 0.5 normalization for dehazing equation
         A = ((atmosphere_map * 0.5) + 0.5)
-        A = A * 1.2
+        A = A * 0.5
 
         print("Shape of atmosphere map: ", np.shape(atmosphere_map))
 

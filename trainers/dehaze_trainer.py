@@ -164,7 +164,7 @@ class DehazeTrainer:
         return clean_like
 
 
-    def train(self, hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor):
+    def train(self, iteration, hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor):
         with amp.autocast():
             albedo_tensor = self.albedo_G(hazy_tensor)
             transmission_like = self.G_T(albedo_tensor)
@@ -191,8 +191,9 @@ class DehazeTrainer:
             errD = D_T_real_loss + D_T_fake_loss + D_A_real_loss + D_A_fake_loss
 
             self.fp16_scaler.scale(errD).backward()
-            self.fp16_scaler.step(self.optimizerD)
-            self.schedulerD.step(errD)
+            if (iteration % (512 / self.batch_size) == 0):
+                self.fp16_scaler.step(self.optimizerD)
+                self.schedulerD.step(errD)
 
             #train T
             self.G_T.train()
@@ -206,7 +207,7 @@ class DehazeTrainer:
             real_tensor = torch.ones_like(prediction)
             T_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            A_likeness_loss = self.likeness_loss(self.G_A(concat_input),  ) * self.likeness_weight
+            A_likeness_loss = self.likeness_loss(self.G_A(concat_input),  atmosphere_tensor) * self.likeness_weight
             A_edge_loss = self.edge_loss(self.G_A(concat_input), atmosphere_tensor) * self.edge_weight
 
             prediction = self.D_A(self.G_A(concat_input))
@@ -220,10 +221,10 @@ class DehazeTrainer:
                    A_likeness_loss + A_edge_loss + A_adv_loss + A_likeness_loss + A_edge_loss + A_adv_loss
 
             self.fp16_scaler.scale(errG).backward()
-            self.fp16_scaler.step(self.optimizerG)
-            self.schedulerG.step(errG)
-
-            self.fp16_scaler.update()
+            if (iteration % (512 / self.batch_size) == 0):
+                self.fp16_scaler.step(self.optimizerG)
+                self.schedulerG.step(errG)
+                self.fp16_scaler.update()
 
         # what to put to losses dict for visdom reporting?
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())

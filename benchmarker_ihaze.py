@@ -38,8 +38,8 @@ def produce_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
 
             #clear_img = model_dehazer.perform_dehazing(hazy_img, 0.7, 0.3)
             #clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.3)
-            clear_img = model_dehazer.perform_dehazing_direct_v2(hazy_img)
-            #clear_img = model_dehazer.perform_dehazing_direct_v3(hazy_img, 0.8)
+            #clear_img = model_dehazer.perform_dehazing_direct_v2(hazy_img)
+            clear_img = model_dehazer.perform_dehazing_direct_v3(hazy_img, 0.8)
             clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             cv2.imwrite(SAVE_PATH + img_name + ".png", clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
 
@@ -433,17 +433,17 @@ def benchmark_ohaze_inmodels():
         print("[Ours-Network Estimator V1] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
         print("[Ours-Network Estimator V2] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
 def main():
-    CHECKPT_NAME = "dehazer_v2.03_3"
+    CHECKPT_NAME = "dehazer_v2.05_1"
     produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
     benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
 
-    CHECKPT_NAME = "dehazer_v2.03_4"
-    produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
-    benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
-
-    CHECKPT_NAME = "dehazer_v2.03_5"
-    produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
-    benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
+    # CHECKPT_NAME = "dehazer_v2.03_4"
+    # produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
+    # benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.03_5"
+    # produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
+    # benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
 
     # CHECKPT_NAME = "dehazer_v2.03_3"
     # produce_ihaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)

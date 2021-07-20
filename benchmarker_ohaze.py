@@ -513,17 +513,13 @@ def main():
     # benchmark_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
     #
 
-    CHECKPT_NAME = "dehazer_v2.03_3"
+    CHECKPT_NAME = "dehazer_v2.05_1"
     produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
     benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
 
-    CHECKPT_NAME = "dehazer_v2.03_4"
-    produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
-    benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
-
-    CHECKPT_NAME = "dehazer_v2.03_5"
-    produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
-    benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    # CHECKPT_NAME = "dehazer_v2.03_5"
+    # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
 
     # CHECKPT_NAME = "dehazer_v2.03_3"
     # produce_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)

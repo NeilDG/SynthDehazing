@@ -15,7 +15,7 @@ cd scratch2/Visdom
 sbatch slurm_install.slurm
 sbatch slurm_visdom_test.slurm
 sbatch -w saliksik-cpu-23 visdom_run.slurm
-sbatch -w saliksik-cpu-23 --dependency=afterany:235322 visdom_run.slurm
+sbatch -w saliksik-cpu-23 --dependency=afterany:237521 visdom_run.slurm
 
 sbatch script_debug.slurm
 sbatch script_1.slurm
@@ -51,5 +51,5 @@ export XDG_RUNTIME_DIR=/scratch1/scratch2/neil.delgallego/Visdom/
 saliksik.asti.dost.gov.ph:8097
 
 //CCS SERVER-JUPYTERHUB
-python "dehaze_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:0 --batch_size=256 --iteration=6 --edge_weight=50.0
-python "dehaze_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:1 --batch_size=256 --iteration=7 --edge_weight=10.0 --adv_weight=2.0
+python "dehaze_main.py" --num_workers=10 --img_to_load=-1 --load_previous=1 --server_config=2 --cuda_device=cuda:0 --batch_size=256 --iteration=10 --edge_weight=50.0
+python "dehaze_main.py" --num_workers=10 --img_to_load=-1 --load_previous=1 --server_config=2 --cuda_device=cuda:1 --batch_size=256 --iteration=11 --edge_weight=10.0 --adv_weight=2.0

@@ -63,6 +63,7 @@ def update_config(opts):
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
         constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/GT/"
         constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
     elif(constants.server_config == 2):
         constants.ITERATION = str(opts.iteration)
@@ -159,14 +160,16 @@ def main(argv):
             transmission_tensor = transmission_batch.to(device).float()
             atmosphere_tensor = atmosphere_batch.to(device).float()
 
-            dehazer.train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
+            dehazer.train(iteration, hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
+            iteration = iteration + 1
 
             _, hazy_batch, clear_batch = test_data
             hazy_tensor = hazy_batch.to(device)
             clear_tensor = clear_batch.to(device)
             dehazer.test(hazy_tensor, clear_tensor)
+            #print("Iteration: ", iteration)
 
-            if (i % 3000 == 0):
+            if (i % 300 == 0):
                 dehazer.save_states(epoch, iteration)
                 dehazer.visdom_report(iteration)
 
@@ -183,7 +186,6 @@ def main(argv):
                 clear_tensor = clear_batch.to(device)
                 dehazer.visdom_infer_test_paired(hazy_tensor, clear_tensor, 0)
 
-                iteration = iteration + 1
                 for k in range(len(unseen_loaders)):
                     _, hazy_batch = next(iter(unseen_loaders[k]))
                     hazy_tensor = hazy_batch.to(device)

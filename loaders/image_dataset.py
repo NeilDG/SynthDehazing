@@ -58,14 +58,14 @@ class DehazingDataset(data.Dataset):
         transmission_img = cv2.cvtColor(transmission_img, cv2.COLOR_BGR2GRAY)
         transmission_img = cv2.resize(transmission_img, np.shape(clear_img[:, :, 0]))
         transmission_img = cv2.normalize(transmission_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.uniform(0.3, 0.9)) #also include clear samples
-        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.25, 0.75))
+        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.uniform(0.7, 0.95)) #also include clear samples
+        #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.25, 0.75))
         #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(0.625, 0.55))
 
         #formulate hazy img
         atmosphere = [0.0, 0.0, 0.0]
         spread = 0.125
-        atmosphere[0] = np.random.normal(AirlightDataset.atmosphere_mean(), AirlightDataset.atmosphere_std())
+        atmosphere[0] = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
         atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
         atmosphere[2] = np.random.normal(atmosphere[0], spread)
 
