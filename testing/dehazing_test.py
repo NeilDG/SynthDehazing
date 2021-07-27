@@ -430,85 +430,212 @@ def perform_atmospheric_map_estimation(model_checkpt_name, is_unet, blocks = 8):
         print("Overall PSNR: " + str(ave_losses[2]), file=f)
         print("Overall SSIM: " + str(ave_losses[3]), file=f)
 
-def save_transmissions(model_checkpt_name, is_unet):
-    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
-    SAVE_PATH_HAZY = "E:/Synth Hazy 3/hazy - styled/"
-    SAVE_PATH_GT = "E:/Synth Hazy 3/transmission/"
-    SAVE_PATH_PSEUDO = "E:/Synth Hazy 3/transmission - pseudo/"
-    SAVE_PATH_ATMOSPHERE_GT = "E:/Synth Hazy 3/atmosphere/"
-
+def save_albedos(model_checkpt_name):
+    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    SAVE_PATH__PSEUDO = "E:/Synth Hazy 3/albedo - pseudo/"
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    if (is_unet == True):
-        G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs=8).to(device)
-    else:
-        G_A = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
 
-    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt')
-    G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
-    G_A.eval()
-
-    print("G transmission network loaded")
+    # load albedo
+    checkpt = torch.load("D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/" + constants.ALBEDO_CHECKPT)
+    albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(device)
+    albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+    albedo_G.eval()
+    print("Albedo network loaded.")
     print("===================================================")
 
-    #test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 32, -1)
-    test_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 32, -1)
-
-    #visdom_reporter = plot_utils.VisdomReporter()
+    test_loader = dataset_loader.load_dehazing_dataset_infer(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 32, -1)
 
     with torch.no_grad():
         for i, (test_data) in enumerate(test_loader, 0):
-            name_batch, rgb_batch, transmission_batch, atmosphere_batch = test_data
-            rgb_tensor = rgb_batch.to(device).float()
-            transmission_batch = transmission_batch.to(device).float()
-            atmosphere_batch = atmosphere_batch.to(device).float()
+            name_batch, hazy_batch, _, _ = test_data
+            hazy_tensor = hazy_batch.to(device).float()
+            albedo_tensor = albedo_G(hazy_tensor)
 
-            transmission_like = G_A(rgb_tensor)
-            transmission_batch = (transmission_batch * 0.5) + 0.5  # remove tanh normalization
-            transmission_like = (transmission_like * 0.5) + 0.5
-            atmosphere_batch = (atmosphere_batch * 0.5) + 0.5  # remove tanh normalization
+            albedo_tensor = (albedo_tensor * 0.5) + 0.5  # remove tanh normalization
 
-            #Save results in drive
+            # Save results in drive
             for k in range(0, len(name_batch)):
                 file_name = name_batch[k]
 
-                # hazy_img = rgb_batch[k].cpu().numpy()
-                # hazy_img = np.moveaxis(hazy_img, 0, 2)
-                # hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                # hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
-                #
-                # cv2.imwrite(SAVE_PATH_HAZY + file_name, hazy_img)
+                albedo_pseudo = albedo_tensor[k].cpu().numpy()
+                albedo_pseudo = np.moveaxis(albedo_pseudo, 0, 2)
+                albedo_pseudo = cv2.normalize(albedo_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                albedo_pseudo = cv2.cvtColor(albedo_pseudo, cv2.COLOR_BGR2RGB)
 
-                # transmission_gt = transmission_batch[k].cpu().numpy()
-                # transmission_gt = np.moveaxis(transmission_gt, 0, 2)
-                # transmission_gt = cv2.normalize(transmission_gt, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                # transmission_gt = cv2.cvtColor(transmission_gt, cv2.COLOR_BGR2RGB)
-                #
-                # cv2.imwrite(SAVE_PATH_GT + file_name, transmission_gt)
-                #
-                # transmission_pseudo = transmission_like[k].cpu().numpy()
-                # transmission_pseudo = np.moveaxis(transmission_pseudo, 0, 2)
-                # transmission_pseudo = cv2.normalize(transmission_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                # transmission_pseudo = cv2.cvtColor(transmission_pseudo, cv2.COLOR_BGR2RGB)
+                cv2.imwrite(SAVE_PATH__PSEUDO + file_name, albedo_pseudo)
+
+
+def save_maps(model_checkpt_name):
+    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    SAVE_PATH_A_GT = "E:/Synth Hazy 3/atmosphere/"
+    SAVE_PATH_A_PSEUDO = "E:/Synth Hazy 3/atmosphere - pseudo/"
+    SAVE_PATH_T_GT = "E:/Synth Hazy 3/transmission/"
+    SAVE_PATH_T_PSEUDO = "E:/Synth Hazy 3/transmission - pseudo/"
+    SAVE_PATH_ALBEDO_PSEUDO = "E:/Synth Hazy 3/albedo - pseudo/"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    G_T = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(device)
+    G_A = cycle_gan.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(device)
+
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt', map_location=device)
+    G_T.load_state_dict(checkpoint[constants.GENERATOR_KEY + "T"])
+    G_T.eval()
+
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt', map_location=device)
+    G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
+    G_A.eval()
+
+    print("G network loaded")
+    print("===================================================")
+
+    # load albedo
+    checkpt = torch.load("D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/" + constants.ALBEDO_CHECKPT)
+    albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(device)
+    albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+    albedo_G.eval()
+    print("Albedo network loaded.")
+    print("===================================================")
+
+    test_loader = dataset_loader.load_dehazing_dataset_infer(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 32, -1)
+
+    with torch.no_grad():
+        for i, (test_data) in enumerate(test_loader, 0):
+            name_batch, hazy_batch, transmission_batch, atmosphere_batch = test_data
+            hazy_tensor = hazy_batch.to(device).float()
+            transmission_batch = transmission_batch.to(device).float()
+            atmosphere_batch = atmosphere_batch.to(device).float()
+
+            albedo_tensor = albedo_G(hazy_tensor)
+            transmission_like = G_T(albedo_tensor)
+
+            concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
+            atmosphere_like = G_A(concat_input)
+
+            transmission_like = (transmission_like * 0.5) + 0.5
+            transmission_batch = (transmission_batch * 0.5) + 0.5
+            atmosphere_like = (atmosphere_like * 0.5) + 0.5
+            atmosphere_batch = (atmosphere_batch * 0.5) + 0.5  # remove tanh normalization
+
+            # Save results in drive
+            for k in range(0, len(name_batch)):
+                file_name = name_batch[k]
+
+                albedo_pseudo = albedo_tensor[k].cpu().numpy()
+                albedo_pseudo = np.moveaxis(albedo_pseudo, 0, 2)
+                albedo_pseudo = cv2.normalize(albedo_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                albedo_pseudo = cv2.cvtColor(albedo_pseudo, cv2.COLOR_BGR2RGB)
+
+                cv2.imwrite(SAVE_PATH_ALBEDO_PSEUDO + file_name, albedo_pseudo)
+
+                transmission_gt = transmission_batch[k].cpu().numpy()
+                transmission_gt = np.moveaxis(transmission_gt, 0, 2)
+                transmission_gt = cv2.normalize(transmission_gt, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                transmission_gt = cv2.cvtColor(transmission_gt, cv2.COLOR_BGR2RGB)
+
+                cv2.imwrite(SAVE_PATH_T_GT + file_name, transmission_gt)
+
+                transmission_pseudo = transmission_like[k].cpu().numpy()
+                transmission_pseudo = np.moveaxis(transmission_pseudo, 0, 2)
+                transmission_pseudo = cv2.normalize(transmission_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                transmission_pseudo = cv2.cvtColor(transmission_pseudo, cv2.COLOR_BGR2RGB)
+
+                cv2.imwrite(SAVE_PATH_T_PSEUDO + file_name, transmission_pseudo)
 
                 atmosphere_gt = atmosphere_batch[k].cpu().numpy()
                 atmosphere_gt = np.moveaxis(atmosphere_gt, 0, 2)
                 atmosphere_gt = cv2.normalize(atmosphere_gt, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 atmosphere_gt = cv2.cvtColor(atmosphere_gt, cv2.COLOR_BGR2RGB)
 
-                cv2.imwrite(SAVE_PATH_ATMOSPHERE_GT + file_name, atmosphere_gt)
-                #
-                # transmission_pseudo = transmission_like[k].cpu().numpy()
-                # transmission_pseudo = np.moveaxis(transmission_pseudo, 0, 2)
-                # transmission_pseudo = cv2.normalize(transmission_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                # transmission_pseudo = cv2.cvtColor(transmission_pseudo, cv2.COLOR_BGR2RGB)
+                cv2.imwrite(SAVE_PATH_A_GT + file_name, atmosphere_gt)
 
-                # cv2.imwrite(SAVE_PATH_PSEUDO + file_name, transmission_pseudo)
+                atmosphere_pseudo = atmosphere_like[k].cpu().numpy()
+                atmosphere_pseudo = np.moveaxis(atmosphere_pseudo, 0, 2)
+                atmosphere_pseudo = cv2.normalize(atmosphere_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                atmosphere_pseudo = cv2.cvtColor(atmosphere_pseudo, cv2.COLOR_BGR2RGB)
+
+                cv2.imwrite(SAVE_PATH_A_PSEUDO + file_name, atmosphere_pseudo)
                 print("Saved img name: " + file_name)
 
+def save_transmissions(model_checkpt_name):
+    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    SAVE_PATH_HAZY = "E:/Synth Hazy 3/hazy - styled/"
+    SAVE_PATH_GT = "E:/Synth Hazy 3/transmission/"
+    SAVE_PATH_PSEUDO = "E:/Synth Hazy 3/transmission - pseudo/"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    G_A = cycle_gan.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(device)
+
+    checkpoint = torch.load(ABS_PATH_CHECKPOINT + model_checkpt_name + '.pt', map_location=device)
+    G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
+    G_A.eval()
+
+    print("G atmosphere network loaded")
+    print("===================================================")
+
+    # load albedo
+    checkpt = torch.load("D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/" + constants.ALBEDO_CHECKPT)
+    albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(device)
+    albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+    albedo_G.eval()
+    print("Albedo network loaded.")
+    print("===================================================")
+
+    test_loader = dataset_loader.load_dehazing_dataset_infer(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 32, -1)
+
+    with torch.no_grad():
+            for i, (test_data) in enumerate(test_loader, 0):
+                name_batch, hazy_batch, transmission_batch, atmosphere_batch = test_data
+                hazy_tensor = hazy_batch.to(device).float()
+                transmission_batch = transmission_batch.to(device).float()
+                atmosphere_batch = atmosphere_batch.to(device).float()
+
+                transmission_like = G_A(rgb_tensor)
+                transmission_batch = (transmission_batch * 0.5) + 0.5  # remove tanh normalization
+                transmission_like = (transmission_like * 0.5) + 0.5
+                atmosphere_batch = (atmosphere_batch * 0.5) + 0.5  # remove tanh normalization
+
+                #Save results in drive
+                for k in range(0, len(name_batch)):
+                    file_name = name_batch[k]
+
+                    # hazy_img = rgb_batch[k].cpu().numpy()
+                    # hazy_img = np.moveaxis(hazy_img, 0, 2)
+                    # hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                    # hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)
+                    #
+                    # cv2.imwrite(SAVE_PATH_HAZY + file_name, hazy_img)
+
+                    # transmission_gt = transmission_batch[k].cpu().numpy()
+                    # transmission_gt = np.moveaxis(transmission_gt, 0, 2)
+                    # transmission_gt = cv2.normalize(transmission_gt, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                    # transmission_gt = cv2.cvtColor(transmission_gt, cv2.COLOR_BGR2RGB)
+                    #
+                    # cv2.imwrite(SAVE_PATH_GT + file_name, transmission_gt)
+                    #
+                    # transmission_pseudo = transmission_like[k].cpu().numpy()
+                    # transmission_pseudo = np.moveaxis(transmission_pseudo, 0, 2)
+                    # transmission_pseudo = cv2.normalize(transmission_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                    # transmission_pseudo = cv2.cvtColor(transmission_pseudo, cv2.COLOR_BGR2RGB)
+
+                    atmosphere_gt = atmosphere_batch[k].cpu().numpy()
+                    atmosphere_gt = np.moveaxis(atmosphere_gt, 0, 2)
+                    atmosphere_gt = cv2.normalize(atmosphere_gt, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                    atmosphere_gt = cv2.cvtColor(atmosphere_gt, cv2.COLOR_BGR2RGB)
+
+                    cv2.imwrite(SAVE_PATH_ATMOSPHERE_GT + file_name, atmosphere_gt)
+                    #
+                    # transmission_pseudo = transmission_like[k].cpu().numpy()
+                    # transmission_pseudo = np.moveaxis(transmission_pseudo, 0, 2)
+                    # transmission_pseudo = cv2.normalize(transmission_pseudo, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                    # transmission_pseudo = cv2.cvtColor(transmission_pseudo, cv2.COLOR_BGR2RGB)
+
+                    # cv2.imwrite(SAVE_PATH_PSEUDO + file_name, transmission_pseudo)
+                    print("Saved img name: " + file_name)
 
 
-        # visdom_reporter.plot_image(transmission_batch, "Transmission GT " +str(i))
-        # visdom_reporter.plot_image(transmission_like, "Transmission Like " +str(i))
+
+            # visdom_reporter.plot_image(transmission_batch, "Transmission GT " +str(i))
+            # visdom_reporter.plot_image(transmission_like, "Transmission Like " +str(i))
 
 def perform_albedo_reconstruction(model_checkpt_name, num_blocks):
     ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
@@ -602,8 +729,9 @@ def main():
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_4", False, 10)
     # perform_transmission_map_estimation("transmission_albedo_estimator_v1.07_3", False, 10)
     #perform_transmission_map_estimation("transmission_albedo_estimator_v1.08_1", False, 10)
-    perform_transmission_map_estimation("dehazer_v2.02_1", False, 10)
+    #perform_transmission_map_estimation("dehazer_v2.02_1", False, 10)
     #save_transmissions("transmission_albedo_estimator_v1.06_1", False)
+    save_maps("dehazer_v2.03_3")
 
     #perform_albedo_reconstruction("albedo_transfer_v1.04_4", 16)
     # perform_albedo_reconstruction("albedo_transfer_v1.04_5", 20)

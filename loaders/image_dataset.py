@@ -315,7 +315,7 @@ class TransmissionAlbedoDatasetTest(data.Dataset):
 class AirlightDataset(data.Dataset):
     # ATMOSPHERE_MIN = 0.5
     # ATMOSPHERE_MAX = 1.8
-    ATMOSPHERE_MIN = 0.5
+    ATMOSPHERE_MIN = 0.3
     ATMOSPHERE_MAX = 0.95
     #ATMOSPHERE_MIN = 0.35
     #ATMOSPHERE_MAX = 1.0

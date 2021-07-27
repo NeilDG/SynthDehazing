@@ -277,9 +277,9 @@ class DehazeTrainer:
             clear_like = self.provide_clean_like(hazy_tensor, transmission_like, atmosphere_like)
 
             self.visdom_reporter.plot_image(hazy_tensor, "Unseen Hazy images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
-            # self.visdom_reporter.plot_image(albedo_tensor, "Test Albedo-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
-            # self.visdom_reporter.plot_image(transmission_like, "Test Transmission-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION)+ "-" + str(number))
-            # self.visdom_reporter.plot_image(atmosphere_like, "Test Atmosphere-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION)+ "-" + str(number))
+            self.visdom_reporter.plot_image(albedo_tensor, "Test Albedo-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
+            self.visdom_reporter.plot_image(transmission_like, "Test Transmission-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION)+ "-" + str(number))
+            self.visdom_reporter.plot_image(atmosphere_like, "Test Atmosphere-Like images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION)+ "-" + str(number))
             self.visdom_reporter.plot_image(clear_like, "Unseen Clean-Like Images " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
 
     def visdom_infer_test_paired(self, hazy_tensor, clear_tensor, number):

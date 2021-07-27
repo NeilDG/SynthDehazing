@@ -93,10 +93,22 @@ def load_dehazing_dataset(path_a, path_b, return_ground_truth = False, batch_siz
     print("Length of training transmission dataset: %d" % (len(a_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.DehazingDataset(a_list, path_b, (32, 32), True, return_ground_truth),
+        image_dataset.DehazingDataset(a_list, path_b, (128, 128), True, return_ground_truth),
         batch_size=batch_size,
         num_workers=constants.num_workers,
         shuffle=True
+    )
+    return data_loader
+
+def load_dehazing_dataset_infer(path_a, path_b, return_ground_truth = False, batch_size=8, num_image_to_load=-1):
+    a_list = assemble_unpaired_data(path_a, num_image_to_load)
+    print("Length of training transmission dataset: %d" % (len(a_list)))
+
+    data_loader = torch.utils.data.DataLoader(
+        image_dataset.DehazingDataset(a_list, path_b, (32, 32), False, return_ground_truth),
+        batch_size=batch_size,
+        num_workers=constants.num_workers,
+        shuffle=False
     )
     return data_loader
 

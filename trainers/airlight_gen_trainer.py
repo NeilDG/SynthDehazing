@@ -91,7 +91,12 @@ class AirlightGenTrainer:
         return loss(pred, target)
 
     def likeness_loss(self, pred, target):
-        loss = nn.L1Loss()
+        #loss = kornia.losses.SSIMLoss(window_size=5)
+        loss = nn.MSELoss()
+
+        #pred_hsv = kornia.color.rgb_to_hsv(pred)
+        #target_hsv = kornia.color.rgb_to_hsv(target)
+
         return loss(pred, target)
 
     def edge_loss(self, pred, target):
@@ -150,7 +155,7 @@ class AirlightGenTrainer:
             self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
 
     def visdom_report(self, iteration):
-        self.visdom_reporter.plot_finegrain_loss("Transmission loss - " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
+        self.visdom_reporter.plot_finegrain_loss("Atmosphere loss - " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
 
     def visdom_infer_train(self, train_gray_tensor, train_depth_tensor, id):
         with torch.no_grad():

@@ -41,7 +41,7 @@ parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Joint training for transmission and atmospheric map. Size 32 x 32\n"
-                                                                                     "0.3 - 0.75 = A range")
+                                                                                     "0.3 - 0.95 = A range")
 
 #--img_to_load=-1 --load_previous=0
 # --server_config=2 --cuda_device=cuda:1
@@ -57,7 +57,7 @@ def update_config(opts):
         print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.DEHAZER_CHECKPATH)
 
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean - styled/"
-        constants.DATASET_ALBED1O_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
         constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo - pseudo/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
@@ -122,7 +122,8 @@ def main(argv):
     # Create the dataloader
     train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, True, opts.batch_size, opts.img_to_load)
     test_loaders = [dataset_loader.load_dehaze_dataset_test_paired(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, opts.batch_size, -1)]
-    unseen_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_STANDARD_PATH_COMPLETE, opts.batch_size, 500),
+    unseen_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
+                    dataset_loader.load_dehaze_dataset_test(constants.DATASET_STANDARD_PATH_COMPLETE, opts.batch_size, 500),
                     dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
 
     index = 0
@@ -141,7 +142,6 @@ def main(argv):
     #     hazy_tensor = hazy_batch.to(device)
     #
     #     dehazer.visdom_infer_test(hazy_tensor, i)
-    #     #break
     #
     # for i, test_data in enumerate(test_loaders[0], 0):
     #     _, hazy_batch, clear_batch = test_data
@@ -149,7 +149,7 @@ def main(argv):
     #     clear_tensor = clear_batch.to(device)
     #
     #     dehazer.visdom_infer_test_paired(hazy_tensor, clear_tensor, i)
-    #     #break
+    #     break
 
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
