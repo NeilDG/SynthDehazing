@@ -496,9 +496,9 @@ def main():
     # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
     # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
 
-    CHECKPT_NAME = "dehazer_v2.06_3"
-    produce_ohaze(CHECKPT_NAME, "airlight_gen_v1.07_1")
-    benchmark_ohaze(CHECKPT_NAME, "airlight_gen_v1.07_1")
+    CHECKPT_NAME = "dehazer_v2.07_3"
+    produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
 
     # CHECKPT_NAME = "dehazer_v2.06_3"
     # produce_ohaze(CHECKPT_NAME, "airlight_gen_v1.06_3")

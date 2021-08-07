@@ -337,3 +337,52 @@ class AirlightEstimator_V2(nn.Module):
         x = self.fc_block(x)
 
         return x
+
+
+class AirlightEstimator_Residual(nn.Module):
+    def __init__(self, num_channels, out_features, num_layers):
+        super(AirlightEstimator_Residual, self).__init__()
+
+        img_features = [nn.Conv2d(num_channels, 64, 4, stride=2, padding=1),
+                        nn.LeakyReLU(0.2, inplace=True)]
+
+        img_features += [nn.Conv2d(64, 128, 4, stride=2, padding=1),
+                         nn.InstanceNorm2d(128),
+                         nn.LeakyReLU(0.2, inplace=True)]
+
+        in_filters = 128
+        out_filters = in_filters * 2
+
+        for i in range(0, num_layers):
+            img_features += [nn.Conv2d(in_filters, out_filters, 2, stride=2, padding=1),
+                             nn.InstanceNorm2d(out_filters),
+                             nn.LeakyReLU(0.2, inplace=True),
+                             nn.Dropout2d(0.5)]
+
+            in_filters = out_filters
+            out_filters = in_filters * 2
+
+        out_filters = int(in_filters / 2)
+
+        for i in range(0, num_layers):
+            img_features += [nn.Conv2d(in_filters, out_filters, 2, stride=2, padding=1),
+                             nn.InstanceNorm2d(out_filters),
+                             nn.LeakyReLU(0.2, inplace=True),
+                             nn.Dropout2d(0.5)]
+
+            in_filters = out_filters
+            out_filters = int(in_filters / 2)
+
+        img_features += nn.Sequential(nn.Conv2d(in_channels=in_filters, out_channels=64, kernel_size=2, stride=1, padding=0),
+                                      nn.Sigmoid(),
+                                      nn.Flatten(),
+                                      nn.Linear(in_features=64, out_features=32),
+                                      nn.Linear(in_features=32, out_features=out_features))
+
+        self.img_features = nn.Sequential(*img_features)
+        self.img_features.apply(weights_init)
+
+    def forward(self, input):
+        img_features = self.img_features(input)
+        #print("Img features shape: ", np.shape(img_features))
+        return img_features

@@ -55,8 +55,8 @@ LATENT_VECTOR_KEY = "latent_vector"
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "albedo_transfer_v1.04"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.09"
-AIRLIGHT_GEN_VERSION = "airlight_gen_v1.07"
-AIRLIGHT_VERSION = "airlight_estimator_v1.07"
+AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
+AIRLIGHT_VERSION = "airlight_estimator_v1.08"
 DEHAZER_VERSION = "dehazer_v2.08"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
@@ -101,7 +101,7 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 500
+num_epochs = 15
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size

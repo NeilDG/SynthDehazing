@@ -460,12 +460,40 @@ class ModelDehazer():
 
         return np.clip(clear_img, 0.0, 1.0)
 
+    def extract_atmosphere_element(self, hazy_tensor):
+        #extract dark channel
+        dc_kernel = torch.ones(3, 3).to(self.gpu_device)
+
+        hazy_tensor = hazy_tensor.transpose(0, 1)
+        (r, g, b) = torch.chunk(hazy_tensor, 3)
+        (h, w) = (np.shape(r)[2], np.shape(r)[3])
+        #print("R G B shape: ", np.shape(r), np.shape(g), np.shape(b))
+        dc_tensor = torch.minimum(torch.minimum(r, g), b)
+        dc_tensor = kornia.morphology.erosion(dc_tensor, dc_kernel)
+
+        #estimate atmosphere
+        dc_tensor = dc_tensor.transpose(0, 1)
+        hazy_tensor = hazy_tensor.transpose(0, 1)
+        A_map = torch.zeros_like(hazy_tensor)
+        for i in range(np.shape(dc_tensor)[0]):
+            A = estimate_atmosphere(hazy_tensor.cpu().numpy()[i], dc_tensor.cpu().numpy()[i], h, w)
+            A = np.ndarray.flatten(A)
+
+            A_map[i, 0] = torch.full_like(A_map[i, 0], A[0])
+            A_map[i, 1] = torch.full_like(A_map[i, 1], A[1])
+            A_map[i, 2] = torch.full_like(A_map[i, 2], A[2])
+
+        a_tensor = A_map.to(self.gpu_device)
+
+        return a_tensor
+
     def perform_dehazing_direct_v3(self, hazy_img, filter_strength):
         transform_op = transforms.Compose([transforms.ToTensor(),
                                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
         hazy_tensor = transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
         hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
+        #a_tensor = self.extract_atmosphere_element(hazy_tensor)
 
         # translate to albedo first
         unlit_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
@@ -482,8 +510,7 @@ class ModelDehazer():
         T = ((transmission_img * 0.5) + 0.5)
         #T = T * 1.2
 
-        atmosphere_map = self.atmosphere_models[self.airlight_model_key](concat_input)  # normalize to 0.0 - 1.0
-        atmosphere_map = kornia.color.lab_to_rgb(atmosphere_map, False)
+        atmosphere_map = self.atmosphere_models[self.airlight_model_key](concat_input)
         atmosphere_map = torch.squeeze(atmosphere_map).cpu().numpy()
         #atmosphere_map = atmosphere_map - 0.1
 
