@@ -28,6 +28,8 @@ class VisdomReporter:
     def __init__(self):
         if(constants.server_config == 1):
             self.vis = visdom.Visdom(SALIKSIK_SERVER, use_incoming_socket=False, port=8097) #TODO: Note that this is set to TRUE for observation.
+        elif(constants.server_config == 2):
+            self.vis = None
         else:
             self.vis= visdom.Visdom()
         
@@ -35,8 +37,9 @@ class VisdomReporter:
         self.loss_windows = {}
     
     def plot_image(self, img_tensor, caption):
-        # if(constants.is_coare == 1):
-        #     return
+        if(constants.server_config == 2):
+            return
+
         img_group = vutils.make_grid(img_tensor[:constants.display_size], nrow = 8, padding=2, normalize=True).cpu()
         if hash(caption) not in self.image_windows:
             self.image_windows[hash(caption)] = self.vis.images(img_group, opts = dict(caption = caption + " " + str(constants.ITERATION)))
@@ -77,9 +80,8 @@ class VisdomReporter:
             self.vis.matplot(plt, win = self.loss_windows[hash(caption)], opts = dict(caption = caption))
 
     def plot_finegrain_loss(self, loss_key, iteration, losses_dict, caption_dict):
-        # if(constants.is_coare == 1):
-        #     #TODO: fix issue on matplot user permission for COARE
-        #     return
+        if (constants.server_config == 2):
+            return
         
         loss_keys = list(losses_dict.keys())
         caption_keys = list(caption_dict.keys())
@@ -138,34 +140,6 @@ class VisdomReporter:
         plt.plot(x2, airlight_loss[1], color=colors[1], label=str(airlight_captions[1]))
         plt.legend(loc='lower right')
 
-        if loss_key not in self.loss_windows:
-            self.loss_windows[loss_key] = self.vis.matplot(plt, opts=dict(caption="Losses" + " " + str(constants)))
-        else:
-            self.vis.matplot(plt, win=self.loss_windows[loss_key], opts=dict(caption="Losses" + " " + str(constants)))
-
-        plt.show()
-
-    def plot_psnr_ssim_loss(self, loss_key, iteration, losses_dict, caption_dict, base_key):
-        # if (constants.is_coare == 1):
-        #     # TODO: fix issue on matplot user permission for COARE
-        #     return
-
-        loss_keys = list(losses_dict.keys())
-        caption_keys = list(caption_dict.keys())
-
-        colors = ['r', 'g', 'black', 'darkorange', 'olive', 'palevioletred', 'rosybrown', 'cyan', 'slategray',
-                  'darkmagenta', 'linen', 'chocolate']
-
-        x = [i for i in range(iteration, iteration + len(losses_dict[base_key]))]
-        COLS = 2;
-        fig, ax = plt.subplots(1, COLS, sharex=True)
-        fig.set_size_inches(5, 5)
-        fig.tight_layout()
-
-        for j in range(COLS):
-            ax[j].plot(x, losses_dict[loss_keys[j]], color=colors[j], label=str(caption_dict[caption_keys[j]]))
-
-        fig.legend(loc='lower right')
         if loss_key not in self.loss_windows:
             self.loss_windows[loss_key] = self.vis.matplot(plt, opts=dict(caption="Losses" + " " + str(constants)))
         else:

@@ -231,7 +231,7 @@ def load_airlight_dataset_train(path_a, path_b, return_ground_truth = False, bat
     data_loader = torch.utils.data.DataLoader(
         image_dataset.AirlightDataset(a_list, path_b, (32, 32), True, return_ground_truth),
         batch_size=batch_size,
-        num_workers=constants.num_workers,
+        num_workers=6,
         shuffle=True
     )
     return data_loader

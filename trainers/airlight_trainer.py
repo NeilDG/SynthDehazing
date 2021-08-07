@@ -27,6 +27,11 @@ class AirlightTrainer:
         self.fp16_scalers = [amp.GradScaler(),
                              amp.GradScaler()]
 
+        self.early_stop_tolerance = 250
+        self.stop_counter = 0
+        self.last_metric = 1000000.0
+        self.stop_condition_met = False
+
     def initialize_dict(self):
         self.AIRLOSS_A_KEY = "AIRLOSS_A_KEY"
         self.AIRLOSS_B_KEY = "AIRLOSS_B_KEY"
@@ -105,11 +110,26 @@ class AirlightTrainer:
 
             self.fp16_scalers[0].update()
 
-    def test(self, rgb_tensor, airlight_tensor):
+    def test(self, epoch, rgb_tensor, airlight_tensor):
         self.A1.eval()
         with torch.no_grad(), amp.autocast():
             D_A1_loss = self.network_loss(self.A1(rgb_tensor), airlight_tensor) * self.loss_weight
             self.losses_dict[self.AIRLOSS_A_KEY_TEST].append(D_A1_loss.item())
+
+        #early stopping mechanism
+        if(self.last_metric < D_A1_loss and epoch > 20):
+            self.stop_counter += 1
+        elif(self.last_metric >= D_A1_loss):
+            self.last_metric = D_A1_loss
+            self.stop_counter = 0
+            print("Early stopping mechanism reset. Best metric is now ", self.last_metric)
+
+        if (self.stop_counter == self.early_stop_tolerance):
+            self.stop_condition_met = True
+            print("Met stopping condition with best metric of: ", self.last_metric, ". Latest metric: ", D_A1_loss)
+
+    def did_stop_condition_met(self):
+        return self.stop_condition_met
 
     def visdom_report(self, iteration, rgb_tensor):
         # report to visdom

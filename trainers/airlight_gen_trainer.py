@@ -25,6 +25,11 @@ class AirlightGenTrainer:
         self.d_lr = d_lr
         self.batch_size = batch_size
 
+        self.early_stop_tolerance = 2500
+        self.stop_counter = 0
+        self.last_metric = 1000000.0
+        self.stop_condition_met = False
+
         if (is_unet == 1):
             self.G_A = un.UnetGenerator(input_nc=6, output_nc=3, num_downs=6).to(self.gpu_device)
         else:
@@ -103,7 +108,7 @@ class AirlightGenTrainer:
 
         return loss(pred_grad, target_grad)
 
-    def train_atmospheric_map(self, iteration, hazy_tensor, airlight_tensor):
+    def train(self, iteration, hazy_tensor, airlight_tensor):
         with amp.autocast():
             concat_input = torch.cat([hazy_tensor, self.albedo_G(hazy_tensor)], 1)
             depth_like = self.G_A(concat_input)
@@ -150,6 +155,26 @@ class AirlightGenTrainer:
             self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item())
             self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
             self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
+
+    def test(self, epoch, hazy_tensor, airlight_tensor):
+        with torch.no_grad(), amp.autocast():
+            concat_input = torch.cat([hazy_tensor, self.albedo_G(hazy_tensor)], 1)
+            A_likeness_loss = self.likeness_loss(self.G_A(concat_input), airlight_tensor)
+
+            # early stopping mechanism
+            if (self.last_metric < A_likeness_loss and epoch > 20):
+                self.stop_counter += 1
+            elif (self.last_metric >= A_likeness_loss):
+                self.last_metric = A_likeness_loss
+                self.stop_counter = 0
+                print("Early stopping mechanism reset. Best metric is now ", self.last_metric.item(), " Epoch: ", epoch)
+
+            if (self.stop_counter == self.early_stop_tolerance):
+                self.stop_condition_met = True
+                print("Met stopping condition with best metric of: ", self.last_metric.item(), ". Latest metric: ", A_likeness_loss.item(), " Epoch: ", epoch)
+
+    def did_stop_condition_met(self):
+        return self.stop_condition_met
 
     def visdom_report(self, iteration):
         self.visdom_reporter.plot_finegrain_loss("Atmosphere loss - " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)

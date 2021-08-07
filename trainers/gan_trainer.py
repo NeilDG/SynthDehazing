@@ -58,7 +58,7 @@ class GANTrainer:
         real_label = 1
         fake_label = 0
         
-        self.netG.train_atmospheric_map()
+        self.netG.train()
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
         ###########################

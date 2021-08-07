@@ -35,11 +35,10 @@ parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--batch_size', type=int, help="batch_size", default="32")
+parser.add_option('--batch_size', type=int, help="batch_size", default="128")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--is_unet',type=int, help="Is Unet?", default="0")
-parser.add_option('--num_workers', type=int, help="Workers", default="12")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n"
                                                                                      "32 x 32 patch size. \n"
                                                                                      "0.3 - 0.95 = A range")
@@ -51,7 +50,7 @@ def update_config(opts):
 
     if (constants.server_config == 1):
         constants.ITERATION = str(opts.iteration)
-        constants.num_workers = opts.num_workers
+        #constants.num_workers = opts.num_workers
         constants.AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_GEN_VERSION + "_" + constants.ITERATION + '.pt'
 
         print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_GEN_CHECKPATH)
@@ -67,7 +66,7 @@ def update_config(opts):
 
     elif (constants.server_config == 2):
         constants.ITERATION = str(opts.iteration)
-        constants.num_workers = opts.num_workers
+        #constants.num_workers = opts.num_workers
         constants.ALBEDO_CHECKPT = opts.albedo_checkpt
         constants.AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_GEN_VERSION + "_" + constants.ITERATION + '.pt'
 
@@ -75,6 +74,9 @@ def update_config(opts):
 
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3
+        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = constants.DATASET_DEPTH_PATH_COMPLETE_3
+
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/hazy/"
         constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/GT/"
         constants.DATASET_STANDARD_PATH_COMPLETE = "Hazy Dataset Benchmark/Standard/"
@@ -134,11 +136,12 @@ def main(argv):
 
     # Create the dataloader
     train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
-    test_dataset_group = [dataset_loader.load_airlight_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
-                    dataset_loader.load_airlight_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3,opts.batch_size, 500),
-                    dataset_loader.load_airlight_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
-                    dataset_loader.load_airlight_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
-    test_loaders = test_dataset_group
+    test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, False, opts.batch_size, opts.img_to_load)
+
+    # validation_group = [dataset_loader.load_airlight_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
+    #                 dataset_loader.load_airlight_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
+    #                 dataset_loader.load_airlight_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+    # validation_loaders = validation_group
     index = 0
 
     # Plot some training images
@@ -148,7 +151,6 @@ def main(argv):
         show_images(a, "Training - RGB Images")
         show_images(b, "Training - Transmission Images")
         show_images(c, "Training - Atmosphere Images")
-        print(d)
 
     # for i, train_data in enumerate(train_loader, 0):
     #     _, rgb_batch, _, atmosphere_batch, _ = train_data
@@ -160,36 +162,57 @@ def main(argv):
     print("Starting Training Loop for Airlight Gen...")
     for epoch in range(start_epoch[0], constants.num_epochs):
         # For each batch in the dataloader
-        for i, train_data in enumerate(train_loader, 0):
+        for i, (train_data, test_data) in enumerate(zip(train_loader, test_loader)):
             _, rgb_batch, _, atmosphere_batch, _ = train_data
             rgb_tensor = rgb_batch.to(device).float()
             atmosphere_tensor = atmosphere_batch.to(device).float()
 
-            gen_trainer.train_atmospheric_map(iteration[0], rgb_tensor, atmosphere_tensor)
+            gen_trainer.train(iteration[0], rgb_tensor, atmosphere_tensor)
+
+            _, rgb_batch, _, atmosphere_batch, _ = test_data
+            rgb_tensor = rgb_batch.to(device).float()
+            atmosphere_tensor = atmosphere_batch.to(device).float()
+
+            gen_trainer.test(epoch, rgb_tensor, atmosphere_tensor)
+
+            if(gen_trainer.did_stop_condition_met()):
+                break
+
             iteration[0] = iteration[0] + 1
-            if ((i) % 2000 == 0):
+            if ((i) % 300 == 0):
                 gen_trainer.save_states(epoch, iteration[0])
                 gen_trainer.visdom_report(iteration[0])
                 gen_trainer.visdom_infer_train(rgb_tensor, atmosphere_tensor, 0)
-                for j in range(len(test_loaders)):
-                    _, rgb_batch = next(iter(test_loaders[j]))
-                    rgb_batch = rgb_batch.to(device)
-                    gen_trainer.visdom_infer_test(rgb_batch, j)
-
-                    index = (index + 1) % len(test_loaders[0])
-                    if (index == 0):
-                        test_loaders = test_dataset_group
+                # for j in range(len(validation_loaders)):
+                #     _, rgb_batch = next(iter(validation_loaders[j]))
+                #     rgb_batch = rgb_batch.to(device)
+                #     gen_trainer.visdom_infer_test(rgb_batch, j)
+                #
+                #     index = (index + 1) % len(validation_loaders[0])
+                #     if (index == 0):
+                #         validation_loaders = validation_group
 
     train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 8192, opts.img_to_load)
+    test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, False, 8192, opts.img_to_load)
+
     print("Starting Training Loop for Airlight Estimator...")
     for epoch in range(start_epoch[1], constants.num_epochs):
         # For each batch in the dataloader
-        for i, train_data in enumerate(train_loader, 0):
+        for i, (train_data, test_data) in enumerate(zip(train_loader, test_loader)):
             _, rgb_batch, _, _, atmosphere_light = train_data
             rgb_tensor = rgb_batch.to(device).float()
             light_tensor = atmosphere_light.to(device).float()
 
             airlight_term_trainer.train_a1(rgb_tensor, light_tensor)
+
+            _, rgb_batch, _, _, atmosphere_light = test_data
+            rgb_tensor = rgb_batch.to(device).float()
+            light_tensor = atmosphere_light.to(device).float()
+            airlight_term_trainer.test(epoch, rgb_tensor, light_tensor)
+
+            if (airlight_term_trainer.did_stop_condition_met()):
+                break
+
             iteration[1] = iteration[1] + 1
 
             if ((i) % 10 == 0):
