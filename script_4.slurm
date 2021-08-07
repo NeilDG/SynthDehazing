@@ -20,5 +20,5 @@ module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
 
-srun python dehaze_main.py --iteration=$ITERATION --server_config=1 --num_workers=6 --likeness_weight=10.0 --edge_weight=1.0 --img_to_load=-1 --load_previous=1 --batch_size=32
+srun python dehaze_main.py --iteration=$ITERATION --server_config=1 --num_workers=6 --likeness_weight=10.0 --edge_weight=1.0 --img_to_load=-1 --load_previous=0 --batch_size=128
 conda deactivate
