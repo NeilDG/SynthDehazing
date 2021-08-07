@@ -32,15 +32,15 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="100.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--batch_size', type=int, help="batch_size", default="8")
-parser.add_option('--g_lr', type=float, help="LR", default="0.00002")
-parser.add_option('--d_lr', type=float, help="LR", default="0.00002")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--batch_size', type=int, help="batch_size", default="16")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--is_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n"
-                                                                                     "128 x 128 patch size. \n"
+                                                                                     "32 x 32 patch size. \n"
                                                                                      "0.3 - 0.95 = A range")
 
 # --img_to_load=-1 --load_previous=0
@@ -102,7 +102,7 @@ def main(argv):
     random.seed(manualSeed)
     torch.manual_seed(manualSeed)
 
-    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    device = torch.device(opts.cuda_device if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
     gt = airlight_gen_trainer.AirlightGenTrainer(device, opts.batch_size, opts.is_unet, opts.g_lr, opts.d_lr)
@@ -120,11 +120,11 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
-    # test_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
-    #                 dataset_loader.load_dehaze_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3,opts.batch_size, 500),
-    #                 dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
-    #                 dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+    train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
+    test_loaders = [dataset_loader.load_airlight_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
+                    dataset_loader.load_airlight_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3,opts.batch_size, 500),
+                    dataset_loader.load_airlight_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
+                    dataset_loader.load_airlight_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
     index = 0
 
     # Plot some training images
@@ -154,19 +154,19 @@ def main(argv):
             iteration = iteration + 1
             if ((i) % 2000 == 0):
                 gt.save_states(epoch, iteration)
-                # gt.visdom_report(iteration)
-                # gt.visdom_infer_train(rgb_tensor, atmosphere_tensor, 0)
-                # for j in range(len(test_loaders)):
-                #     _, rgb_batch = next(iter(test_loaders[j]))
-                #     rgb_batch = rgb_batch.to(device)
-                #     gt.visdom_infer_test(rgb_batch, j)
-                #
-                #     index = (index + 1) % len(test_loaders[0])
-                #     if (index == 0):
-                #         test_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
-                #                         dataset_loader.load_dehaze_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, opts.batch_size, 500),
-                #                         dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
-                #                         dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+                gt.visdom_report(iteration)
+                gt.visdom_infer_train(rgb_tensor, atmosphere_tensor, 0)
+                for j in range(len(test_loaders)):
+                    _, rgb_batch = next(iter(test_loaders[j]))
+                    rgb_batch = rgb_batch.to(device)
+                    gt.visdom_infer_test(rgb_batch, j)
+
+                    index = (index + 1) % len(test_loaders[0])
+                    if (index == 0):
+                        test_loaders = [dataset_loader.load_airlight_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
+                                        dataset_loader.load_airlight_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, opts.batch_size, 500),
+                                        dataset_loader.load_airlight_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
+                                        dataset_loader.load_airlight_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
 
 # FIX for broken pipe num_workers issue.
 if __name__ == "__main__":

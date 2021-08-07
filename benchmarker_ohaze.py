@@ -479,55 +479,30 @@ def benchmark_ohaze_inmodels():
         print("[Ours-Network Estimator V1] Average SSIM: ", np.round(average_SSIM[2], 5), file=f)
         print("[Ours-Network Estimator V2] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
 def main():
-    # CHECKPT_NAME = "dehazer_v2.01_1"
-    # produce_ohaze(CHECKPT_NAME)
-    # benchmark_ohaze(CHECKPT_NAME)
-    #
-    # CHECKPT_NAME = "dehazer_v2.01_2"
-    # produce_ohaze(CHECKPT_NAME)
-    # benchmark_ohaze(CHECKPT_NAME)
-    #
-    # CHECKPT_NAME = "dehazer_v2.01_3"
-    # produce_ohaze(CHECKPT_NAME)
-    # benchmark_ohaze(CHECKPT_NAME)
-    #
-    # CHECKPT_NAME = "dehazer_v2.01_4"
-    # produce_ohaze(CHECKPT_NAME)
-    # benchmark_ohaze(CHECKPT_NAME)
-    #
-    # CHECKPT_NAME = "dehazer_v2.01_5"
-    # produce_ohaze(CHECKPT_NAME)
-    # benchmark_ohaze(CHECKPT_NAME)
-    CHECKPT_NAME = "dehazer_v2.06_4"
-    produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
-    benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
 
-    CHECKPT_NAME = "dehazer_v2.06_5"
-    produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
-    benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
-
-    # CHECKPT_NAME = "dehazer_v2.05_3"
+    # CHECKPT_NAME = "dehazer_v2.07_2"
+    # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.07_3"
+    # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.07_4"
+    # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    #
+    # CHECKPT_NAME = "dehazer_v2.07_5"
     # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
     # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
 
-    # CHECKPT_NAME = "dehazer_v2.03_5"
-    # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
-    # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    CHECKPT_NAME = "dehazer_v2.06_3"
+    produce_ohaze(CHECKPT_NAME, "airlight_gen_v1.07_1")
+    benchmark_ohaze(CHECKPT_NAME, "airlight_gen_v1.07_1")
 
-    # CHECKPT_NAME = "dehazer_v2.03_3"
-    # produce_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
-    #
-    # CHECKPT_NAME = "dehazer_v2.03_4"
-    # produce_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
-    #
-    # CHECKPT_NAME = "dehazer_v2.03_5"
-    # produce_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.06_4", CHECKPT_NAME)
-
-    #produce_ohaze("transmission_albedo_estimator_v1.06_4", "dehazer_v2.03_5")
-    #benchmark_ohaze("transmission_albedo_estimator_v1.06_4", "dehazer_v2.03_5")
+    # CHECKPT_NAME = "dehazer_v2.06_3"
+    # produce_ohaze(CHECKPT_NAME, "airlight_gen_v1.06_3")
+    # benchmark_ohaze(CHECKPT_NAME, "airlight_gen_v1.06_3")
 
 
 # FIX for broken pipe num_workers issue.

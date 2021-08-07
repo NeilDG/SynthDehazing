@@ -437,13 +437,13 @@ def main():
     # produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
     # benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
     #
-    CHECKPT_NAME = "dehazer_v2.06_2"
-    produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
-    benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
+    # CHECKPT_NAME = "dehazer_v2.06_2"
+    # produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
+    # benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
 
     CHECKPT_NAME = "dehazer_v2.06_3"
-    produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
-    benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
+    produce_ihaze(CHECKPT_NAME, "airlight_gen_v1.03_1")
+    benchmark_ihaze(CHECKPT_NAME, "airlight_gen_v1.03_1")
 
     # CHECKPT_NAME = "dehazer_v2.03_4"
     # produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)

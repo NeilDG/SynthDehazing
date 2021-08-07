@@ -16,6 +16,7 @@ import torch.nn as nn
 from utils import plot_utils
 import torch.cuda.amp as amp
 import kornia
+from utils import dehazing_proper
 
 class AirlightGenTrainer:
     def __init__(self, gpu_device, batch_size, is_unet, g_lr = 0.0002, d_lr = 0.0002):
@@ -40,6 +41,8 @@ class AirlightGenTrainer:
         self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience=100000 / batch_size, threshold=0.00005)
 
         self.fp16_scaler = amp.GradScaler()  # for automatic mixed precision
+
+        self.dc_kernel = torch.ones(3,3).to(self.gpu_device)
 
         # load albedo
         checkpt = torch.load("checkpoint/albedo_transfer_v1.04_1.pt")
@@ -92,11 +95,7 @@ class AirlightGenTrainer:
 
     def likeness_loss(self, pred, target):
         #loss = kornia.losses.SSIMLoss(window_size=5)
-        loss = nn.MSELoss()
-
-        #pred_hsv = kornia.color.rgb_to_hsv(pred)
-        #target_hsv = kornia.color.rgb_to_hsv(target)
-
+        loss = nn.L1Loss()
         return loss(pred, target)
 
     def edge_loss(self, pred, target):
@@ -106,10 +105,38 @@ class AirlightGenTrainer:
 
         return loss(pred_grad, target_grad)
 
+    def extract_atmosphere_element(self, hazy_tensor):
+        #extract dark channel
+        hazy_tensor = hazy_tensor.transpose(0, 1)
+        (r, g, b) = torch.chunk(hazy_tensor, 3)
+        (h, w) = (np.shape(r)[2], np.shape(r)[3])
+        #print("R G B shape: ", np.shape(r), np.shape(g), np.shape(b))
+        dc_tensor = torch.minimum(torch.minimum(r, g), b)
+        dc_tensor = kornia.morphology.erosion(dc_tensor, self.dc_kernel)
+
+        #estimate atmosphere
+        dc_tensor = dc_tensor.transpose(0, 1)
+        hazy_tensor = hazy_tensor.transpose(0, 1)
+        A_map = torch.zeros_like(hazy_tensor)
+        for i in range(np.shape(dc_tensor)[0]):
+            A = dehazing_proper.estimate_atmosphere(hazy_tensor.cpu().numpy()[i], dc_tensor.cpu().numpy()[i], h, w)
+            A = np.ndarray.flatten(A)
+
+            A_map[i, 0] = torch.full_like(A_map[i, 0], A[0])
+            A_map[i, 1] = torch.full_like(A_map[i, 1], A[1])
+            A_map[i, 2] = torch.full_like(A_map[i, 2], A[2])
+
+        a_tensor = A_map.to(self.gpu_device)
+
+        return a_tensor
+
+
     def train(self, iteration, hazy_tensor, airlight_tensor):
         with amp.autocast():
+            a_tensor = self.extract_atmosphere_element(hazy_tensor)
+
             concat_input = torch.cat([hazy_tensor, self.albedo_G(hazy_tensor)], 1)
-            depth_like = self.G_A(concat_input)
+            depth_like = self.G_A(concat_input) * a_tensor
 
             self.D_A.train()
             self.optimizerD.zero_grad()
@@ -131,10 +158,10 @@ class AirlightGenTrainer:
             self.optimizerG.zero_grad()
 
             # print("Shape: ", np.shape(rgb_tensor), np.shape(depth_tensor))
-            A_likeness_loss = self.likeness_loss(self.G_A(concat_input), airlight_tensor) * self.likeness_weight
-            A_edge_loss = self.edge_loss(self.G_A(concat_input), airlight_tensor) * self.edge_weight
+            A_likeness_loss = self.likeness_loss(self.G_A(concat_input) * a_tensor, airlight_tensor) * self.likeness_weight
+            A_edge_loss = self.edge_loss(self.G_A(concat_input) * a_tensor, airlight_tensor) * self.edge_weight
 
-            prediction = self.D_A(self.G_A(concat_input))
+            prediction = self.D_A(self.G_A(concat_input) * a_tensor)
             real_tensor = torch.ones_like(prediction)
             A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
@@ -159,8 +186,18 @@ class AirlightGenTrainer:
 
     def visdom_infer_train(self, train_gray_tensor, train_depth_tensor, id):
         with torch.no_grad():
-            concat_input = torch.cat([train_gray_tensor, self.albedo_G(train_gray_tensor)], 1)
-            train_depth_like = self.G_A(concat_input)
+            a_tensor = self.extract_atmosphere_element(train_gray_tensor)
+            albedo_tensor = self.albedo_G(train_gray_tensor)
+
+            concat_input = torch.cat([train_gray_tensor, albedo_tensor], 1)
+            train_depth_like = self.G_A(concat_input) * a_tensor
+
+            #remove normalization before converting back to RGB
+            # train_gray_tensor = ((train_gray_tensor * 0.5) + 0.5)
+            # train_depth_like = ((train_depth_like * 0.5) + 0.5)
+            #
+            # train_gray_tensor = kornia.color.hsv_to_rgb(train_gray_tensor.float())
+            # train_depth_like = kornia.color.hsv_to_rgb(train_depth_like.float())
 
         self.visdom_reporter.plot_image((train_gray_tensor), str(id) + " Training - RGB " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION))
         self.visdom_reporter.plot_image((train_depth_tensor), str(id) + " Training - Airlight " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION))
@@ -168,8 +205,17 @@ class AirlightGenTrainer:
 
     def visdom_infer_test(self, test_rgb_tensor, id):
         with torch.no_grad():
-            concat_input = torch.cat([test_rgb_tensor, self.albedo_G(test_rgb_tensor)], 1)
-            test_depth_like = self.G_A(concat_input)
+            a_tensor = self.extract_atmosphere_element(test_rgb_tensor)
+            albedo_tensor = self.albedo_G(test_rgb_tensor)
+            concat_input = torch.cat([test_rgb_tensor, albedo_tensor], 1)
+            test_depth_like = self.G_A(concat_input) * a_tensor
+
+            #remove normalization before converting back to RGB
+            # test_rgb_tensor = ((test_rgb_tensor * 0.5) + 0.5)
+            # test_depth_like = ((test_depth_like * 0.5) + 0.5)
+            #
+            # test_rgb_tensor = kornia.color.hsv_to_rgb(test_rgb_tensor.float())
+            # test_depth_like = kornia.color.hsv_to_rgb(test_depth_like.float())
 
         self.visdom_reporter.plot_image(test_rgb_tensor, str(id) + " Test - RGB " + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION))
         self.visdom_reporter.plot_image(test_depth_like, str(id) + " Test - Airlight-Like" + str(constants.AIRLIGHT_GEN_VERSION) + str(constants.ITERATION))
@@ -213,11 +259,11 @@ class AirlightGenTrainer:
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
 
         # clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training
-        if (epoch % 5 == 0):
-            self.losses_dict[constants.G_LOSS_KEY].clear()
-            self.losses_dict[constants.D_OVERALL_LOSS_KEY].clear()
-            self.losses_dict[constants.LIKENESS_LOSS_KEY].clear()
-            self.losses_dict[constants.EDGE_LOSS_KEY].clear()
-            self.losses_dict[constants.G_ADV_LOSS_KEY].clear()
-            self.losses_dict[constants.D_A_FAKE_LOSS_KEY].clear()
-            self.losses_dict[constants.D_A_REAL_LOSS_KEY].clear()
+        # if (epoch % 5 == 0):
+        #     self.losses_dict[constants.G_LOSS_KEY].clear()
+        #     self.losses_dict[constants.D_OVERALL_LOSS_KEY].clear()
+        #     self.losses_dict[constants.LIKENESS_LOSS_KEY].clear()
+        #     self.losses_dict[constants.EDGE_LOSS_KEY].clear()
+        #     self.losses_dict[constants.G_ADV_LOSS_KEY].clear()
+        #     self.losses_dict[constants.D_A_FAKE_LOSS_KEY].clear()
+        #     self.losses_dict[constants.D_A_REAL_LOSS_KEY].clear()

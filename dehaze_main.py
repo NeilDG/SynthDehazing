@@ -122,9 +122,9 @@ def main(argv):
     # Create the dataloader
     train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, True, opts.batch_size, opts.img_to_load)
     test_loaders = [dataset_loader.load_dehaze_dataset_test_paired(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, opts.batch_size, -1)]
-    unseen_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
-                    dataset_loader.load_dehaze_dataset_test(constants.DATASET_STANDARD_PATH_COMPLETE, opts.batch_size, 500),
-                    dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+    # unseen_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
+    #                 dataset_loader.load_dehaze_dataset_test(constants.DATASET_STANDARD_PATH_COMPLETE, opts.batch_size, 500),
+    #                 dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
 
     index = 0
 
@@ -152,8 +152,17 @@ def main(argv):
     #     break
 
     for epoch in range(start_epoch, constants.num_epochs):
+        if (dehazer.did_stop_condition_met()):
+            # dehazer.save_states(epoch, iteration)
+            dehazer.visdom_report(iteration)
+            break
         # For each batch in the dataloader
         for i, (train_data, test_data) in enumerate(zip(train_loader, itertools.cycle(test_loaders[0]))):
+            if(dehazer.did_stop_condition_met()):
+                #dehazer.save_states(epoch, iteration)
+                dehazer.visdom_report(iteration)
+                break
+
             _, hazy_batch, transmission_batch, clear_batch, atmosphere_batch = train_data
             hazy_tensor = hazy_batch.to(device)
             clear_tensor = clear_batch.to(device)
@@ -186,17 +195,17 @@ def main(argv):
                 clear_tensor = clear_batch.to(device)
                 dehazer.visdom_infer_test_paired(hazy_tensor, clear_tensor, 0)
 
-                for k in range(len(unseen_loaders)):
-                    _, hazy_batch = next(iter(unseen_loaders[k]))
-                    hazy_tensor = hazy_batch.to(device)
-
-                    dehazer.visdom_infer_test(hazy_tensor, k)
-
-                    index = (index + 1) % len(unseen_loaders[0])
-
-                    if (index == 0):
-                        unseen_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_STANDARD_PATH_COMPLETE, opts.batch_size, 500),
-                                          dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+                # for k in range(len(unseen_loaders)):
+                #     _, hazy_batch = next(iter(unseen_loaders[k]))
+                #     hazy_tensor = hazy_batch.to(device)
+                #
+                #     dehazer.visdom_infer_test(hazy_tensor, k)
+                #
+                #     index = (index + 1) % len(unseen_loaders[0])
+                #
+                #     if (index == 0):
+                #         unseen_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_STANDARD_PATH_COMPLETE, opts.batch_size, 500),
+                #                           dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__":

@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import torchvision.utils as vutils
-from utils import logger
+from utils import logger, dehazing_proper
 from utils import plot_utils
 import torchvision.transforms as transforms
 from loaders import image_dataset
@@ -29,8 +29,15 @@ class DehazeTrainer:
         self.d_lr = d_lr
         self.batch_size = batch_size
 
+        self.early_stop_tolerance = 25000
+        self.stop_counter = 0
+        self.last_metric = 0.0
+        self.stop_condition_met = False
+
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
+
+        self.dc_kernel = torch.ones(3, 3).to(self.gpu_device)
 
     def declare_models(self, t_blocks, is_t_unet, a_blocks, is_a_unet):
         if (is_t_unet == 1):
@@ -146,30 +153,43 @@ class DehazeTrainer:
         atmosphere_tensor = (atmosphere_tensor * 0.5) + 0.5
         transmission_tensor = (transmission_tensor * 0.5) + 0.5
 
-        #reduce intensity
-        #atmosphere_tensor = atmosphere_tensor * 1.55
-        #transmission_tensor = transmission_tensor * 1.25
-
-        #apply opening
-        #atmosphere_tensor = kornia.morphology.opening(atmosphere_tensor, torch.ones(5, 5).to(self.gpu_device))
-        #transmission_tensor = kornia.morphology.opening(transmission_tensor, torch.ones(5, 5).to(self.gpu_device))
-
-        # print("Range of hazy: ", torch.min(hazy_tensor), torch.max(hazy_tensor))
-        # print("Range of T: ", torch.min(transmission_tensor), torch.max(transmission_tensor))
-        # print("Range of A: ", torch.min(atmosphere_tensor), torch.max(atmosphere_tensor))
-
         clean_like = ((hazy_tensor - atmosphere_tensor) / transmission_tensor)
         clean_like = torch.clip(clean_like, 0.0, 1.0)
 
         return clean_like
 
+    def extract_atmosphere_element(self, hazy_tensor):
+        #extract dark channel
+        hazy_tensor = hazy_tensor.transpose(0, 1)
+        (r, g, b) = torch.chunk(hazy_tensor, 3)
+        (h, w) = (np.shape(r)[2], np.shape(r)[3])
+        #print("R G B shape: ", np.shape(r), np.shape(g), np.shape(b))
+        dc_tensor = torch.minimum(torch.minimum(r, g), b)
+        dc_tensor = kornia.morphology.erosion(dc_tensor, self.dc_kernel)
+
+        #estimate atmosphere
+        dc_tensor = dc_tensor.transpose(0, 1)
+        hazy_tensor = hazy_tensor.transpose(0, 1)
+        A_map = torch.zeros_like(hazy_tensor)
+        for i in range(np.shape(dc_tensor)[0]):
+            A = dehazing_proper.estimate_atmosphere(hazy_tensor.cpu().numpy()[i], dc_tensor.cpu().numpy()[i], h, w)
+            A = np.ndarray.flatten(A)
+
+            A_map[i, 0] = torch.full_like(A_map[i, 0], A[0])
+            A_map[i, 1] = torch.full_like(A_map[i, 1], A[1])
+            A_map[i, 2] = torch.full_like(A_map[i, 2], A[2])
+
+        a_tensor = A_map.to(self.gpu_device)
+
+        return a_tensor
 
     def train(self, iteration, hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor):
         with amp.autocast():
+            a_tensor = self.extract_atmosphere_element(hazy_tensor)
             albedo_tensor = self.albedo_G(hazy_tensor)
             transmission_like = self.G_T(albedo_tensor)
             concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
-            atmosphere_like = self.G_A(concat_input)
+            atmosphere_like = self.G_A(concat_input) *  a_tensor
 
             self.D_A.train()
             self.optimizerD.zero_grad()
@@ -207,14 +227,14 @@ class DehazeTrainer:
             real_tensor = torch.ones_like(prediction)
             T_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            A_likeness_loss = self.likeness_loss(self.G_A(concat_input),  atmosphere_tensor) * self.likeness_weight
-            A_edge_loss = self.edge_loss(self.G_A(concat_input), atmosphere_tensor) * self.edge_weight
+            A_likeness_loss = self.likeness_loss(self.G_A(concat_input) * a_tensor,  atmosphere_tensor) * self.likeness_weight
+            A_edge_loss = self.edge_loss(self.G_A(concat_input) * a_tensor, atmosphere_tensor) * self.edge_weight
 
-            prediction = self.D_A(self.G_A(concat_input))
+            prediction = self.D_A(self.G_A(concat_input) * a_tensor)
             real_tensor = torch.ones_like(prediction)
             A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            clear_like = self.provide_clean_like(hazy_tensor, self.G_T(hazy_tensor), self.G_A(concat_input))
+            clear_like = self.provide_clean_like(hazy_tensor, self.G_T(hazy_tensor), self.G_A(concat_input) * a_tensor)
             clear_like_loss = self.likeness_loss(clear_like, clear_tensor) #only use for profiling purposes
 
             errG = T_likeness_loss + T_edge_loss + T_adv_loss + T_likeness_loss + T_edge_loss + T_adv_loss + \
@@ -238,13 +258,29 @@ class DehazeTrainer:
 
     def test(self, hazy_tensor, clear_tensor):
         with torch.no_grad():
+            a_tensor = self.extract_atmosphere_element(hazy_tensor)
             albedo_tensor = self.albedo_G(hazy_tensor)
             concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
             transmission_like = self.G_T(albedo_tensor)
-            atmosphere_like = self.G_A(concat_input)
+            atmosphere_like = self.G_A(concat_input) * a_tensor
             clear_like = self.provide_clean_like(hazy_tensor, transmission_like, atmosphere_like)
             ssim_metric = self.measure_ssim(clear_like, clear_tensor)
             self.losses_dict[self.SSIM_KEY].append(ssim_metric.item())
+
+            #early stopping mechanism
+            if (self.last_metric > ssim_metric):
+                self.stop_counter += 1
+            else:
+                self.last_metric = ssim_metric
+                self.stop_counter = 0
+                print("Early stopping mechanism reset. Best metric is now ", self.last_metric)
+
+            if(self.stop_counter == self.early_stop_tolerance):
+                self.stop_condition_met = True
+                print("Met stopping condition with best metric of: ", self.last_metric, ". Latest metric: ", ssim_metric)
+
+    def did_stop_condition_met(self):
+        return self.stop_condition_met
 
     def visdom_report(self, iteration):
         with torch.no_grad():
@@ -253,10 +289,11 @@ class DehazeTrainer:
 
     def visdom_infer_train(self, hazy_tensor, transmission_tensor, atmosphere_tensor, clean_tensor):
         with torch.no_grad():
+            a_tensor = self.extract_atmosphere_element(hazy_tensor)
             albedo_tensor = self.albedo_G(hazy_tensor)
             concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
             transmission_like = self.G_T(hazy_tensor)
-            atmosphere_like = self.G_A(concat_input)
+            atmosphere_like = self.G_A(concat_input) * a_tensor
             clear_like = self.provide_clean_like(hazy_tensor, transmission_like, atmosphere_like)
 
             self.visdom_reporter.plot_image(hazy_tensor, "Train Hazy images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION))
@@ -270,10 +307,11 @@ class DehazeTrainer:
 
     def visdom_infer_test(self, hazy_tensor, number):
         with torch.no_grad():
+            a_tensor = self.extract_atmosphere_element(hazy_tensor)
             albedo_tensor = self.albedo_G(hazy_tensor)
             concat_input = torch.cat([hazy_tensor, albedo_tensor], 1)
             transmission_like = self.G_T(albedo_tensor)
-            atmosphere_like = self.G_A(concat_input)
+            atmosphere_like = self.G_A(concat_input) * a_tensor
             clear_like = self.provide_clean_like(hazy_tensor, transmission_like, atmosphere_like)
 
             self.visdom_reporter.plot_image(hazy_tensor, "Unseen Hazy images - " + str(constants.DEHAZER_VERSION) + str(constants.ITERATION) + "-" + str(number))
