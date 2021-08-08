@@ -401,10 +401,14 @@ class ModelDehazer():
         checkpt = torch.load("checkpoint/airlight_gen_v1.07_1.pt")
         self.atmosphere_models["airlight_gen_v1.07_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
         self.atmosphere_models["airlight_gen_v1.07_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-        #
-        # checkpt = torch.load("checkpoint/airlight_gen_v1.06_6.pt")
-        # self.atmosphere_models["airlight_gen_v1.06_6"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        # self.atmosphere_models["airlight_gen_v1.06_6"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+
+        checkpt = torch.load("checkpoint/airlight_gen_v1.08_1.pt")
+        self.atmosphere_models["airlight_gen_v1.08_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        self.atmosphere_models["airlight_gen_v1.08_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.08_1.pt")
+        self.atmosphere_models["airlight_estimator_v1.08_1"] = dh.AirlightEstimator_Residual(num_channels = 3, out_features = 3, num_layers = 4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.08_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
         print("Dehazing models loaded.")
 
@@ -414,9 +418,10 @@ class ModelDehazer():
         self.airlight_model_key = airlight_estimator_name + str(atmosphere_method)
 
 
-    def set_models_v2(self, albedo_model_name, transmission_model_name, airlight_estimator_name):
+    def set_models_v2(self, albedo_model_name, transmission_model_name, airlight_gen_name, airlight_estimator_name):
         self.albedo_model_key = albedo_model_name
         self.transmission_model_key = transmission_model_name
+        self.airlight_gen_key = airlight_gen_name
         self.airlight_model_key = airlight_estimator_name
 
     def perform_dehazing_direct_v2(self, hazy_img):
@@ -497,10 +502,6 @@ class ModelDehazer():
 
         # translate to albedo first
         unlit_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
-
-        hazy_tensor = kornia.color.rgb_to_lab(hazy_tensor.float())
-        unlit_tensor = kornia.color.rgb_to_lab(unlit_tensor.float())
-
         concat_input = torch.cat([hazy_tensor, unlit_tensor], 1)
 
         transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
@@ -530,6 +531,49 @@ class ModelDehazer():
         clear_img[:, :, 2] = (hazy_img[:, :, 2] - A[2]) / np.maximum(T, filter_strength)
 
         return np.clip(clear_img, 0.0, 1.0)
+
+    def perform_dehazing_direct_v4(self, hazy_img, filter_strength):
+        transform_op = transforms.Compose([transforms.ToTensor(),
+                                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+        hazy_tensor = transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
+        hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
+
+        # translate to albedo first
+        unlit_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
+
+        concat_input = torch.cat([hazy_tensor, unlit_tensor], 1)
+
+        transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
+        transmission_img = torch.squeeze(transmission_img).cpu().numpy()
+
+        # remove 0.5 normalization for dehazing equation
+        T = ((transmission_img * 0.5) + 0.5)
+        #T = T * 1.2
+
+        atmosphere_map = self.atmosphere_models[self.airlight_gen_key](concat_input)
+        atmosphere_map = torch.squeeze(atmosphere_map).cpu().numpy()
+        atmospheric_term = self.atmosphere_models[self.airlight_model_key](hazy_tensor)
+        atmospheric_term = torch.squeeze(atmospheric_term).cpu().numpy()
+        atmosphere_map = atmospheric_term * atmosphere_map
+        #atmosphere_map = atmosphere_map - 0.1
+
+        # remove 0.5 normalization for dehazing equation
+        A = ((atmosphere_map * 0.5) + 0.5)
+        #A = A * 0.35
+
+        print("Shape of atmosphere map: ", np.shape(atmosphere_map))
+
+        hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        clear_img = np.ones_like(hazy_img)
+        T = np.resize(T, np.shape(clear_img[:, :, 0]))
+        # print("Airlight estimator network loaded. Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T), " Atmosphere estimate: ", np.shape(atmosphere))
+
+        clear_img[:, :, 0] = (hazy_img[:, :, 0] - A[0]) / np.maximum(T, filter_strength)
+        clear_img[:, :, 1] = (hazy_img[:, :, 1] - A[1]) / np.maximum(T, filter_strength)
+        clear_img[:, :, 2] = (hazy_img[:, :, 2] - A[2]) / np.maximum(T, filter_strength)
+
+        return np.clip(clear_img, 0.0, 1.0), T, A
 
     def perform_dehazing_direct(self, hazy_img, atmosphere_sensitivity):
 
@@ -612,38 +656,38 @@ class ModelDehazer():
 
         return np.clip(clear_img, 0.0, 1.0)
 
-    def derive_T_and_A(self, hazy_img):
-        transform_op = transforms.Compose([transforms.ToTensor(),
-                                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-
-        hazy_tensor = transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
-        hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
-        hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
-
-        # translate to albedo first
-        unlit_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
-        concat_input = torch.cat([hazy_tensor, unlit_tensor], 1)
-
-        transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
-        transmission_img = torch.squeeze(transmission_img).cpu()
-
-        # remove 0.5 normalization for dehazing equation
-        T = ((transmission_img * 0.5) + 0.5)
-        #T = T * 0.5
-        # hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
-        # print("Shape: ", np.shape(hazy_tensor))
-
-        atmosphere_map = self.atmosphere_models[self.airlight_model_key](concat_input)  # normalize to 0.0 - 1.0
-        atmosphere_map = torch.squeeze(atmosphere_map).cpu()
-        # atmosphere_map = atmosphere_map - 0.1
-
-        # remove 0.5 normalization for dehazing equation
-        #A = ((atmosphere_map * 0.5) + 0.5)
-        A = ((atmosphere_map * 0.5) + 0.5)
-
-        #A_img = cv2.normalize(A_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-
-        return T, A
+    # def derive_T_and_A(self, hazy_img):
+    #     transform_op = transforms.Compose([transforms.ToTensor(),
+    #                                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    #
+    #
+    #     hazy_tensor = transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
+    #     hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
+    #     hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
+    #
+    #     # translate to albedo first
+    #     unlit_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
+    #     concat_input = torch.cat([hazy_tensor, unlit_tensor], 1)
+    #
+    #     transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
+    #     transmission_img = torch.squeeze(transmission_img).cpu()
+    #
+    #     # remove 0.5 normalization for dehazing equation
+    #     T = ((transmission_img * 0.5) + 0.5)
+    #     #T = T * 0.5
+    #     # hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
+    #     # print("Shape: ", np.shape(hazy_tensor))
+    #
+    #     atmosphere_map = self.atmosphere_models[self.airlight_model_key](concat_input)  # normalize to 0.0 - 1.0
+    #     atmosphere_map = torch.squeeze(atmosphere_map).cpu()
+    #     # atmosphere_map = atmosphere_map - 0.1
+    #
+    #     # remove 0.5 normalization for dehazing equation
+    #     #A = ((atmosphere_map * 0.5) + 0.5)
+    #     A = ((atmosphere_map * 0.5) + 0.5)
+    #
+    #     #A_img = cv2.normalize(A_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    #
+    #     return T, A
 
 

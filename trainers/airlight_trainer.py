@@ -27,9 +27,9 @@ class AirlightTrainer:
         self.fp16_scalers = [amp.GradScaler(),
                              amp.GradScaler()]
 
-        self.early_stop_tolerance = 250
+        self.early_stop_tolerance = 25
         self.stop_counter = 0
-        self.last_metric = 1000000.0
+        self.last_metric = 10000.0
         self.stop_condition_met = False
 
     def initialize_dict(self):
@@ -117,7 +117,7 @@ class AirlightTrainer:
             self.losses_dict[self.AIRLOSS_A_KEY_TEST].append(D_A1_loss.item())
 
         #early stopping mechanism
-        if(self.last_metric < D_A1_loss and epoch > 20):
+        if(self.last_metric < D_A1_loss and epoch > 10):
             self.stop_counter += 1
         elif(self.last_metric >= D_A1_loss):
             self.last_metric = D_A1_loss

@@ -101,7 +101,7 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 100
+num_epochs = 300
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size

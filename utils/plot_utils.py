@@ -131,6 +131,9 @@ class VisdomReporter:
         plt.show()
 
     def plot_airlight_comparison(self, loss_key, iteration, airlight_loss, airlight_captions):
+        if (constants.server_config == 2):
+            return
+
         colors = ['r', 'g', 'black', 'darkorange', 'olive', 'palevioletred', 'rosybrown', 'cyan', 'slategray', 'darkmagenta', 'linen', 'chocolate']
 
         x1 = [i for i in range(iteration, iteration + len(airlight_loss[0]))]

@@ -376,9 +376,9 @@ class AirlightDataset(data.Dataset):
         atmosphere[2] = np.random.normal(atmosphere[0], spread)
 
         atmosphere_map = np.zeros_like(clear_img)
-        atmosphere_map[:, :, 0] = (1 - T)
-        atmosphere_map[:, :, 1] = (1 - T)
-        atmosphere_map[:, :, 2] = (1 - T)
+        atmosphere_map[:, :, 0] = atmosphere[0] * (1 - T)
+        atmosphere_map[:, :, 1] = atmosphere[1] * (1 - T)
+        atmosphere_map[:, :, 2] = atmosphere[2] * (1 - T)
 
         hazy_img_like = np.zeros_like(clear_img)
         T = np.resize(T, np.shape(clear_img[:, :, 0]))
@@ -398,19 +398,19 @@ class AirlightDataset(data.Dataset):
             img_a = transforms.functional.crop(img_a, i, j, h, w)
             hazy_img_like = hazy_img_like[i: i + h, j: j + w]
             transmission_img = transmission_img[i: i + h, j: j + w]
-            atmosphere_map = atmosphere_map[i: i + h, j: j + w]
+            one_minus_t = (1 - T)[i: i + h, j: j + w]
             clear_img_uint = clear_img_uint[i: i + h, j: j + w]
 
         img_a = self.final_transform_op(hazy_img_like)
         transmission_img = self.depth_transform_op(transmission_img)
-        atmosphere_map = self.final_transform_op(atmosphere_map)
+        one_minus_t = self.depth_transform_op(one_minus_t)
         atmosphere = torch.tensor(atmosphere)
 
         if (self.return_ground_truth):
             ground_truth_img = self.final_transform_op(clear_img_uint)
-            return file_name, img_a, transmission_img, ground_truth_img, atmosphere_map, atmosphere
+            return file_name, img_a, transmission_img, ground_truth_img, one_minus_t, atmosphere
         else:
-            return file_name, img_a, transmission_img, atmosphere_map, atmosphere  # hazy albedo img, transmission map
+            return file_name, img_a, transmission_img, one_minus_t, atmosphere  # hazy albedo img, transmission map
 
     def __len__(self):
         return len(self.image_list_a)

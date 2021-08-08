@@ -34,7 +34,7 @@ parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="10.0")
 parser.add_option('--batch_size', type=int, help="batch_size", default="128")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
@@ -52,6 +52,7 @@ def update_config(opts):
         constants.ITERATION = str(opts.iteration)
         #constants.num_workers = opts.num_workers
         constants.AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_GEN_VERSION + "_" + constants.ITERATION + '.pt'
+        constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_VERSION + "_" + constants.ITERATION + '.pt'
 
         print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_GEN_CHECKPATH)
 
@@ -69,6 +70,7 @@ def update_config(opts):
         #constants.num_workers = opts.num_workers
         constants.ALBEDO_CHECKPT = opts.albedo_checkpt
         constants.AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_GEN_VERSION + "_" + constants.ITERATION + '.pt'
+        constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_VERSION + "_" + constants.ITERATION + '.pt'
 
         print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_GEN_CHECKPATH)
 
@@ -126,13 +128,13 @@ def main(argv):
         print("Loaded airlight gen checkpt: %s Current epoch: %d" % (constants.AIRLIGHT_GEN_CHECKPATH, start_epoch[0]))
         print("===================================================")
 
-        checkpoint = torch.load(constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
-        start_epoch[1] = checkpoint['epoch'] + 1
-        iteration[1] = checkpoint['iteration'] + 1
-        airlight_term_trainer.load_saved_state(checkpoint)
-
-        print("Loaded airlight estimator checkpt: %s Current epoch: %d" % (constants.AIRLIGHT_ESTIMATOR_CHECKPATH, start_epoch[1]))
-        print("===================================================")
+        # checkpoint = torch.load(constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
+        # start_epoch[1] = checkpoint['epoch'] + 1
+        # iteration[1] = checkpoint['iteration'] + 1
+        # airlight_term_trainer.load_saved_state(checkpoint)
+        #
+        # print("Loaded airlight estimator checkpt: %s Current epoch: %d" % (constants.AIRLIGHT_ESTIMATOR_CHECKPATH, start_epoch[1]))
+        # print("===================================================")
 
     # Create the dataloader
     train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
@@ -191,9 +193,11 @@ def main(argv):
                 #     index = (index + 1) % len(validation_loaders[0])
                 #     if (index == 0):
                 #         validation_loaders = validation_group
+        if (gen_trainer.did_stop_condition_met()):
+            break
 
-    train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 8192, opts.img_to_load)
-    test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, False, 8192, opts.img_to_load)
+    train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, 16834, opts.img_to_load)
+    test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, False, 16834, opts.img_to_load)
 
     print("Starting Training Loop for Airlight Estimator...")
     for epoch in range(start_epoch[1], constants.num_epochs):
@@ -215,9 +219,12 @@ def main(argv):
 
             iteration[1] = iteration[1] + 1
 
-            if ((i) % 10 == 0):
+            if ((i) % 5 == 0):
                 airlight_term_trainer.save_states(epoch, iteration[1])
                 airlight_term_trainer.visdom_report(iteration[1], rgb_tensor)
+
+        if (airlight_term_trainer.did_stop_condition_met()):
+            break
 
 # FIX for broken pipe num_workers issue.
 if __name__ == "__main__":

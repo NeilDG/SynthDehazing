@@ -25,17 +25,17 @@ class AirlightGenTrainer:
         self.d_lr = d_lr
         self.batch_size = batch_size
 
-        self.early_stop_tolerance = 2500
+        self.early_stop_tolerance = 10
         self.stop_counter = 0
-        self.last_metric = 1000000.0
+        self.last_metric = 10000.0
         self.stop_condition_met = False
 
         if (is_unet == 1):
-            self.G_A = un.UnetGenerator(input_nc=6, output_nc=3, num_downs=6).to(self.gpu_device)
+            self.G_A = un.UnetGenerator(input_nc=6, output_nc=1, num_downs=6).to(self.gpu_device)
         else:
-            self.G_A = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+            self.G_A = cg.Generator(input_nc=6, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
 
-        self.D_A = dh.Discriminator(input_nc=3).to(self.gpu_device)
+        self.D_A = dh.Discriminator(input_nc=1).to(self.gpu_device)
 
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
