@@ -15,7 +15,7 @@ import glob
 from skimage.metrics import peak_signal_noise_ratio
 from custom_losses import ssim_loss
 
-def produce_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
+def produce_ihaze(T_CHECKPT_NAME, A_ESTIMATOR_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
     SAVE_PATH = "results/Ours - Results - I-Haze/"
     SAVE_TRANSMISSION_PATH = "results/Ours - Results - I-Haze/Transmission/"
@@ -25,10 +25,10 @@ def produce_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
 
     ALBEDO_CHECKPT = "albedo_transfer_v1.04_1"
     TRANSMISSION_CHECKPT = T_CHECKPT_NAME
-    AIRLIGHT_CHECKPT = A_CHECKPT_NAME
+    AIRLIGHT_ESTIMATOR_CHECKPT = A_ESTIMATOR_NAME
 
     model_dehazer = dehazing_proper.ModelDehazer()
-    model_dehazer.set_models_v2(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_CHECKPT)
+    model_dehazer.set_models_v2(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_ESTIMATOR_CHECKPT)
 
     for i, (hazy_path) in enumerate(hazy_list):
         with torch.no_grad():
@@ -39,11 +39,11 @@ def produce_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
             #clear_img = model_dehazer.perform_dehazing(hazy_img, 0.7, 0.3)
             #clear_img = model_dehazer.perform_dehazing_direct(hazy_img, 0.3)
             #clear_img = model_dehazer.perform_dehazing_direct_v2(hazy_img)
-            clear_img = model_dehazer.perform_dehazing_direct_v3(hazy_img, 0.0)
+            #clear_img = model_dehazer.perform_dehazing_direct_v3(hazy_img, 0.0)
+            clear_img, T_tensor, A_tensor = model_dehazer.perform_dehazing_direct_v4(hazy_img, 0.0)
             clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             cv2.imwrite(SAVE_PATH + img_name + ".png", clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
 
-            T_tensor, A_tensor = model_dehazer.derive_T_and_A(hazy_img)
             torchutils.save_image(T_tensor, SAVE_TRANSMISSION_PATH + img_name + ".png")
             torchutils.save_image(A_tensor, SAVE_ATMOSPHERE_PATH + img_name + ".png")
 
@@ -441,9 +441,9 @@ def main():
     # produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
     # benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
 
-    CHECKPT_NAME = "dehazer_v2.06_3"
-    produce_ihaze(CHECKPT_NAME, "airlight_gen_v1.03_1")
-    benchmark_ihaze(CHECKPT_NAME, "airlight_gen_v1.03_1")
+    CHECKPT_NAME = "dehazer_v2.07_3"
+    produce_ihaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    benchmark_ihaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
 
     # CHECKPT_NAME = "dehazer_v2.03_4"
     # produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)

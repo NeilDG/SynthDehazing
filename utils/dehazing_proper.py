@@ -403,7 +403,7 @@ class ModelDehazer():
         self.atmosphere_models["airlight_gen_v1.07_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
         checkpt = torch.load("checkpoint/airlight_gen_v1.08_1.pt")
-        self.atmosphere_models["airlight_gen_v1.08_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
+        self.atmosphere_models["airlight_gen_v1.08_1"] = cg.Generator(input_nc=6, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
         self.atmosphere_models["airlight_gen_v1.08_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
         checkpt = torch.load("checkpoint/airlight_estimator_v1.08_1.pt")
@@ -418,10 +418,10 @@ class ModelDehazer():
         self.airlight_model_key = airlight_estimator_name + str(atmosphere_method)
 
 
-    def set_models_v2(self, albedo_model_name, transmission_model_name, airlight_gen_name, airlight_estimator_name):
+    def set_models_v2(self, albedo_model_name, transmission_model_name, airlight_estimator_name):
         self.albedo_model_key = albedo_model_name
         self.transmission_model_key = transmission_model_name
-        self.airlight_gen_key = airlight_gen_name
+        #self.airlight_gen_key = airlight_gen_name
         self.airlight_model_key = airlight_estimator_name
 
     def perform_dehazing_direct_v2(self, hazy_img):
@@ -533,10 +533,13 @@ class ModelDehazer():
         return np.clip(clear_img, 0.0, 1.0)
 
     def perform_dehazing_direct_v4(self, hazy_img, filter_strength):
-        transform_op = transforms.Compose([transforms.ToTensor(),
+        grey_transform_op = transforms.Compose([transforms.ToTensor(),
+                                               transforms.Normalize((0.5), (0.5))])
+
+        rgb_transform_op = transforms.Compose([transforms.ToTensor(),
                                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-        hazy_tensor = transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
+        hazy_tensor = rgb_transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
         hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
 
         # translate to albedo first
@@ -551,27 +554,36 @@ class ModelDehazer():
         T = ((transmission_img * 0.5) + 0.5)
         #T = T * 1.2
 
-        atmosphere_map = self.atmosphere_models[self.airlight_gen_key](concat_input)
-        atmosphere_map = torch.squeeze(atmosphere_map).cpu().numpy()
+        # one_minus_t = self.atmosphere_models[self.airlight_gen_key](concat_input)
+        # one_minus_t = torch.squeeze(one_minus_t).cpu().numpy()
+        # one_minus_t = ((one_minus_t * 0.5) + 0.5)
+
         atmospheric_term = self.atmosphere_models[self.airlight_model_key](hazy_tensor)
         atmospheric_term = torch.squeeze(atmospheric_term).cpu().numpy()
-        atmosphere_map = atmospheric_term * atmosphere_map
-        #atmosphere_map = atmosphere_map - 0.1
+
+        atmosphere_map = np.zeros_like(hazy_img, dtype=np.float32)
+        atmosphere_map[:, :, 0] = atmospheric_term[0] * (1 - T)
+        atmosphere_map[:, :, 1] = atmospheric_term[1] * (1 - T)
+        atmosphere_map[:, :, 2] = atmospheric_term[2] * (1 - T)
 
         # remove 0.5 normalization for dehazing equation
-        A = ((atmosphere_map * 0.5) + 0.5)
-        #A = A * 0.35
+        A = atmosphere_map
+        #A = ((atmosphere_map * 0.5) + 0.5)
+        #A = A * 0.5
 
-        print("Shape of atmosphere map: ", np.shape(atmosphere_map))
+        #print("Shape of atmosphere map: ", np.shape(atmosphere_map))
 
         hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         clear_img = np.ones_like(hazy_img)
         T = np.resize(T, np.shape(clear_img[:, :, 0]))
         # print("Airlight estimator network loaded. Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T), " Atmosphere estimate: ", np.shape(atmosphere))
 
-        clear_img[:, :, 0] = (hazy_img[:, :, 0] - A[0]) / np.maximum(T, filter_strength)
-        clear_img[:, :, 1] = (hazy_img[:, :, 1] - A[1]) / np.maximum(T, filter_strength)
-        clear_img[:, :, 2] = (hazy_img[:, :, 2] - A[2]) / np.maximum(T, filter_strength)
+        clear_img[:, :, 0] = (hazy_img[:, :, 0] - A[:, :, 0]) / np.maximum(T, filter_strength)
+        clear_img[:, :, 1] = (hazy_img[:, :, 1] - A[:, :, 1]) / np.maximum(T, filter_strength)
+        clear_img[:, :, 2] = (hazy_img[:, :, 2] - A[:, :, 2]) / np.maximum(T, filter_strength)
+
+        T = transforms.F.to_tensor(T)
+        A = transforms.F.to_tensor(A)
 
         return np.clip(clear_img, 0.0, 1.0), T, A
 

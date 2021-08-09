@@ -56,12 +56,12 @@ COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "albedo_transfer_v1.04"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.09"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
-AIRLIGHT_VERSION = "airlight_estimator_v1.08"
+AIRLIGHT_VERSION = "airlight_estimator_v1.09"
 DEHAZER_VERSION = "dehazer_v2.08"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "1"
+ITERATION = "2"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'

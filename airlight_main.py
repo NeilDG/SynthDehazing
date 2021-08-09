@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Main entry for network training for airlight
+Main entry for GAN training
 Created on Sun Apr 19 13:22:06 2020
 
 @author: delgallegon
@@ -19,48 +19,68 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
+from trainers import airlight_gen_trainer
 from trainers import airlight_trainer
+from model import style_transfer_gan as color_gan
 from model import vanilla_cycle_gan as cycle_gan
-from model import dehaze_discriminator as dh
 import constants
-import itertools
 
 parser = OptionParser()
-parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
+parser.add_option('--server_config', type=int, help="Is running on COARE?", default=0)
+parser.add_option('--cuda_device', type=str, help="CUDA Device?", default="cuda:0")
+parser.add_option('--albedo_checkpt', type=str, help="Albedo checkpt?", default="checkpoint/albedo_transfer_v1.04_1.pt")
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--airlight_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--d_lr', type=float, help="LR", default="0.00005")
-parser.add_option('--batch_size', type=int, help="batch_size", default="512")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Airlight estimation network using same architecture for A and B. \n "
-                                                                                     "Accepts albedo input. \n"
-                                                                                     "New architecture based on DCGAN. \n"
-                                                                                     "Airlight range converted to uniform [0.6 - 0.95]")
+parser.add_option('--num_layers', type=int, help="num_layers", default="4")
+parser.add_option('--batch_size', type=int, help="batch_size", default="512") #16384 default
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default="New airlight estimator network. 32 x 32 patch")
 
-#--img_to_load=-1 --load_previous=0
+
+# --img_to_load=-1 --load_previous=0
 # Update config if on COARE
 def update_config(opts):
-    constants.is_coare = opts.coare
+    constants.server_config = opts.server_config
 
-    if (constants.is_coare == 1):
-        print("Using COARE configuration.")
+    if (constants.server_config == 1):
         constants.ITERATION = str(opts.iteration)
+        # constants.num_workers = opts.num_workers
+        constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_ESTIMATOR_CHECKPATH + "_" + constants.ITERATION + '.pt'
+        print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
 
-        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean - styled/"
         constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo - pseudo/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
-        constants.DATASET_ALBEDO_PATH_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo/"
-        constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo - pseudo/"
-        constants.DATASET_CLEAN_PATH_PATCH_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/clean - styled/"
+    elif (constants.server_config == 2):
+        constants.ITERATION = str(opts.iteration)
+        # constants.num_workers = opts.num_workers
+        constants.ALBEDO_CHECKPT = opts.albedo_checkpt
+        constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_VERSION + "_" + constants.ITERATION + '.pt'
+
+        print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
+
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3
+        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = constants.DATASET_DEPTH_PATH_COMPLETE_3
+
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "Hazy Dataset Benchmark/Standard/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "Hazy Dataset Benchmark/RESIDE-Unannotated/"
+
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-    plt.figure(figsize=(16, 4))
+    plt.figure(figsize=(10, 10))
     plt.axis("off")
     plt.title(caption)
     plt.imshow(np.transpose(
@@ -68,94 +88,77 @@ def show_images(img_tensor, caption):
         (1, 2, 0)))
     plt.show()
 
+
 def main(argv):
     (opts, args) = parser.parse_args(argv)
     update_config(opts)
     print("=====================BEGIN============================")
-    print("Is Coare? %d Has GPU available? %d Count: %d Torch CUDA version: %s"
-          % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count(), torch.version.cuda))
+    print("Server config? %d Has GPU available? %d Count: %d" % (constants.server_config, torch.cuda.is_available(), torch.cuda.device_count()))
+    print("Torch CUDA version: %s" % torch.version.cuda)
 
-    #manualSeed = random.randint(1, 10000)  # use if you want new results
-    manualSeed = 1 #set this for experiments and promoting fixed results
+    manualSeed = random.randint(1, 10000)  # use if you want new results
     random.seed(manualSeed)
     torch.manual_seed(manualSeed)
 
-    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    device = torch.device(opts.cuda_device if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    gt = airlight_trainer.AirlightTrainer(device, opts.batch_size, opts.d_lr)
-    gt.update_penalties(opts.airlight_weight, opts.comments)
-    start_epoch = 0
+    airlight_term_trainer = airlight_trainer.AirlightTrainer(device, opts.batch_size, opts.num_layers, opts.d_lr)
+    airlight_term_trainer.update_penalties(1.0, opts.comments)
 
-    iteration = 0
+    start_epoch = [0, 0]
+    iteration = [0, 0]
+
     if (opts.load_previous):
         checkpoint = torch.load(constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
-        start_epoch = checkpoint['epoch'] + 1
-        iteration = checkpoint['iteration'] + 1
-        gt.load_saved_state(checkpoint)
+        start_epoch[1] = checkpoint['epoch'] + 1
+        iteration[1] = checkpoint['iteration'] + 1
+        airlight_term_trainer.load_saved_state(checkpoint)
 
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.AIRLIGHT_ESTIMATOR_CHECKPATH, start_epoch))
+        print("Loaded airlight estimator checkpt: %s Current epoch: %d" % (constants.AIRLIGHT_ESTIMATOR_CHECKPATH, start_epoch[1]))
         print("===================================================")
 
     # Create the dataloader
-    train_loaders = [dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts.batch_size, opts.img_to_load),
-                    dataset_loader.load_airlight_train_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts.batch_size, opts.img_to_load)]
-
-    test_loader = dataset_loader.load_airlight_test_dataset(constants.DATASET_ALBEDO_PATH_PSEUDO_TEST, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts.batch_size, 5000)
+    train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
+    test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, False, opts.batch_size, opts.img_to_load)
 
     # Plot some training images
-    if (constants.is_coare == 0):
-        _, a, b, airlight_tensor = next(iter(train_loaders[0]))
-        show_images(a, "Training - Albedo Images")
-        show_images(b, "Training - Styled Images")
-        print("Training - Airlight Tensor", np.shape(airlight_tensor))
-        print("Values: ",airlight_tensor.numpy())
+    if (constants.server_config == 0):
+        _, a, b, c, d = next(iter(train_loader))
+        # _, d = next(iter(test_loaders[0]))
+        show_images(a, "Training - RGB Images")
+        show_images(b, "Training - Transmission Images")
+        show_images(c, "Training - Atmosphere Images")
 
-        _, a, b, airlight_tensor = next(iter(train_loaders[1]))
-        show_images(a, "Training - Pseudo Albedo Images")
-        show_images(b, "Training - Styled Images")
-        print("Training - Pseudo Airlight Tensor", np.shape(airlight_tensor))
-        print("Values: ", airlight_tensor.numpy())
-
-        _, a, b, airlight_tensor = next(iter(test_loader))
-        show_images(a, "Test - Pseudo Albedo Images")
-        show_images(b, "Test - Styled Images")
-        print("Test - Pseudo Airlight Tensor", np.shape(airlight_tensor))
-        print("Values: ", airlight_tensor.numpy())
-
-    print("Starting Training Loop...")
-    for epoch in range(start_epoch, constants.num_epochs):
+    print("Starting Training Loop for Airlight Estimator...", constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
+    for epoch in range(start_epoch[1], constants.num_epochs):
         # For each batch in the dataloader
-        for i, (train_data, pseudo_train_data, test_data) in enumerate(zip(train_loaders[0], train_loaders[1], itertools.cycle(test_loader))):
-            _, albedo_batch, styled_batch, airlight_batch = train_data
-            albedo_batch = albedo_batch.to(device).float()
-            styled_batch = styled_batch.to(device).float()
-            airlight_batch= airlight_batch.to(device).float()
+        for i, (train_data, test_data) in enumerate(zip(train_loader, test_loader)):
+            _, rgb_batch, _, _, atmosphere_light = train_data
+            rgb_tensor = rgb_batch.to(device).float()
+            light_tensor = atmosphere_light.to(device).float()
 
-            gt.train_a1(styled_batch, airlight_batch)
-            gt.train_a2(albedo_batch, styled_batch, airlight_batch)
+            airlight_term_trainer.train_a1(rgb_tensor, light_tensor)
 
-            _, albedo_batch, styled_batch, airlight_batch = pseudo_train_data
-            albedo_batch = albedo_batch.to(device).float()
-            styled_batch = styled_batch.to(device).float()
-            airlight_batch = airlight_batch.to(device).float()
+            _, rgb_batch, _, _, atmosphere_light = test_data
+            rgb_tensor = rgb_batch.to(device).float()
+            light_tensor = atmosphere_light.to(device).float()
+            airlight_term_trainer.test(epoch, rgb_tensor, light_tensor)
 
-            gt.train_a1(styled_batch, airlight_batch)
-            gt.train_a2(albedo_batch, styled_batch, airlight_batch)
+            if (airlight_term_trainer.did_stop_condition_met()):
+                break
 
-            _, albedo_batch, styled_batch, airlight_batch = test_data
-            albedo_batch = albedo_batch.to(device).float()
-            styled_batch = styled_batch.to(device).float()
-            airlight_batch = airlight_batch.to(device).float()
+            iteration[1] = iteration[1] + 1
 
-            gt.test(albedo_batch, styled_batch, airlight_batch)
+            if ((i) % 5 == 0):
+                airlight_term_trainer.save_states(epoch, iteration[1])
+                airlight_term_trainer.visdom_report(iteration[1], rgb_tensor)
 
-            iteration = iteration + 1
-
-        gt.save_states(epoch, iteration)
-        gt.visdom_report(iteration, albedo_batch, styled_batch)
+        if (airlight_term_trainer.did_stop_condition_met()):
+            break
 
 
 # FIX for broken pipe num_workers issue.
 if __name__ == "__main__":
     main(sys.argv)
+

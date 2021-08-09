@@ -13,10 +13,10 @@ from utils import plot_utils
 import torch.cuda.amp as amp
 
 class AirlightTrainer:
-    def __init__(self, gpu_device, batch_size, lr=0.0002):
+    def __init__(self, gpu_device, batch_size, num_layers, lr=0.0002):
         self.gpu_device = gpu_device
         self.lr = lr
-        self.A1 = dh.AirlightEstimator_Residual(num_channels = 3, out_features = 3, num_layers = 4).to(self.gpu_device)
+        self.A1 = dh.AirlightEstimator_Residual(num_channels = 3, out_features = 3, num_layers = num_layers).to(self.gpu_device)
 
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.initialize_dict()
@@ -27,7 +27,7 @@ class AirlightTrainer:
         self.fp16_scalers = [amp.GradScaler(),
                              amp.GradScaler()]
 
-        self.early_stop_tolerance = 25
+        self.early_stop_tolerance = 40
         self.stop_counter = 0
         self.last_metric = 10000.0
         self.stop_condition_met = False
