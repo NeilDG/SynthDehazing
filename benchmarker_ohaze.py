@@ -476,8 +476,10 @@ def main():
     # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
     #
     CHECKPT_NAME = "dehazer_v2.07_3"
-    produce_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
-    benchmark_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    #produce_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    #benchmark_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    output_best_worst(CHECKPT_NAME, "airlight_estimator_v1.08_1", 0.88, 0.77)
+
     #
     # CHECKPT_NAME = "dehazer_v2.07_4"
     # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)

@@ -33,7 +33,7 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--num_layers', type=int, help="num_layers", default="4")
-parser.add_option('--batch_size', type=int, help="batch_size", default="512") #16384 default
+parser.add_option('--batch_size', type=int, help="batch_size", default="16384") #16384 default
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default="New airlight estimator network. 32 x 32 patch")
 

@@ -360,7 +360,7 @@ class AirlightEstimator_Residual(nn.Module):
                              nn.Dropout2d(0.5)]
 
             in_filters = out_filters
-            out_filters = in_filters * 2
+            out_filters = max(in_filters * 2, 512)
 
         out_filters = int(in_filters / 2)
 
