@@ -95,7 +95,7 @@ class CycleGANTrainer:
             print("Contrast enhance: ", str(constants.contrast_enhance), file=f)
 
     def adversarial_loss(self, pred, target):
-        loss = nn.MSELoss()
+        loss = nn.BCEWithLogitsLoss()
         return loss(pred, target)
 
     def identity_loss(self, pred, target):

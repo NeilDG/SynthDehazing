@@ -7,7 +7,6 @@ Created on Sun Apr 19 13:22:06 2020
 """
 
 from __future__ import print_function
-import os
 import sys
 from optparse import OptionParser
 import random
@@ -15,50 +14,70 @@ import torch
 import torch.nn.parallel
 import torch.utils.data
 import torchvision.utils as vutils
-from utils import tensor_utils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
 from trainers import dehaze_trainer
-from model import ffa_net as ffa_gan
-from model import vanilla_cycle_gan as cycle_gan
-from model import dehaze_discriminator as dh
+from trainers import early_stopper
 import constants
+import itertools
 
 parser = OptionParser()
-parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
+parser.add_option('--server_config', type=int, help="Is running on COARE?", default=0)
+parser.add_option('--cuda_device', type=str, help="CUDA Device?", default="cuda:0")
+parser.add_option('--albedo_checkpt', type=str, help="Albedo checkpt?", default="checkpoint/albedo_transfer_v1.04_1.pt")
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--adv_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--psnr_loss_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--num_blocks', type=int, help="Num Blocks", default = 12)
-parser.add_option('--batch_size', type=int, help="batch_size", default="16")
-parser.add_option('--g_lr', type=float, help="LR", default="0.00002")
-parser.add_option('--d_lr', type=float, help="LR", default="0.00002")
-parser.add_option('--dehaze_filter_strength', type=float, help="LR", default="0.5")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Cycle Dehazer GAN.")
-
+parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
+parser.add_option('--clear_like_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
+parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
+parser.add_option('--a_num_blocks', type=int, help="Num Blocks", default = 4)
+parser.add_option('--batch_size', type=int, help="batch_size", default="32")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--num_workers', type=int, help="Workers", default="12")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Joint training for transmission and atmospheric map. Size 32 x 32\n"
+                                                                                     "0.3 - 0.95 = A range")
 #--img_to_load=-1 --load_previous=0
+# --server_config=2 --cuda_device=cuda:1
 #Update config if on COARE
 def update_config(opts):
-    constants.is_coare = opts.coare
+    constants.server_config = opts.server_config
 
-    if(constants.is_coare == 1):
-        print("Using COARE configuration.")
-
+    if(constants.server_config == 1):
         constants.ITERATION = str(opts.iteration)
-        constants.DEHAZE_FILTER_STRENGTH = opts.dehaze_filter_strength
+        constants.num_workers =opts.num_workers
+        constants.DEHAZER_CHECKPATH = 'checkpoint/' + constants.DEHAZER_VERSION + "_" + constants.ITERATION + '.pt'
 
-        constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
+        print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.DEHAZER_CHECKPATH)
 
-        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean - styled/"
         constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
         constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo - pseudo/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
-        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+
+    elif(constants.server_config == 2):
+        constants.ITERATION = str(opts.iteration)
+        constants.num_workers = opts.num_workers
+        constants.ALBEDO_CHECKPT = opts.albedo_checkpt
+        constants.DEHAZER_CHECKPATH = 'checkpoint/' + constants.DEHAZER_VERSION + "_" + constants.ITERATION + '.pt'
+
+        print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.DEHAZER_CHECKPATH)
+
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "Hazy Dataset Benchmark/Standard/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -73,42 +92,24 @@ def main(argv):
     update_config(opts)
     print("=========BEGIN============")
 
-    print("Is Coare? %d Has GPU available? %d Count: %d" % (constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
+    print("Server config? %d Has GPU available? %d Count: %d" % (constants.server_config, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
 
     manualSeed = random.randint(1, 10000) # use if you want new results
     random.seed(manualSeed)
     torch.manual_seed(manualSeed)
 
-    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    device = torch.device(opts.cuda_device if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    dehazer = dehaze_trainer.DehazeTrainer(device, opts.g_lr, opts.d_lr, opts.num_blocks, opts.batch_size)
-    dehazer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.psnr_loss_weight, opts.comments)
+    dehazer = dehaze_trainer.DehazeTrainer(device, opts.g_lr, opts.d_lr, opts.batch_size)
+    dehazer.declare_models(opts.t_num_blocks, opts.is_t_unet, opts.a_num_blocks)
+    dehazer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.clear_like_weight, opts.comments)
+
+    early_stopper_l1 = early_stopper.EarlyStopper(20, early_stopper.EarlyStopperMethod.L1_TYPE)
 
     start_epoch = 0
     iteration = 0
-
-    #load transmission network
-    checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.04_2.pt")
-    transmission_G = cycle_gan.Generator(input_nc=3, output_nc=1, n_residual_blocks=8).to(device)
-    transmission_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-    transmission_G.eval()
-    print("Transmission network loaded.")
-
-    #load albedo
-    checkpt = torch.load("checkpoint/albedo_transfer_v1.04_1.pt")
-    albedo_G = ffa_gan.FFA(gps = 3, blocks = 18).to(device)
-    albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-    albedo_G.eval()
-    print("Albedo network loaded.")
-
-    # load atmosphere estimator
-    checkpt = torch.load("checkpoint/airlight_estimator_v1.04_1.pt")
-    atmosphere_D = dh.AirlightEstimator_V2(num_channels = 3, disc_feature_size = 64).to(device)
-    atmosphere_D.load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
-    atmosphere_D.eval()
-    print("Albedo network loaded.")
 
     if(opts.load_previous):
         dehaze_checkpoint = torch.load(constants.DEHAZER_CHECKPATH)
@@ -121,66 +122,75 @@ def main(argv):
 
     # Create the dataloader
     train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, True, opts.batch_size, opts.img_to_load)
-    test_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
-                    dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+    test_loaders = [dataset_loader.load_dehaze_dataset_test_paired(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, opts.batch_size, opts.img_to_load)]
+    # unseen_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, opts.batch_size, 500),
+    #                 dataset_loader.load_dehaze_dataset_test(constants.DATASET_STANDARD_PATH_COMPLETE, opts.batch_size, 500),
+    #                 dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
 
     index = 0
 
     # Plot some training images
-    if(constants.is_coare == 0):
-        _, a, b, c = next(iter(train_loader))
+    if(constants.server_config == 0):
+        _, a, b, c, d = next(iter(train_loader))
         show_images(a, "Training - Hazy Images")
         show_images(b, "Training - Transmission Images")
         show_images(c, "Training - Clear Images")
+        show_images(dehazer.provide_clean_like(a, b, d), "Training - Clear-Like Images")
+
 
     print("Starting Training Loop...")
-    # for i in range(len(test_loaders)):
-    #     _, hazy_batch = next(iter(test_loaders[i]))
+    # for i in range(len(unseen_loaders)):
+    #     _, hazy_batch = next(iter(unseen_loaders[i]))
     #     hazy_tensor = hazy_batch.to(device)
     #
-    #     with torch.no_grad():
-    #         albedo_like = albedo_G(hazy_tensor)
-    #         transmission_like = transmission_G(albedo_like)
-    #         atmosphere_like = atmosphere_D(hazy_tensor)
+    #     dehazer.visdom_infer_test(hazy_tensor, i)
     #
-    #     dehazer.visdom_infer_test(hazy_tensor, transmission_like, atmosphere_like, i)
+    # for i, test_data in enumerate(test_loaders[0], 0):
+    #     _, hazy_batch, clear_batch = test_data
+    #     hazy_tensor = hazy_batch.to(device)
+    #     clear_tensor = clear_batch.to(device)
+    #
+    #     dehazer.visdom_infer_test_paired(hazy_tensor, clear_tensor, i)
+    #     break
 
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        for i, train_data in enumerate(train_loader, 0):
-            _, hazy_batch, transmission_batch, clear_batch = train_data
+        for i, (train_data, test_data) in enumerate(zip(train_loader, itertools.cycle(test_loaders[0]))):
+            _, hazy_batch, transmission_batch, clear_batch, atmosphere_batch = train_data
             hazy_tensor = hazy_batch.to(device)
             clear_tensor = clear_batch.to(device)
+            transmission_tensor = transmission_batch.to(device).float()
+            atmosphere_tensor = atmosphere_batch.to(device).float()
 
-            with torch.no_grad():
-                albedo_like = albedo_G(hazy_tensor)
-                transmission_like = transmission_G(albedo_like)
-                atmosphere_like = atmosphere_D(hazy_tensor)
+            dehazer.train(iteration, hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
+            iteration = iteration + 1
 
-            dehazer.train(hazy_tensor, transmission_like, atmosphere_like, clear_tensor)
+            _, hazy_batch, clear_batch = test_data
+            hazy_tensor = hazy_batch.to(device)
+            clear_tensor = clear_batch.to(device)
+            clear_like = dehazer.test(hazy_tensor, clear_tensor)
 
-            if (i % 50 == 0):
+            if(early_stopper_l1.test(epoch, clear_like, clear_tensor)):
+                break
+
+            if (i % 300 == 0):
                 dehazer.save_states(epoch, iteration)
                 dehazer.visdom_report(iteration)
-                dehazer.visdom_infer_train(hazy_tensor, transmission_like, atmosphere_like, clear_tensor)
+                # _, hazy_batch, transmission_batch, clear_batch, atmosphere_batch = train_data
+                # hazy_tensor = hazy_batch.to(device)
+                # clear_tensor = clear_batch.to(device)
+                # transmission_tensor = transmission_batch.to(device).float()
+                # atmosphere_tensor = atmosphere_batch.to(device).float()
+                #
+                # dehazer.visdom_infer_train(hazy_tensor, transmission_tensor, atmosphere_tensor, clear_tensor)
+                #
+                # _, hazy_batch, clear_batch = test_data
+                # hazy_tensor = hazy_batch.to(device)
+                # clear_tensor = clear_batch.to(device)
+                # dehazer.visdom_infer_test_paired(hazy_tensor, clear_tensor, 0)
 
-                iteration = iteration + 1
-                for i in range(len(test_loaders)):
-                    _, hazy_batch = next(iter(test_loaders[i]))
-                    hazy_tensor = hazy_batch.to(device)
-
-                    with torch.no_grad():
-                        albedo_like = albedo_G(hazy_tensor)
-                        transmission_like = transmission_G(albedo_like)
-                        atmosphere_like = atmosphere_D(hazy_tensor)
-
-                    dehazer.visdom_infer_test(hazy_tensor, transmission_like, atmosphere_like, i)
-
-                    index = (index + 1) % len(test_loaders[0])
-
-                    if (index == 0):
-                        test_loaders = [dataset_loader.load_dehaze_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500),
-                                        dataset_loader.load_dehaze_dataset_test(constants.DATASET_RESIDE_TEST_PATH_COMPLETE, opts.batch_size, 500)]
+        if (early_stopper_l1.test(epoch, clear_like, clear_tensor)):
+            break
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__":

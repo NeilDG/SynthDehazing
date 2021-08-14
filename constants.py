@@ -6,13 +6,6 @@ DATASET_VEMON_PATH_PATCH_32 = "E:/VEMON_Transfer/train/32_patch/"
 DATASET_VEMON_PATH_PATCH_64 = "E:/VEMON_Transfer/train/64_patch/"
 DATASET_VEMON_PATH_PATCH_128 = "E:/VEMON_Transfer/train/128_patch/"
 
-DATASET_HAZY_PATH_COMPLETE = "E:/Synth Hazy 2/hazy/"
-DATASET_CLEAN_PATH_COMPLETE = "E:/Synth Hazy 2/clean/"
-DATASET_CLEAN_PATH_COMPLETE_STYLED = "E:/Synth Hazy 2/clean - styled/"
-DATASET_DEPTH_PATH_COMPLETE = "E:/Synth Hazy 2/depth/"
-DATASET_LIGHTCOORDS_PATH_COMPLETE = "E:/Synth Hazy 2/light/"
-DATASET_LIGHTDIRECTIONS_PATH_COMPLETE = "E:/Synth Hazy 2/directionality/"
-
 DATASET_ALBEDO_PATH_COMPLETE_3 = "E:/Synth Hazy 3/albedo/"
 DATASET_ALBEDO_PATH_PSEUDO_3 = "E:/Synth Hazy 3/albedo - pseudo/"
 DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
@@ -33,6 +26,8 @@ DATASET_LIGHTCOORDS_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/light/"
 DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
 DATASET_DEPTH_PATH_PATCH = "E:/Synth Hazy - Patch/depth/"
+
+DATASET_STANDARD_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/Standard/"
 
 DATASET_OHAZE_HAZY_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
 DATASET_OHAZE_CLEAN_PATH_COMPLETE = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
@@ -59,13 +54,14 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "albedo_transfer_v1.04"
-TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.07"
-AIRLIGHT_VERSION = "airlight_estimator_v1.05"
-DEHAZER_VERSION = "dehazer_v2.00"
+TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.09"
+AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
+AIRLIGHT_VERSION = "airlight_estimator_v1.09"
+DEHAZER_VERSION = "dehazer_v2.09"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "3"
+ITERATION = "2"
 
 LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
 LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
@@ -76,6 +72,7 @@ COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
 COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
 TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + TRANSMISSION_VERSION + "_" + ITERATION + '.pt'
 AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + AIRLIGHT_VERSION + "_" + ITERATION + '.pt'
+AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + AIRLIGHT_GEN_VERSION + "_" + ITERATION + '.pt'
 LIGHTCOORDS_ESTIMATOR_CHECKPATH = 'checkpoint/' + LIGHTS_ESTIMATOR_VERSION + "_" + ITERATION + '.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
@@ -104,7 +101,7 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 25
+num_epochs = 300
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
@@ -112,6 +109,8 @@ infer_size = 32
 
 DEHAZE_FILTER_STRENGTH = 0.1
 
-#Running on COARE?
-is_coare = 0
+#Running on local = 0, Running on COARE = 1, Running on CCS server = 2
+server_config = 0
+num_workers = 12
+ALBEDO_CHECKPT = "checkpoint/albedo_transfer_v1.04_1.pt"
     
