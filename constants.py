@@ -57,7 +57,7 @@ COLOR_TRANSFER_VERSION = "albedo_transfer_v1.04"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.09"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
 AIRLIGHT_VERSION = "airlight_estimator_v1.09"
-DEHAZER_VERSION = "dehazer_v2.08"
+DEHAZER_VERSION = "dehazer_v2.09"
 LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
 LATENT_VERSION = "latent_v1.00"
 

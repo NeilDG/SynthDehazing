@@ -21,17 +21,15 @@ import kornia
 
 class TransmissionTrainer:
     
-    def __init__(self, gan_version, gan_iteration, gpu_device, batch_size, is_unet, g_lr = 0.0002, d_lr = 0.0002):
+    def __init__(self, gpu_device, batch_size, is_unet, num_blocks, g_lr = 0.0002, d_lr = 0.0002):
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
-        self.gan_version = gan_version
-        self.gan_iteration = gan_iteration
 
         if(is_unet == 1):
-            self.G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs = 8).to(self.gpu_device)
+            self.G_A = un.UnetGenerator(input_nc=3, output_nc=1, num_downs = num_blocks).to(self.gpu_device)
         else:
-            self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = 10).to(self.gpu_device)
+            self.G_A = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = num_blocks).to(self.gpu_device)
 
         self.D_A = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 
@@ -101,28 +99,19 @@ class TransmissionTrainer:
 
         return loss(pred_grad, target_grad)
 
-    def train(self, rgb_tensor, depth_tensor):
+    def train(self, rgb_tensor, transmission_tensor):
         with amp.autocast():
             depth_like = self.G_A(rgb_tensor)
-            #rgb_like = self.G_B(depth_tensor)
 
             self.D_A.train()
-            #self.D_B.train()
             self.optimizerD.zero_grad()
 
-            prediction = self.D_A(depth_tensor)
+            prediction = self.D_A(transmission_tensor)
             real_tensor = torch.ones_like(prediction)
             fake_tensor = torch.zeros_like(prediction)
 
-            D_A_real_loss = self.adversarial_loss(self.D_A(depth_tensor), real_tensor) * self.adv_weight
+            D_A_real_loss = self.adversarial_loss(self.D_A(transmission_tensor), real_tensor) * self.adv_weight
             D_A_fake_loss = self.adversarial_loss(self.D_A(depth_like.detach()), fake_tensor) * self.adv_weight
-
-            #prediction = self.D_B(rgb_tensor)
-            #real_tensor = torch.ones_like(prediction)
-            #fake_tensor = torch.zeros_like(prediction)
-
-            #D_B_real_loss = self.adversarial_loss(self.D_B(rgb_tensor), real_tensor) * self.adv_weight
-            #D_B_fake_loss = self.adversarial_loss(self.D_B(rgb_like.detach()), fake_tensor) * self.adv_weight
 
             errD = D_A_real_loss + D_A_fake_loss
             if (self.fp16_scaler.scale(errD).item() > 0.1):
@@ -131,12 +120,10 @@ class TransmissionTrainer:
                 self.schedulerD.step(errD)
 
             self.G_A.train()
-            #self.G_B.train()
             self.optimizerG.zero_grad()
 
-            #print("Shape: ", np.shape(rgb_tensor), np.shape(depth_tensor))
-            A_likeness_loss = self.likeness_loss(self.G_A(rgb_tensor), depth_tensor) * self.likeness_weight
-            A_edge_loss = self.edge_loss(self.G_A(rgb_tensor), depth_tensor) * self.edge_weight
+            A_likeness_loss = self.likeness_loss(self.G_A(rgb_tensor), transmission_tensor) * self.likeness_weight
+            A_edge_loss = self.edge_loss(self.G_A(rgb_tensor), transmission_tensor) * self.edge_weight
 
             prediction = self.D_A(self.G_A(rgb_tensor))
             real_tensor = torch.ones_like(prediction)
@@ -157,18 +144,16 @@ class TransmissionTrainer:
             self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item())
             self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
             self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
-            #self.losses_dict[constants.D_B_FAKE_LOSS_KEY].append(D_B_fake_loss.item())
-            #self.losses_dict[constants.D_B_REAL_LOSS_KEY].append(D_B_real_loss.item())
     
     def visdom_report(self, iteration):
         self.visdom_reporter.plot_finegrain_loss("Transmission loss - " +str(constants.TRANSMISSION_VERSION) +str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
 
-    def visdom_infer_train(self, train_gray_tensor, train_depth_tensor, id):
+    def visdom_infer_train(self, train_gray_tensor, train_transmission_tensor, id):
         with torch.no_grad():
             train_depth_like = self.G_A(train_gray_tensor)
 
         self.visdom_reporter.plot_image((train_gray_tensor), str(id) + " Training - RGB "+str(constants.TRANSMISSION_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image((train_depth_tensor), str(id) +" Training - Transmission " +str(constants.TRANSMISSION_VERSION) +str(constants.ITERATION))
+        self.visdom_reporter.plot_image((train_transmission_tensor), str(id) + " Training - Transmission " + str(constants.TRANSMISSION_VERSION) + str(constants.ITERATION))
         self.visdom_reporter.plot_image((train_depth_like), str(id) + " Training -  Transmission-Like " +str(constants.TRANSMISSION_VERSION) +str(constants.ITERATION))
 
     def visdom_infer_test(self, test_rgb_tensor, id):
@@ -180,9 +165,7 @@ class TransmissionTrainer:
     
     def load_saved_state(self, checkpoint):
         self.G_A.load_state_dict(checkpoint[constants.GENERATOR_KEY + "A"])
-        #self.G_B.load_state_dict(checkpoint[generator_key + "B"])
         self.D_A.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + "A"])
-        #self.D_B.load_state_dict(checkpoint[discriminator_key + "B"])
         self.optimizerG.load_state_dict(checkpoint[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY])
         self.optimizerD.load_state_dict(checkpoint[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY])
 
@@ -192,9 +175,7 @@ class TransmissionTrainer:
     def save_states(self, epoch, iteration):
         save_dict = {'epoch': epoch, 'iteration': iteration}
         netGA_state_dict = self.G_A.state_dict()
-        #netGB_state_dict = self.G_B.state_dict()
         netDA_state_dict = self.D_A.state_dict()
-        #netDB_state_dict = self.D_B.state_dict()
 
         optimizerG_state_dict = self.optimizerG.state_dict()
         optimizerD_state_dict = self.optimizerD.state_dict()
@@ -203,9 +184,7 @@ class TransmissionTrainer:
         schedulerD_state_dict = self.schedulerD.state_dict()
 
         save_dict[constants.GENERATOR_KEY + "A"] = netGA_state_dict
-        #save_dict[generator_key + "B"] = netGB_state_dict
         save_dict[constants.DISCRIMINATOR_KEY + "A"] = netDA_state_dict
-        #save_dict[discriminator_key + "B"] = netDB_state_dict
 
         save_dict[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY] = optimizerG_state_dict
         save_dict[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY] = optimizerD_state_dict
@@ -216,12 +195,12 @@ class TransmissionTrainer:
         torch.save(save_dict, constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
 
-        #clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training
-        if(epoch % 5 == 0):
-            self.losses_dict[constants.G_LOSS_KEY].clear()
-            self.losses_dict[constants.D_OVERALL_LOSS_KEY].clear()
-            self.losses_dict[constants.LIKENESS_LOSS_KEY].clear()
-            self.losses_dict[constants.EDGE_LOSS_KEY].clear()
-            self.losses_dict[constants.G_ADV_LOSS_KEY].clear()
-            self.losses_dict[constants.D_A_FAKE_LOSS_KEY].clear()
-            self.losses_dict[constants.D_A_REAL_LOSS_KEY].clear()
+        # #clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training
+        # if(epoch % 5 == 0):
+        #     self.losses_dict[constants.G_LOSS_KEY].clear()
+        #     self.losses_dict[constants.D_OVERALL_LOSS_KEY].clear()
+        #     self.losses_dict[constants.LIKENESS_LOSS_KEY].clear()
+        #     self.losses_dict[constants.EDGE_LOSS_KEY].clear()
+        #     self.losses_dict[constants.G_ADV_LOSS_KEY].clear()
+        #     self.losses_dict[constants.D_A_FAKE_LOSS_KEY].clear()
+        #     self.losses_dict[constants.D_A_REAL_LOSS_KEY].clear()

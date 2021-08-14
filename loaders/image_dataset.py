@@ -69,25 +69,14 @@ class DehazingDataset(data.Dataset):
         atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
         atmosphere[2] = np.random.normal(atmosphere[0], spread)
 
-        img_atmosphere = np.zeros_like(clear_img)
-        img_atmosphere[:, :, 0] = atmosphere[0] * (1 - T)
-        img_atmosphere[:, :, 1] = atmosphere[1] * (1 - T)
-        img_atmosphere[:, :, 2] = atmosphere[2] * (1 - T)
-
         hazy_img_like = np.zeros_like(clear_img)
         T = np.resize(T, np.shape(clear_img[:, :, 0]))
-        hazy_img_like[:, :, 0] = (clear_img[:, :, 0] * T) + img_atmosphere[:, :, 0]
-        hazy_img_like[:, :, 1] = (clear_img[:, :, 1] * T) + img_atmosphere[:, :, 1]
-        hazy_img_like[:, :, 2] = (clear_img[:, :, 2] * T) + img_atmosphere[:, :, 2]
+        hazy_img_like[:, :, 0] = (clear_img[:, :, 0] * T) + atmosphere[0] * (1 - T)
+        hazy_img_like[:, :, 1] = (clear_img[:, :, 1] * T) + atmosphere[1] * (1 - T)
+        hazy_img_like[:, :, 2] = (clear_img[:, :, 2] * T) + atmosphere[2] * (1 - T)
 
         img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         img_a = self.initial_img_op(img_a)
-
-        #loosen T, A prediction
-        #T = np.maximum(T, 0.5)
-        #img_atmosphere = np.maximum(img_atmosphere, 0.5)
-        #T = T * 0.6
-        #img_atmosphere = img_atmosphere * 0.6
 
         transmission_img = cv2.resize(T, self.resize_shape)
 
@@ -96,23 +85,20 @@ class DehazingDataset(data.Dataset):
             i, j, h, w = crop_indices
 
             img_a = transforms.functional.crop(img_a, i, j, h, w)
-            #img_b = transforms.functional.crop(img_b, i, j, h, w)
-            #img_a = img_a[i: i + h, j: j + w]
             hazy_img_like = hazy_img_like[i: i + h, j: j + w]
             transmission_img = transmission_img[i: i + h, j: j + w]
-            img_atmosphere = img_atmosphere[i: i + h, j: j + w]
             clear_img_uint = clear_img_uint[i: i + h, j: j + w]
 
 
         img_a = self.final_transform_op(hazy_img_like)
         transmission_img = self.depth_transform_op(transmission_img)
-        img_atmosphere = self.final_transform_op(img_atmosphere)
+        atmosphere = torch.tensor(atmosphere)
 
         if(self.return_ground_truth):
             ground_truth_img = self.final_transform_op(clear_img_uint)
-            return file_name, img_a, transmission_img, ground_truth_img, img_atmosphere
+            return file_name, img_a, transmission_img, ground_truth_img, atmosphere
         else:
-            return file_name, img_a, transmission_img, img_atmosphere #hazy albedo img, transmission map
+            return file_name, img_a, transmission_img, atmosphere #hazy albedo img, transmission map
 
     def __len__(self):
         return len(self.image_list_a)
@@ -154,14 +140,14 @@ class DehazingDatasetPaired(data.Dataset):
         self.image_list_b = image_list_b
         self.resize_shape = resize_shape
 
-        self.initial_img_op = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize(self.resize_shape)
-        ])
+        # self.initial_img_op = transforms.Compose([
+        #     transforms.ToPILImage(),
+        #     transforms.Resize(self.resize_shape),
+        # ])
 
         self.final_transform_op = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            transforms.Normalize((0.5,), (0.5,))
         ])
 
     def __getitem__(self, idx):
@@ -172,14 +158,15 @@ class DehazingDatasetPaired(data.Dataset):
         img_a = cv2.imread(img_id);
         img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
         img_a = cv2.normalize(img_a, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-        img_a = self.initial_img_op(img_a)
+
+        img_a = cv2.resize(img_a, self.resize_shape)
         img_a = self.final_transform_op(img_a)
 
         img_id = self.image_list_b[idx]
         img_b = cv2.imread(img_id);
         img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
         img_b = cv2.normalize(img_b, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-        img_b = self.initial_img_op(img_b)
+        img_b = cv2.resize(img_b, self.resize_shape)
         img_b = self.final_transform_op(img_b)
 
         return file_name, img_a, img_b
@@ -240,44 +227,34 @@ class TransmissionAlbedoDataset(data.Dataset):
         atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
         atmosphere[2] = np.random.normal(atmosphere[0], spread)
 
-        img_atmosphere = np.zeros_like(clear_img)
-        img_atmosphere[:, :, 0] = atmosphere[0] * (1 - T)
-        img_atmosphere[:, :, 1] = atmosphere[1] * (1 - T)
-        img_atmosphere[:, :, 2] = atmosphere[2] * (1 - T)
-
         hazy_img_like = np.zeros_like(clear_img)
         T = np.resize(T, np.shape(clear_img[:, :, 0]))
-        hazy_img_like[:, :, 0] = (clear_img[:, :, 0] * T) + img_atmosphere[:, :, 0]
-        hazy_img_like[:, :, 1] = (clear_img[:, :, 1] * T) + img_atmosphere[:, :, 1]
-        hazy_img_like[:, :, 2] = (clear_img[:, :, 2] * T) + img_atmosphere[:, :, 2]
+        hazy_img_like[:, :, 0] = (clear_img[:, :, 0] * T) + atmosphere[0] * (1 - T)
+        hazy_img_like[:, :, 1] = (clear_img[:, :, 1] * T) + atmosphere[1] * (1 - T)
+        hazy_img_like[:, :, 2] = (clear_img[:, :, 2] * T) + atmosphere[2] * (1 - T)
 
         img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         img_a = self.initial_img_op(img_a)
         transmission_img = cv2.resize(T, self.resize_shape)
-
-        #img_atmosphere = self.initial_img_op(img_atmosphere)
 
         if(self.should_crop):
             crop_indices = transforms.RandomCrop.get_params(img_a, output_size=self.crop_size)
             i, j, h, w = crop_indices
 
             img_a = transforms.functional.crop(img_a, i, j, h, w)
-            #img_b = transforms.functional.crop(img_b, i, j, h, w)
-            #img_a = img_a[i: i + h, j: j + w]
             transmission_img = transmission_img[i: i + h, j: j + w]
-            img_atmosphere = img_atmosphere[i: i + h, j: j + w]
             clear_img_uint = clear_img_uint[i: i + h, j: j + w]
 
 
         img_a = self.final_transform_op(img_a)
         transmission_img = self.depth_transform_op(transmission_img)
-        img_atmosphere = self.final_transform_op(img_atmosphere)
+        atmosphere = torch.tensor(atmosphere)
 
         if(self.return_ground_truth):
             ground_truth_img = self.final_transform_op(clear_img_uint)
-            return file_name, img_a, transmission_img, ground_truth_img, img_atmosphere
+            return file_name, img_a, transmission_img, ground_truth_img, atmosphere
         else:
-            return file_name, img_a, transmission_img, img_atmosphere #hazy albedo img, transmission map
+            return file_name, img_a, transmission_img, atmosphere #hazy albedo img, transmission map
 
     def __len__(self):
         return len(self.image_list_a)
