@@ -13,7 +13,23 @@ from utils import dark_channel_prior
 from utils import dehazing_proper
 import glob
 from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import mean_squared_error
 from custom_losses import ssim_loss
+
+def produce_dcp():
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
+    SAVE_PATH = "results/DCP - Results - I-Haze/"
+
+    hazy_list = glob.glob(HAZY_PATH + "*.jpg")
+    for i, (hazy_path) in enumerate(hazy_list):
+        img_name = hazy_path.split("\\")[1].split(".")[0]  # save new image as PNG
+        hazy_img = cv2.imread(hazy_path)
+        hazy_img = cv2.resize(hazy_img, (512, 512))
+        dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
+        dcp_clear_img = cv2.normalize(dcp_clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        cv2.imwrite(SAVE_PATH + img_name + ".png", dcp_clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
+        print("Saved DCP: ", img_name)
 
 def produce_ihaze(T_CHECKPT_NAME, A_ESTIMATOR_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
@@ -53,11 +69,13 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/hazy/"
     GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
 
+    DCP_RESULTS_PATH = "results/DCP - Results - O-Haze/"
     AOD_RESULTS_PATH = "results/AODNet- Results - IHaze/"
     FFA_RESULTS_PATH = "results/FFA Net - Results - IHaze/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - IHaze/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - IHaze/"
     EDPN_DEHAZE_PATH = "results/EDPN - Results - IHaze/"
+    DA_DEHAZE_PATH = "results/DADehazing - IHaze/"
     OUR_PATH = "results/Ours - Results - I-Haze/"
 
     EXPERIMENT_NAME = "metrics - " +str(T_CHECKPT_NAME) + " - " +str(A_CHECKPT_NAME)
@@ -66,11 +84,13 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
 
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
     gt_list = glob.glob(GT_PATH + "*.jpg")
+    dcp_list = glob.glob(DCP_RESULTS_PATH + "*.png")
     aod_list = glob.glob(AOD_RESULTS_PATH + "*.jpg")
     ffa_list = glob.glob(FFA_RESULTS_PATH + "*.jpg")
     grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
     cycle_dh_list = glob.glob(CYCLE_DEHAZE_PATH + "*.jpg")
     edpn_list = glob.glob(EDPN_DEHAZE_PATH + "*.png")
+    da_list = glob.glob(DA_DEHAZE_PATH + "*.png")
     our_list = glob.glob(OUR_PATH + "*.png")
 
     print(hazy_list)
@@ -82,21 +102,22 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
     print(edpn_list)
     print(our_list)
 
-    FIG_ROWS = 9
+    FIG_ROWS = 10
     FIG_COLS = 4
     FIG_WIDTH = 10
-    FIG_HEIGHT = 25
+    FIG_HEIGHT = 40
     fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
     fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
     column = 0
     fig_num = 0
-    average_SSIM = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    average_PSNR = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    average_SSIM = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    average_PSNR = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    average_MSE = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     count = 0
 
     with open(BENCHMARK_PATH, "w") as f:
-        for i, (hazy_path, gt_path, ffa_path, grid_path, cycle_dh_path, aod_path, edpn_path, our_path) in \
-                enumerate(zip(hazy_list, gt_list, ffa_list, grid_list, cycle_dh_list, aod_list, edpn_list, our_list)):
+        for i, (hazy_path, gt_path, dcp_path, ffa_path, grid_path, cycle_dh_path, aod_path, edpn_path, da_path, our_path) in \
+                enumerate(zip(hazy_list, gt_list, dcp_list, ffa_list, grid_list, cycle_dh_list, aod_list, edpn_list, da_list, our_list)):
             with torch.no_grad():
                 count = count + 1
                 img_name = hazy_path.split("\\")[1]
@@ -121,7 +142,11 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
                 cycle_dehaze_img = cv2.imread(cycle_dh_path)
                 cycle_dehaze_img = cv2.resize(cycle_dehaze_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
-                dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
+                da_img = cv2.imread(da_path)
+                da_img = cv2.resize(da_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
+
+                dcp_clear_img = cv2.imread(dcp_path)
+                dcp_clear_img = cv2.resize(da_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
                 clear_img = cv2.imread(our_path)
                 clear_img = cv2.resize(clear_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
@@ -143,6 +168,7 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
                                         dtype=cv2.CV_8U)
                 edpn_img = cv2.normalize(edpn_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
                                          dtype=cv2.CV_8U)
+                da_img = cv2.normalize(da_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 gt_img = cv2.normalize(gt_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
                 # make images compatible with matplotlib
@@ -154,6 +180,7 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
                 cycle_dehaze_img = cv2.cvtColor(cycle_dehaze_img, cv2.COLOR_BGR2RGB)
                 aod_img = cv2.cvtColor(aod_img, cv2.COLOR_BGR2RGB)
                 edpn_img = cv2.cvtColor(edpn_img, cv2.COLOR_BGR2RGB)
+                da_img = cv2.cvtColor(da_img, cv2.COLOR_BGR2RGB)
                 gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
 
                 # measure PSNR
@@ -181,9 +208,47 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
                 print("[EDPN] PSNR of ", img_name, " : ", PSNR, file=f)
                 average_PSNR[5] += PSNR
 
+                PSNR = np.round(peak_signal_noise_ratio(gt_img, da_img), 4)
+                print("[DA-Dehaze] PSNR of ", img_name, " : ", PSNR, file=f)
+                average_PSNR[6] += PSNR
+
                 PSNR = np.round(peak_signal_noise_ratio(gt_img, clear_img), 4)
                 print("[Ours] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[6] += PSNR
+                average_PSNR[7] += PSNR
+
+                # measure MSE
+                MSE = np.round(mean_squared_error(gt_img, dcp_clear_img), 4)
+                print("[DCP] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[0] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, aod_img), 4)
+                print("[AOD-Net] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[1] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, cycle_dehaze_img), 4)
+                print("[CycleDehaze] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[2] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, ffa_img), 4)
+                print("[FFA-Net] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[3] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, grid_img), 4)
+                print("[GridDehazeNet] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[4] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, edpn_img), 4)
+                print("[EDPN] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[5] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, da_img), 4)
+                print("[DA-Dehaze] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[6] += MSE
+
+                MSE = np.round(mean_squared_error(gt_img, clear_img), 4)
+                print("[Ours] MSE of ", img_name, " : ", MSE, file=f)
+                print("[Ours] MSE of ", img_name, " : ", MSE)
+                average_MSE[7] += MSE
 
                 # measure SSIM
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, dcp_clear_img), 4)
@@ -210,10 +275,14 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
                 print("[EDPN] SSIM of ", img_name, " : ", SSIM, file=f)
                 average_SSIM[5] += SSIM
 
+                SSIM = np.round(tensor_utils.measure_ssim(gt_img, da_img), 4)
+                print("[DA-Dehaze] SSIM of ", img_name, " : ", SSIM, file=f)
+                average_SSIM[6] += SSIM
+
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, clear_img), 4)
                 print("[Ours] SSIM of ", img_name, " : ", SSIM, file=f)
                 print("[Ours] SSIM of ", img_name, " : ", SSIM)
-                average_SSIM[6] += SSIM
+                average_SSIM[7] += SSIM
 
                 print(file=f)
 
@@ -231,10 +300,12 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
                 ax[5, column].axis('off')
                 ax[6, column].imshow(grid_img)
                 ax[6, column].axis('off')
-                ax[7, column].imshow(clear_img)
+                ax[7, column].imshow(da_img)
                 ax[7, column].axis('off')
-                ax[8, column].imshow(gt_img)
+                ax[8, column].imshow(clear_img)
                 ax[8, column].axis('off')
+                ax[9, column].imshow(gt_img)
+                ax[9, column].axis('off')
 
                 column = column + 1
 
@@ -252,6 +323,7 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
         for i in range(len(average_SSIM)):
             average_SSIM[i] = average_SSIM[i] / count * 1.0
             average_PSNR[i] = average_PSNR[i] / count * 1.0
+            average_MSE[i] = average_MSE[i] / count * 1.0
 
         print(file=f)
         print("[DCP] Average PSNR: ", np.round(average_PSNR[0], 5), file=f)
@@ -260,7 +332,8 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
         print("[FFA-Net] Average PSNR: ", np.round(average_PSNR[3], 5), file=f)
         print("[GridDehazeNet] Average PSNR: ", np.round(average_PSNR[4], 5), file=f)
         print("[EDPN] Average PSNR: ", np.round(average_PSNR[5], 5), file=f)
-        print("[Ours] Average PSNR: ", np.round(average_PSNR[6], 5), file=f)
+        print("[DA-Dehaze] Average PSNR: ", np.round(average_PSNR[6], 5), file=f)
+        print("[Ours] Average PSNR: ", np.round(average_PSNR[7], 5), file=f)
         print(file=f)
         print("[DCP] Average SSIM: ", np.round(average_SSIM[0], 5), file=f)
         print("[AOD-Net] Average SSIM: ", np.round(average_SSIM[1], 5), file=f)
@@ -268,7 +341,56 @@ def benchmark_ihaze(T_CHECKPT_NAME, A_CHECKPT_NAME):
         print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[3], 5), file=f)
         print("[GridDehazeNet] Average SSIM: ", np.round(average_SSIM[4], 5), file=f)
         print("[EDPN] Average SSIM: ", np.round(average_SSIM[5], 5), file=f)
-        print("[Ours] Average SSIM: ", np.round(average_SSIM[6], 5), file=f)
+        print("[DA-Dehaze] Average SSIM: ", np.round(average_SSIM[6], 5), file=f)
+        print("[Ours] Average SSIM: ", np.round(average_SSIM[7], 5), file=f)
+        print(file=f)
+        print("[DCP] Average MSE: ", np.round(average_MSE[0], 5), file=f)
+        print("[AOD-Net] Average MSE: ", np.round(average_MSE[1], 5), file=f)
+        print("[CycleDehaze] Average MSE: ", np.round(average_MSE[2], 5), file=f)
+        print("[FFA-Net] Average MSE: ", np.round(average_MSE[3], 5), file=f)
+        print("[GridDehazeNet] Average MSE: ", np.round(average_MSE[4], 5), file=f)
+        print("[EDPN] Average MSE: ", np.round(average_MSE[5], 5), file=f)
+        print("[DA-Dehaze] Average MSE: ", np.round(average_MSE[6], 5), file=f)
+        print("[Ours] Average MSE: ", np.round(average_MSE[7], 5), file=f)
+
+def output_best_worst(T_CHECKPT_NAME, A_CHECKPT_NAME, best_threshold, worst_threshold):
+    GT_PATH = "E:/Hazy Dataset Benchmark/I-HAZE/GT/"
+    OUR_PATH = "results/Ours - Results - I-Haze/"
+
+    EXPERIMENT_NAME = "Images - " + str(T_CHECKPT_NAME) + " - " + str(A_CHECKPT_NAME)
+    SAVE_PATH = "results/I-HAZE - Print/"
+    BENCHMARK_PATH = SAVE_PATH + EXPERIMENT_NAME + ".txt"
+
+    gt_list = glob.glob(GT_PATH + "*.jpg")
+    our_list = glob.glob(OUR_PATH + "*.png")
+
+    with open(BENCHMARK_PATH, "w") as f:
+        for i, (gt_path, our_path) in enumerate(zip(gt_list, our_list)):
+            with torch.no_grad():
+                img_name = gt_path.split("\\")[1]
+
+                gt_img = cv2.imread(gt_path)
+                gt_img = cv2.resize(gt_img, (512, 512))
+
+                clear_img = cv2.imread(our_path)
+                clear_img = cv2.resize(clear_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
+
+                # normalize images
+                clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                gt_img = cv2.normalize(gt_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+                # make images compatible with matplotlib
+                clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)
+                gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
+
+                SSIM = np.round(tensor_utils.measure_ssim(gt_img, clear_img), 4)
+                if(SSIM > best_threshold):
+                    print("[BEST] SSIM of ", img_name, " : ", SSIM, file=f)
+                    print("[BEST] SSIM of ", img_name, " : ", SSIM)
+
+                if(SSIM < worst_threshold):
+                    print("[WORST] SSIM of ", img_name, " : ", SSIM, file=f)
+                    print("[WORST] SSIM of ", img_name, " : ", SSIM)
 
 def benchmark_ohaze_inmodels():
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
@@ -442,8 +564,9 @@ def main():
     # benchmark_ihaze(CHECKPT_NAME, CHECKPT_NAME)
 
     CHECKPT_NAME = "dehazer_v2.07_3"
-    produce_ihaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
-    benchmark_ihaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    #produce_ihaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    #benchmark_ihaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    output_best_worst(CHECKPT_NAME, "airlight_estimator_v1.08_1", 0.89, 0.77)
 
     # CHECKPT_NAME = "dehazer_v2.03_4"
     # produce_ihaze(CHECKPT_NAME, CHECKPT_NAME)
