@@ -34,7 +34,66 @@ def atmosphere_benchmark():
     print("Average DCP A: ", np.round(np.average(atmosphere_pred), 5) / 255.0)
 
 
+
+def produce_dcp():
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
+    SAVE_PATH = "results/DCP - Results - O-Haze/"
+
+    hazy_list = glob.glob(HAZY_PATH + "*.jpg")
+    for i, (hazy_path) in enumerate(hazy_list):
+        img_name = hazy_path.split("\\")[1].split(".")[0]  # save new image as PNG
+        hazy_img = cv2.imread(hazy_path)
+        hazy_img = cv2.resize(hazy_img, (512, 512))
+        dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
+        dcp_clear_img = cv2.normalize(dcp_clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        cv2.imwrite(SAVE_PATH + img_name + ".png", dcp_clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
+        print("Saved DCP: ", img_name)
+
 #simply produces results without benchmarking
+def dehaze_single(T_CHECKPT_NAME, A_ESTIMATOR_NAME, INPUT_PATH):
+    SAVE_PATH = "results/Single/"
+    SAVE_TRANSMISSION_PATH = "results/Single/Transmission/"
+    SAVE_ATMOSPHERE_PATH = "results/Single/Atmosphere/"
+
+    ALBEDO_CHECKPT = "albedo_transfer_v1.04_1"
+    TRANSMISSION_CHECKPT = T_CHECKPT_NAME
+    AIRLIGHT_ESTIMATOR_CHECKPT = A_ESTIMATOR_NAME
+
+    model_dehazer = dehazing_proper.ModelDehazer()
+    model_dehazer.set_models_v2(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_ESTIMATOR_CHECKPT)
+
+    with torch.no_grad():
+        print("INPUT PATH: ", INPUT_PATH)
+        img_name = INPUT_PATH.split("/")[-1].split(".")[0]  # save new image as PNG
+        hazy_img = cv2.imread(INPUT_PATH)
+        #hazy_img = cv2.resize(hazy_img, (512, 512))
+
+        clear_img, T_tensor, A_tensor = model_dehazer.perform_dehazing_direct_v4(hazy_img, 0.0)
+        clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        cv2.imwrite(SAVE_PATH + img_name + ".png", clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
+
+        torchutils.save_image(T_tensor, SAVE_TRANSMISSION_PATH + img_name + ".png")
+        torchutils.save_image(A_tensor, SAVE_ATMOSPHERE_PATH + img_name + ".png")
+
+        print("Saved: " + SAVE_PATH + img_name)
+
+
+def measure_performance(INPUT_PATH, GT_PATH):
+    input_img = cv2.imread(INPUT_PATH)
+    input_img = cv2.resize(input_img, (512, 512))
+    img_name = INPUT_PATH.split("/")[-1].split(".")[0]  # save new image as PNG
+
+    gt_img = cv2.imread(GT_PATH)
+    gt_img = cv2.resize(gt_img, (512, 512))
+
+    PSNR = np.round(peak_signal_noise_ratio(gt_img, input_img), 4)
+    print("[Ours] PSNR of ", img_name, " : ", PSNR)
+
+    SSIM = np.round(tensor_utils.measure_ssim(gt_img, input_img), 4)
+    print("[Ours] SSIM of ", img_name, " : ", SSIM)
+
+
 def produce_ohaze(T_CHECKPT_NAME, A_ESTIMATOR_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     SAVE_PATH = "results/Ours - Results - O-Haze/"
@@ -71,11 +130,13 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
 
+    DCP_RESULTS_PATH = "results/DCP - Results - O-Haze/"
     AOD_RESULTS_PATH = "results/AODNet- Results - OHaze/"
     FFA_RESULTS_PATH = "results/FFA Net - Results - OHaze/"
     GRID_DEHAZE_RESULTS_PATH = "results/GridDehazeNet - Results - OHaze/"
     CYCLE_DEHAZE_PATH = "results/CycleDehaze - Results - OHaze/"
     EDPN_DEHAZE_PATH = "results/EDPN - Results - OHaze/"
+    DA_DEHAZE_PATH = "results/DADehazing - OHaze/"
     OUR_PATH = "results/Ours - Results - O-Haze/"
 
     EXPERIMENT_NAME = "metrics - " +str(T_CHECKPT_NAME) + " - " +str(A_GEN_NAME)
@@ -84,33 +145,35 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
 
     hazy_list = glob.glob(HAZY_PATH + "*.jpg")
     gt_list = glob.glob(GT_PATH + "*.jpg")
+    dcp_list = glob.glob(DCP_RESULTS_PATH + "*.png")
     aod_list = glob.glob(AOD_RESULTS_PATH + "*.jpg")
     ffa_list = glob.glob(FFA_RESULTS_PATH + "*.png")
     grid_list = glob.glob(GRID_DEHAZE_RESULTS_PATH + "*.jpg")
     cycle_dh_list = glob.glob(CYCLE_DEHAZE_PATH + "*.jpg")
     edpn_list = glob.glob(EDPN_DEHAZE_PATH + "*.png")
+    da_list = glob.glob(DA_DEHAZE_PATH + "*.png")
     our_list = glob.glob(OUR_PATH + "*.png")
 
     print(hazy_list)
     print(gt_list)
     print(our_list)
 
-    FIG_ROWS = 9
+    FIG_ROWS = 10
     FIG_COLS = 4
     FIG_WIDTH = 10
-    FIG_HEIGHT = 25
+    FIG_HEIGHT = 40
     fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
     fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
     column = 0
     fig_num = 0
-    average_SSIM = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    average_PSNR = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    average_MSE = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    average_SSIM = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    average_PSNR = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    average_MSE = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     count = 0
 
     with open(BENCHMARK_PATH, "w") as f:
-        for i, (hazy_path, gt_path, ffa_path, grid_path, cycle_dh_path, aod_path, edpn_path, our_path) in \
-                enumerate(zip(hazy_list, gt_list, ffa_list, grid_list, cycle_dh_list, aod_list, edpn_list, our_list)):
+        for i, (hazy_path, gt_path, dcp_path, ffa_path, grid_path, cycle_dh_path, aod_path, edpn_path, da_path, our_path) in \
+                enumerate(zip(hazy_list, gt_list, dcp_list, ffa_list, grid_list, cycle_dh_list, aod_list, edpn_list, da_list, our_list)):
             with torch.no_grad():
                 count = count + 1
                 img_name = hazy_path.split("\\")[1]
@@ -135,7 +198,11 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
                 cycle_dehaze_img = cv2.imread(cycle_dh_path)
                 cycle_dehaze_img = cv2.resize(cycle_dehaze_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
-                dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
+                da_img = cv2.imread(da_path)
+                da_img = cv2.resize(da_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
+
+                dcp_clear_img = cv2.imread(dcp_path)
+                dcp_clear_img = cv2.resize(da_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
 
                 clear_img = cv2.imread(our_path)
                 clear_img = cv2.resize(clear_img, (int(np.shape(gt_img)[1]), int(np.shape(gt_img)[0])))
@@ -149,6 +216,7 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
                 cycle_dehaze_img = cv2.normalize(cycle_dehaze_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 aod_img = cv2.normalize(aod_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 edpn_img = cv2.normalize(edpn_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                da_img = cv2.normalize(da_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
                 gt_img = cv2.normalize(gt_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
                 #make images compatible with matplotlib
@@ -160,6 +228,7 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
                 cycle_dehaze_img = cv2.cvtColor(cycle_dehaze_img, cv2.COLOR_BGR2RGB)
                 aod_img = cv2.cvtColor(aod_img, cv2.COLOR_BGR2RGB)
                 edpn_img = cv2.cvtColor(edpn_img, cv2.COLOR_BGR2RGB)
+                da_img = cv2.cvtColor(da_img, cv2.COLOR_BGR2RGB)
                 gt_img = cv2.cvtColor(gt_img, cv2.COLOR_BGR2RGB)
 
                 # measure PSNR
@@ -187,9 +256,13 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
                 print("[EDPN] PSNR of ", img_name, " : ", PSNR, file=f)
                 average_PSNR[5] += PSNR
 
+                PSNR = np.round(peak_signal_noise_ratio(gt_img, da_img), 4)
+                print("[DA-Dehaze] PSNR of ", img_name, " : ", PSNR, file=f)
+                average_PSNR[6] += PSNR
+
                 PSNR = np.round(peak_signal_noise_ratio(gt_img, clear_img), 4)
                 print("[Ours] PSNR of ", img_name, " : ", PSNR, file=f)
-                average_PSNR[6] += PSNR
+                average_PSNR[7] += PSNR
 
                 # measure MSE
                 MSE = np.round(mean_squared_error(gt_img, dcp_clear_img), 4)
@@ -216,10 +289,14 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
                 print("[EDPN] MSE of ", img_name, " : ", MSE, file=f)
                 average_MSE[5] += MSE
 
+                MSE = np.round(mean_squared_error(gt_img, da_img), 4)
+                print("[DA-Dehaze] MSE of ", img_name, " : ", MSE, file=f)
+                average_MSE[6] += MSE
+
                 MSE = np.round(mean_squared_error(gt_img, clear_img), 4)
                 print("[Ours] MSE of ", img_name, " : ", MSE, file=f)
                 print("[Ours] MSE of ", img_name, " : ", MSE)
-                average_MSE[6] += MSE
+                average_MSE[7] += MSE
 
                 # measure SSIM
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, dcp_clear_img), 4)
@@ -246,10 +323,14 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
                 print("[EDPN] SSIM of ", img_name, " : ", SSIM, file=f)
                 average_SSIM[5] += SSIM
 
+                SSIM = np.round(tensor_utils.measure_ssim(gt_img, da_img), 4)
+                print("[DA-Dehaze] SSIM of ", img_name, " : ", SSIM, file=f)
+                average_SSIM[6] += SSIM
+
                 SSIM = np.round(tensor_utils.measure_ssim(gt_img, clear_img), 4)
                 print("[Ours] SSIM of " ,img_name," : ", SSIM, file = f)
                 print("[Ours] SSIM of ", img_name, " : ", SSIM)
-                average_SSIM[6] += SSIM
+                average_SSIM[7] += SSIM
 
                 print(file = f)
 
@@ -267,10 +348,12 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
                 ax[5, column].axis('off')
                 ax[6, column].imshow(grid_img)
                 ax[6, column].axis('off')
-                ax[7, column].imshow(clear_img)
+                ax[7, column].imshow(da_img)
                 ax[7, column].axis('off')
-                ax[8, column].imshow(gt_img)
+                ax[8, column].imshow(clear_img)
                 ax[8, column].axis('off')
+                ax[9, column].imshow(gt_img)
+                ax[9, column].axis('off')
 
                 column = column + 1
 
@@ -288,6 +371,7 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
         for i in range(len(average_SSIM)):
             average_SSIM[i] = average_SSIM[i] / count * 1.0
             average_PSNR[i] = average_PSNR[i] / count * 1.0
+            average_MSE[i] = average_MSE[i] / count * 1.0
 
         print(file = f)
         print("[DCP] Average PSNR: ", np.round(average_PSNR[0], 5), file=f)
@@ -296,7 +380,8 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
         print("[FFA-Net] Average PSNR: ", np.round(average_PSNR[3], 5), file=f)
         print("[GridDehazeNet] Average PSNR: ", np.round(average_PSNR[4], 5), file=f)
         print("[EDPN] Average PSNR: ", np.round(average_PSNR[5], 5), file=f)
-        print("[Ours] Average PSNR: ", np.round(average_PSNR[6], 5), file=f)
+        print("[DA-Dehaze] Average PSNR: ", np.round(average_PSNR[6], 5), file=f)
+        print("[Ours] Average PSNR: ", np.round(average_PSNR[7], 5), file=f)
         print(file = f)
         print("[DCP] Average SSIM: ", np.round(average_SSIM[0], 5), file=f)
         print("[AOD-Net] Average SSIM: ", np.round(average_SSIM[1], 5), file=f)
@@ -304,7 +389,8 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
         print("[FFA-Net] Average SSIM: ", np.round(average_SSIM[3], 5), file = f)
         print("[GridDehazeNet] Average SSIM: ", np.round(average_SSIM[4], 5), file=f)
         print("[EDPN] Average SSIM: ", np.round(average_SSIM[5], 5), file=f)
-        print("[Ours] Average SSIM: ", np.round(average_SSIM[6], 5), file=f)
+        print("[DA-Dehaze] Average SSIM: ", np.round(average_SSIM[6], 5), file=f)
+        print("[Ours] Average SSIM: ", np.round(average_SSIM[7], 5), file=f)
         print(file=f)
         print("[DCP] Average MSE: ", np.round(average_MSE[0], 5), file=f)
         print("[AOD-Net] Average MSE: ", np.round(average_MSE[1], 5), file=f)
@@ -312,7 +398,8 @@ def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
         print("[FFA-Net] Average MSE: ", np.round(average_MSE[3], 5), file=f)
         print("[GridDehazeNet] Average MSE: ", np.round(average_MSE[4], 5), file=f)
         print("[EDPN] Average MSE: ", np.round(average_MSE[5], 5), file=f)
-        print("[Ours] Average MSE: ", np.round(average_MSE[6], 5), file=f)
+        print("[DA-Dehaze] Average MSE: ", np.round(average_MSE[6], 5), file=f)
+        print("[Ours] Average MSE: ", np.round(average_MSE[7], 5), file=f)
 
 def output_best_worst(T_CHECKPT_NAME, A_CHECKPT_NAME, best_threshold, worst_threshold):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
@@ -340,7 +427,7 @@ def output_best_worst(T_CHECKPT_NAME, A_CHECKPT_NAME, best_threshold, worst_thre
     FIG_ROWS = 9
     FIG_COLS = 4
     FIG_WIDTH = 10
-    FIG_HEIGHT = 25
+    FIG_HEIGHT = 30
     fig, ax = plt.subplots(ncols=FIG_COLS, nrows=FIG_ROWS, constrained_layout=True, sharex=True)
     fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
     column = 0
@@ -470,15 +557,25 @@ def output_best_worst(T_CHECKPT_NAME, A_CHECKPT_NAME, best_threshold, worst_thre
                         fig.set_size_inches(FIG_WIDTH, FIG_HEIGHT)
                         column = 0
 
+
 def main():
     # CHECKPT_NAME = "dehazer_v2.07_2"
     # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
     # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
     #
+
     CHECKPT_NAME = "dehazer_v2.07_3"
-    produce_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
-    benchmark_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
-    output_best_worst(CHECKPT_NAME, "airlight_estimator_v1.08_1", 0.88, 0.77)
+    # produce_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    # benchmark_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    # output_best_worst(CHECKPT_NAME, "airlight_estimator_v1.08_1", 0.88, 0.77)
+    # dehaze_single(CHECKPT_NAME, "airlight_estimator_v1.08_1", "E:/Hazy Dataset Benchmark/Standard/li_hazy_1.png")
+    measure_performance("./results/Single/li_hazy_1.png", "E:/Hazy Dataset Benchmark/Standard/li_clear_1.png")
+    measure_performance("E:/Hazy Dataset Benchmark/Standard/li_produced_1.png", "E:/Hazy Dataset Benchmark/Standard/li_clear_1.png")
+
+    # CHECKPT_NAME = "dehazer_v2.09_4"
+    # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
+    # output_best_worst(CHECKPT_NAME, CHECKPT_NAME, 0.88, 0.77)
 
     #
     # CHECKPT_NAME = "dehazer_v2.07_4"

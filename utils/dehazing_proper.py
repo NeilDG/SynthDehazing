@@ -371,6 +371,10 @@ class ModelDehazer():
         self.atmosphere_models["dehazer_v2.06_5"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
         self.atmosphere_models["dehazer_v2.06_5"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
+        checkpt = torch.load("checkpoint/dehazer_v2.09_4.pt", map_location=self.gpu_device)
+        self.transmission_models["dehazer_v2.09_4"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["dehazer_v2.09_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
         checkpt = torch.load("checkpoint/airlight_estimator_v1.05_1.pt")
         self.atmosphere_models["airlight_estimator_v1.05_1" + str(AtmosphereMethod.NETWORK_ESTIMATOR_V1)] = \
             dh.AirlightEstimator_V2(num_channels=3, disc_feature_size=64, out_features=3).to(self.gpu_device)
@@ -409,6 +413,10 @@ class ModelDehazer():
         checkpt = torch.load("checkpoint/airlight_estimator_v1.08_1.pt")
         self.atmosphere_models["airlight_estimator_v1.08_1"] = dh.AirlightEstimator_Residual(num_channels = 3, out_features = 3, num_layers = 4).to(self.gpu_device)
         self.atmosphere_models["airlight_estimator_v1.08_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
+
+        checkpt = torch.load("checkpoint/dehazer_v2.09_4.pt")
+        self.atmosphere_models["dehazer_v2.09_4"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["dehazer_v2.09_4"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
         print("Dehazing models loaded.")
 
@@ -552,7 +560,7 @@ class ModelDehazer():
 
         # remove 0.5 normalization for dehazing equation
         T = ((transmission_img * 0.5) + 0.5)
-        #T = T * 1.2
+        T = np.resize(T, np.shape(hazy_img[:, :, 0]))
 
         # one_minus_t = self.atmosphere_models[self.airlight_gen_key](concat_input)
         # one_minus_t = torch.squeeze(one_minus_t).cpu().numpy()
@@ -562,6 +570,7 @@ class ModelDehazer():
         atmospheric_term = torch.squeeze(atmospheric_term).cpu().numpy()
 
         atmosphere_map = np.zeros_like(hazy_img, dtype=np.float32)
+        print("Shapes: ", np.shape(atmosphere_map), np.shape(T))
         atmosphere_map[:, :, 0] = atmospheric_term[0] * (1 - T)
         atmosphere_map[:, :, 1] = atmospheric_term[1] * (1 - T)
         atmosphere_map[:, :, 2] = atmospheric_term[2] * (1 - T)
@@ -575,7 +584,6 @@ class ModelDehazer():
 
         hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         clear_img = np.ones_like(hazy_img)
-        T = np.resize(T, np.shape(clear_img[:, :, 0]))
         # print("Airlight estimator network loaded. Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T), " Atmosphere estimate: ", np.shape(atmosphere))
 
         clear_img[:, :, 0] = (hazy_img[:, :, 0] - A[:, :, 0]) / np.maximum(T, filter_strength)
