@@ -52,28 +52,19 @@ GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 LATENT_VECTOR_KEY = "latent_vector"
 
-COLORIZER_VERSION = "colorizer_v1.08"
 COLOR_TRANSFER_VERSION = "albedo_transfer_v1.04"
-TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.09"
+TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.10"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
 AIRLIGHT_VERSION = "airlight_estimator_v1.09"
 DEHAZER_VERSION = "dehazer_v2.09"
-LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
-LATENT_VERSION = "latent_v1.00"
 
-ITERATION = "2"
-
-LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
-LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
-LATENT_CHECKPATH_128 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_128.pt'
+ITERATION = "1"
 
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
-COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
 COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
 TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + TRANSMISSION_VERSION + "_" + ITERATION + '.pt'
 AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + AIRLIGHT_VERSION + "_" + ITERATION + '.pt'
 AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + AIRLIGHT_GEN_VERSION + "_" + ITERATION + '.pt'
-LIGHTCOORDS_ESTIMATOR_CHECKPATH = 'checkpoint/' + LIGHTS_ESTIMATOR_VERSION + "_" + ITERATION + '.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys
