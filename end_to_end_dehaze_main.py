@@ -43,19 +43,15 @@ def update_config(opts):
 
     if(constants.server_config == 1):
         constants.ITERATION = str(opts.iteration)
-        constants.num_workers =opts.num_workers
+        constants.num_workers = opts.num_workers
         constants.END_TO_END_CHECKPATH = 'checkpoint/' + constants.END_TO_END_DEHAZER_VERSION + "_" + constants.ITERATION + '.pt'
 
         print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.END_TO_END_CHECKPATH)
 
-        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean - styled/"
-        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
-        constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo - pseudo/"
-        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
-        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
-        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/GT/"
-        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
-        constants.DATASET_STANDARD_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_HAZY_END_TO_END_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - End-to-End/hazy/"
+        constants.DATASET_CLEAN_END_TO_END_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - End-to-End/clean/"
+        constants.DATASET_HAZY_END_TO_END_PATH_TEST = "/scratch1/scratch2/neil.delgallego/Synth Hazy - End-to-End - Test/hazy/"
+        constants.DATASET_CLEAN_END_TO_END_PATH_TEST = "/scratch1/scratch2/neil.delgallego/Synth Hazy - End-to-End - Test/clean/"
 
     elif(constants.server_config == 2):
         constants.ITERATION = str(opts.iteration)
@@ -65,12 +61,10 @@ def update_config(opts):
 
         print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.END_TO_END_CHECKPATH)
 
-        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
-        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
-        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/hazy/"
-        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/GT/"
-        constants.DATASET_STANDARD_PATH_COMPLETE = "Hazy Dataset Benchmark/Standard/"
-        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_HAZY_END_TO_END_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - End-to-End/hazy/"
+        constants.DATASET_CLEAN_END_TO_END_PATH = "/scratch1/scratch2/neil.delgallego/Synth Hazy - End-to-End/clean/"
+        constants.DATASET_HAZY_END_TO_END_PATH_TEST = "/scratch1/scratch2/neil.delgallego/Synth Hazy - End-to-End - Test/hazy/"
+        constants.DATASET_CLEAN_END_TO_END_PATH_TEST = "/scratch1/scratch2/neil.delgallego/Synth Hazy - End-to-End - Test/clean/"
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -96,7 +90,7 @@ def main(argv):
 
     dehazer = ffa_trainer.FFATrainer(constants.END_TO_END_DEHAZER_VERSION, constants.ITERATION, device, blocks = opts.gen_blocks, lr = opts.g_lr)
     dehazer.update_penalties(opts.clarity_weight)
-    early_stopper_l1 = early_stopper.EarlyStopper(20, early_stopper.EarlyStopperMethod.L1_TYPE)
+    early_stopper_l1 = early_stopper.EarlyStopper(10, early_stopper.EarlyStopperMethod.L1_TYPE)
 
     start_epoch = 0
     iteration = 0
@@ -155,12 +149,12 @@ def main(argv):
             clear_tensor = clear_batch.to(device)
             clear_like = dehazer.test(hazy_tensor)
 
-            if (early_stopper_l1.test(epoch, clear_like, clear_tensor)):
+            if (early_stopper_l1.test(dehazer, epoch, iteration, clear_like, clear_tensor)):
                 break
 
-            if (i % 100 == 0):
-                dehazer.save_states(epoch, iteration)
-                #dehazer.visdom_report(iteration)
+            # if (i % 100 == 0):
+                # dehazer.save_states(epoch, iteration)
+                # dehazer.visdom_report(iteration)
                 # _, hazy_batch, transmission_batch, clear_batch, atmosphere_batch = train_data
                 # hazy_tensor = hazy_batch.to(device)
                 # clear_tensor = clear_batch.to(device)
@@ -174,7 +168,7 @@ def main(argv):
                 # clear_tensor = clear_batch.to(device)
                 # dehazer.visdom_infer_test_paired(hazy_tensor, clear_tensor, 0)
 
-        if (early_stopper_l1.test(epoch, clear_like, clear_tensor)):
+        if (early_stopper_l1.test(dehazer, epoch, iteration, clear_like, clear_tensor)):
             break
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__":

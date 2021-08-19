@@ -126,6 +126,25 @@ def produce_ohaze(T_CHECKPT_NAME, A_ESTIMATOR_NAME):
 
             print("Saved: " + SAVE_PATH + img_name)
 
+def produce_ohaze_end_to_end(CHECKPT_NAME):
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
+    SAVE_PATH = "results/Ours - Results - O-Haze/"
+
+    hazy_list = glob.glob(HAZY_PATH + "*.jpg")
+
+    model_dehazer = dehazing_proper.ModelDehazer()
+
+    for i, (hazy_path) in enumerate(hazy_list):
+        with torch.no_grad():
+            img_name = hazy_path.split("\\")[1].split(".")[0] #save new image as PNG
+            hazy_img = cv2.imread(hazy_path)
+            hazy_img = cv2.resize(hazy_img, (512, 512))
+
+            clear_img = model_dehazer.perform_dehazing_end_to_end(hazy_img, CHECKPT_NAME)
+            torchutils.save_image(clear_img, SAVE_PATH + img_name + ".png")
+
+            print("Saved: " + SAVE_PATH + img_name)
+
 def benchmark_ohaze(T_CHECKPT_NAME, A_GEN_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     GT_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/GT/"
@@ -564,13 +583,31 @@ def main():
     # benchmark_ohaze(CHECKPT_NAME, CHECKPT_NAME)
     #
 
-    CHECKPT_NAME = "dehazer_v2.07_3"
-    # produce_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
-    # benchmark_ohaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")
-    # output_best_worst(CHECKPT_NAME, "airlight_estimator_v1.08_1", 0.88, 0.77)
+    # CHECKPT_NAME = "dehazer_v2.07_3"
+
+    # produce_ohaze("transmission_albedo_estimator_v1.10_1", "airlight_estimator_v1.08_1")
+    # benchmark_ohaze("transmission_albedo_estimator_v1.10_1", "airlight_estimator_v1.08_1")
+    # output_best_worst("transmission_albedo_estimator_v1.10_1", "airlight_estimator_v1.08_1", 0.88, 0.77)
+
+    # produce_ohaze("transmission_albedo_estimator_v1.10_2", "airlight_estimator_v1.08_1")
+    # benchmark_ohaze("transmission_albedo_estimator_v1.10_2", "airlight_estimator_v1.08_1")
+    #
+    # produce_ohaze("transmission_albedo_estimator_v1.10_3", "airlight_estimator_v1.08_1")
+    # benchmark_ohaze("transmission_albedo_estimator_v1.10_3", "airlight_estimator_v1.08_1")
+    #
+    # produce_ohaze("transmission_albedo_estimator_v1.10_4", "airlight_estimator_v1.08_1")
+    # benchmark_ohaze("transmission_albedo_estimator_v1.10_4", "airlight_estimator_v1.08_1")
+
+    produce_ohaze("transmission_albedo_estimator_v1.10_5", "airlight_estimator_v1.08_1")
+    benchmark_ohaze("transmission_albedo_estimator_v1.10_5", "airlight_estimator_v1.08_1")
+
+    # produce_ohaze_end_to_end("end_to_end_dehazer_v1.00_1")
+    # benchmark_ohaze("end_to_end_dehazer_v1.00_1", "")
+    # output_best_worst("end_to_end_dehazer_v1.00_1", "", 0.88, 0.77)
+
     # dehaze_single(CHECKPT_NAME, "airlight_estimator_v1.08_1", "E:/Hazy Dataset Benchmark/Standard/li_hazy_1.png")
-    measure_performance("./results/Single/li_hazy_1.png", "E:/Hazy Dataset Benchmark/Standard/li_clear_1.png")
-    measure_performance("E:/Hazy Dataset Benchmark/Standard/li_produced_1.png", "E:/Hazy Dataset Benchmark/Standard/li_clear_1.png")
+    # measure_performance("./results/Single/li_hazy_1.png", "E:/Hazy Dataset Benchmark/Standard/li_clear_1.png")
+    # measure_performance("E:/Hazy Dataset Benchmark/Standard/li_produced_1.png", "E:/Hazy Dataset Benchmark/Standard/li_clear_1.png")
 
     # CHECKPT_NAME = "dehazer_v2.09_4"
     # produce_ohaze(CHECKPT_NAME, CHECKPT_NAME)
