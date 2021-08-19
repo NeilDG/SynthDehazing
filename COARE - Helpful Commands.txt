@@ -3,6 +3,7 @@
 clear
 
 //For directories
+scratch2/Synth Hazy 3 - Patch
 cd scratch2/NeuralNets-GenerativeExperiment
 cd scratch2/NeuralNets-GenerativeExperiment-2
 cd scratch2/NeuralNets-GenerativeExperiment-3
@@ -51,8 +52,10 @@ export XDG_RUNTIME_DIR=/scratch1/scratch2/neil.delgallego/Visdom/
 saliksik.asti.dost.gov.ph:8097
 
 //CCS SERVER-JUPYTERHUB
-python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:0 --batch_size=512 --iteration=2 --edge_weight=10.0 --likeness_weight=50.0
-python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:1 --batch_size=512 --iteration=3 --edge_weight=10.0 --adv_weight=2.0
+python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:0 --batch_size=512 --iteration=2 --edge_weight=10.0 --likeness_weight=5.0
+python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:1 --batch_size=512 --iteration=3 --edge_weight=10.0
+python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:0 --batch_size=512 --iteration=4 --edge_weight=1.0 --likeness_weight=1.0
+python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:1 --batch_size=512 --iteration=5 --edge_weight=5.0 --adv_weight=2.0
 
 python "airlight_main.py" --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:0 --batch_size=16384 --iteration=2 --num_layers=6
 python "airlight_main.py" --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:1 --batch_size=16 --iteration=3 --num_layers=7

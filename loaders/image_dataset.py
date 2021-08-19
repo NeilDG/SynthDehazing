@@ -103,6 +103,64 @@ class DehazingDataset(data.Dataset):
     def __len__(self):
         return len(self.image_list_a)
 
+class EndToEndDehazingDataset(data.Dataset):
+    def __init__(self, image_list_a, clear_img_dir, crop_size, should_crop):
+        self.image_list_a = image_list_a
+        self.clear_img_dir = clear_img_dir
+        self.crop_size = crop_size
+        self.should_crop = should_crop
+        self.resize_shape = (256, 256)
+
+        self.initial_img_op = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize(self.resize_shape)
+        ])
+
+        self.final_transform_op = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __getitem__(self, idx):
+        img_id = self.image_list_a[idx]
+        path_segment = img_id.split("/")
+        file_name = path_segment[len(path_segment) - 1]
+
+        hazy_img = cv2.imread(img_id);
+        hazy_img = cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        hazy_img = cv2.resize(hazy_img, self.resize_shape)
+        hazy_img_uint = hazy_img
+        hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        img_id = self.clear_img_dir + file_name
+        clear_img = cv2.imread(img_id);
+        clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
+        clear_img = cv2.resize(clear_img, self.resize_shape)
+        clear_img_uint = clear_img
+        clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+        hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        hazy_img = self.initial_img_op(hazy_img)
+
+        clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        clear_img = self.initial_img_op(clear_img)
+
+        if(self.should_crop):
+            crop_indices = transforms.RandomCrop.get_params(hazy_img, output_size=self.crop_size)
+            i, j, h, w = crop_indices
+
+            hazy_img_uint = hazy_img_uint[i: i + h, j: j + w]
+            clear_img_uint = clear_img_uint[i: i + h, j: j + w]
+
+        hazy_img_tensor = self.final_transform_op(hazy_img_uint)
+        clear_img_tensor = self.final_transform_op(clear_img_uint)
+
+        return file_name, hazy_img_tensor, clear_img_tensor
+
+
+    def __len__(self):
+        return len(self.image_list_a)
+
 
 class DehazingDatasetTest(data.Dataset):
     def __init__(self, image_list_a):

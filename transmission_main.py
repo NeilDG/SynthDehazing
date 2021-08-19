@@ -7,6 +7,8 @@ Created on Sun Apr 19 13:22:06 2020
 """
 
 from __future__ import print_function
+
+import itertools
 import os
 import sys
 import logging
@@ -37,7 +39,7 @@ parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
 parser.add_option('--batch_size', type=int, help="batch_size", default="128")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0001")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n"
@@ -109,7 +111,7 @@ def main(argv):
     trainer = transmission_trainer.TransmissionTrainer(device, opts.batch_size, opts.is_t_unet, opts.t_num_blocks, opts.g_lr, opts.d_lr)
     trainer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
 
-    early_stopper_l1 = early_stopper.EarlyStopper(20, early_stopper.EarlyStopperMethod.L1_TYPE)
+    early_stopper_l1 = early_stopper.EarlyStopper(30, early_stopper.EarlyStopperMethod.L1_TYPE)
 
     start_epoch = 0
     iteration = 0
@@ -144,20 +146,24 @@ def main(argv):
 
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        for i, train_data in enumerate(train_loader, 0):
+        for i, (train_data, test_data) in enumerate(zip(train_loader, itertools.cycle(test_loaders[0]))):
             _, hazy_batch, transmission_batch, _ = train_data
             hazy_tensor = hazy_batch.to(device)
             transmission_tensor = transmission_batch.to(device).float()
 
             trainer.train(iteration, hazy_tensor, transmission_tensor)
-            trainsmission_like = trainer.test(hazy_tensor)
             iteration = iteration + 1
 
-            if (early_stopper_l1.test(epoch, trainsmission_like, transmission_tensor)):
+            _, hazy_batch, transmission_batch, _ = train_data
+            hazy_tensor = hazy_batch.to(device)
+            transmission_tensor = transmission_batch.to(device).float()
+            transmission_like = trainer.test(hazy_tensor)
+
+            if (early_stopper_l1.test(trainer, epoch, iteration, transmission_like, transmission_tensor)):
                 break
 
-            if ((i) % 300 == 0):
-                trainer.save_states(epoch, iteration)
+            if ((i) % 100 == 0):
+                #trainer.save_states(epoch, iteration)
                 trainer.visdom_report(iteration)
                 # trainer.visdom_infer_train(hazy_tensor, transmission_tensor, 0)
                 # for i in range(len(test_loaders)):
@@ -169,7 +175,7 @@ def main(argv):
                 #     if (index == 0):
                 #         test_loaders = [dataset_loader.load_dehaze_dataset_test_paired(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, opts.batch_size, opts.img_to_load)]
 
-        if (early_stopper_l1.test(epoch, trainsmission_like, transmission_tensor)):
+        if (early_stopper_l1.test(trainer, epoch, iteration, transmission_like, transmission_tensor)):
             break
 
 # FIX for broken pipe num_workers issue.

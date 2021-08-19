@@ -55,6 +55,12 @@ class FFATrainer:
         self.optimizerG.step()
         #what to put to losses dict for visdom reporting?
         self.losses_dict[constants.G_LOSS_KEY].append(clarity_loss.item())
+
+    def test(self, hazy_tensor):
+        with torch.no_grad():
+            clean_like = self.G(hazy_tensor)
+
+        return clean_like
     
     def visdom_report(self, iteration, hazy_tensor, clean_tensor, hazy_test, clean_test, vemon_tensor):
         with torch.no_grad():
@@ -75,18 +81,18 @@ class FFATrainer:
             self.visdom_reporter.plot_image(vemon_tensor, "Vemon Hazy Images")
             self.visdom_reporter.plot_image(vemon_clean, "Vemon Clean Images")
     
-    def load_saved_state(self, iteration, checkpoint, model_key, latent_key, optimizer_key):
+    def load_saved_state(self, iteration, checkpoint):
         self.iteration = iteration
-        self.G.load_state_dict(checkpoint[model_key])
-        self.optimizerG.load_state_dict(checkpoint[optimizer_key])
+        self.G.load_state_dict(checkpoint[constants.GENERATOR_KEY])
+        self.optimizerG.load_state_dict(checkpoint[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY])
     
-    def save_states(self, epoch, iteration, path, model_key, latent_key, optimizer_key):
+    def save_states(self, epoch, iteration):
         save_dict = {'epoch': epoch, 'iteration': iteration}
         netGA_state_dict = self.G.state_dict()
         optimizerG_state_dict = self.optimizerG.state_dict()
 
-        save_dict[model_key] = netGA_state_dict
-        save_dict[optimizer_key] = optimizerG_state_dict
+        save_dict[constants.GENERATOR_KEY] = netGA_state_dict
+        save_dict[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY] = optimizerG_state_dict
 
-        torch.save(save_dict, path)
+        torch.save(save_dict, constants.END_TO_END_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))

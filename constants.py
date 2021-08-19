@@ -12,6 +12,12 @@ DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
 
+DATASET_CLEAN_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/clean/"
+DATASET_HAZY_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/hazy/"
+
+DATASET_CLEAN_END_TO_END_PATH_TEST = "E:/Synth Hazy - End-to-End - Test/clean/"
+DATASET_HAZY_END_TO_END_PATH_TEST = "E:/Synth Hazy - End-to-End - Test/hazy/"
+
 DATASET_ALBEDO_PATH_PATCH_3 = "E:/Synth Hazy 3 - Patch/albedo/"
 DATASET_ALBEDO_PATH_PSEUDO_PATCH_3 = "E:/Synth Hazy 3 - Patch/albedo - pseudo/"
 DATASET_CLEAN_PATH_PATCH_3 = "E:/Synth Hazy 3 - Patch/clean/"
@@ -57,9 +63,11 @@ TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.10"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
 AIRLIGHT_VERSION = "airlight_estimator_v1.09"
 DEHAZER_VERSION = "dehazer_v2.09"
+END_TO_END_DEHAZER_VERSION = "end_to_end_dehazer_v1.00"
 
 ITERATION = "1"
 
+END_TO_END_CHECKPATH = 'checkpoint/' + END_TO_END_DEHAZER_VERSION + "_" + ITERATION + '.pt'
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
 COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
 TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + TRANSMISSION_VERSION + "_" + ITERATION + '.pt'
