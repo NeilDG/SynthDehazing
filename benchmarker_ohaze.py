@@ -598,8 +598,17 @@ def main():
     # produce_ohaze("transmission_albedo_estimator_v1.10_4", "airlight_estimator_v1.08_1")
     # benchmark_ohaze("transmission_albedo_estimator_v1.10_4", "airlight_estimator_v1.08_1")
 
-    produce_ohaze("transmission_albedo_estimator_v1.10_5", "airlight_estimator_v1.08_1")
-    benchmark_ohaze("transmission_albedo_estimator_v1.10_5", "airlight_estimator_v1.08_1")
+    produce_ohaze("transmission_albedo_estimator_v1.11_2", "airlight_estimator_v1.10_2")
+    benchmark_ohaze("transmission_albedo_estimator_v1.11_2", "airlight_estimator_v1.10_2")
+
+    produce_ohaze("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3")
+    benchmark_ohaze("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3")
+
+    produce_ohaze("transmission_albedo_estimator_v1.11_4", "airlight_estimator_v1.10_4")
+    benchmark_ohaze("transmission_albedo_estimator_v1.11_4", "airlight_estimator_v1.10_4")
+
+    produce_ohaze("transmission_albedo_estimator_v1.11_5", "airlight_estimator_v1.10_5")
+    benchmark_ohaze("transmission_albedo_estimator_v1.11_5", "airlight_estimator_v1.10_5")
 
     # produce_ohaze_end_to_end("end_to_end_dehazer_v1.00_1")
     # benchmark_ohaze("end_to_end_dehazer_v1.00_1", "")

@@ -35,26 +35,31 @@ parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
 parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
 parser.add_option('--batch_size', type=int, help="batch_size", default="128")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0001")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
+parser.add_option('--t_min', type=float, help="", default="0.1")
+parser.add_option('--t_max', type=float, help="", default="1.2")
+parser.add_option('--a_min', type=float, help="", default="0.1")
+parser.add_option('--a_max', type=float, help="", default="0.95")
+parser.add_option('--style_transfer_enabled', type=int, help="", default="1")
+parser.add_option('--unlit_enabled', type=int, help="", default="1")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n"
-                                                                                     "Using BCE-discriminator loss. 10 blocks. \n"
-                                                                                     "32 x 32 patch size1")
+                                                                                     "32 x 32 patch size\n")
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE
 def update_config(opts):
     constants.server_config = opts.server_config
+    constants.ITERATION = str(opts.iteration)
+    constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
 
     if (constants.server_config == 1):
-        constants.ITERATION = str(opts.iteration)
         constants.num_workers = opts.num_workers
-        constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
 
         print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
 
@@ -68,10 +73,8 @@ def update_config(opts):
         constants.DATASET_STANDARD_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
     elif (constants.server_config == 2):
-        constants.ITERATION = str(opts.iteration)
         constants.num_workers = opts.num_workers
         constants.ALBEDO_CHECKPT = opts.albedo_checkpt
-        constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
 
         print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
 
@@ -97,6 +100,7 @@ def show_images(img_tensor, caption):
 def main(argv):
     (opts, args) = parser.parse_args(argv)
     update_config(opts)
+    print(opts)
     print("=====================BEGIN============================")
     print("Server config? %d Has GPU available? %d Count: %d" % (constants.server_config, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
@@ -111,7 +115,7 @@ def main(argv):
     trainer = transmission_trainer.TransmissionTrainer(device, opts.batch_size, opts.is_t_unet, opts.t_num_blocks, opts.g_lr, opts.d_lr)
     trainer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
 
-    early_stopper_l1 = early_stopper.EarlyStopper(0, early_stopper.EarlyStopperMethod.L1_TYPE)
+    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE)
 
     start_epoch = 0
     iteration = 0
@@ -126,9 +130,12 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
-    test_loaders = [dataset_loader.load_dehaze_dataset_test_paired(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, opts.batch_size, opts.img_to_load)]
-    index = 0
+    if(opts.style_transfer_enabled == 1):
+        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, opts.num_workers)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, 2)
+    else:
+        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, opts.num_workers)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, 2)
 
     # Plot some training images
     if (constants.server_config == 0):
@@ -146,15 +153,15 @@ def main(argv):
 
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        for i, (train_data, test_data) in enumerate(zip(train_loader, itertools.cycle(test_loaders[0]))):
+        for i, (train_data, test_data) in enumerate(zip(train_loader, test_loader)):
             _, hazy_batch, transmission_batch, _ = train_data
             hazy_tensor = hazy_batch.to(device)
             transmission_tensor = transmission_batch.to(device).float()
 
-            trainer.train(iteration, hazy_tensor, transmission_tensor)
+            trainer.train(iteration, hazy_tensor, transmission_tensor, opts.unlit_enabled)
             iteration = iteration + 1
 
-            _, hazy_batch, transmission_batch, _ = train_data
+            _, hazy_batch, transmission_batch, _ = test_data
             hazy_tensor = hazy_batch.to(device)
             transmission_tensor = transmission_batch.to(device).float()
             transmission_like = trainer.test(hazy_tensor)
@@ -163,7 +170,7 @@ def main(argv):
                 break
 
             if ((i) % 100 == 0):
-                #trainer.save_states(epoch, iteration)
+                trainer.save_states_unstable(epoch, iteration)
                 trainer.visdom_report(iteration)
                 # trainer.visdom_infer_train(hazy_tensor, transmission_tensor, 0)
                 # for i in range(len(test_loaders)):

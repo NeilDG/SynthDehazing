@@ -59,9 +59,9 @@ DISCRIMINATOR_KEY = "discriminator"
 LATENT_VECTOR_KEY = "latent_vector"
 
 COLOR_TRANSFER_VERSION = "albedo_transfer_v1.04"
-TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.10"
+TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.11"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
-AIRLIGHT_VERSION = "airlight_estimator_v1.09"
+AIRLIGHT_VERSION = "airlight_estimator_v1.10"
 DEHAZER_VERSION = "dehazer_v2.09"
 END_TO_END_DEHAZER_VERSION = "end_to_end_dehazer_v1.00"
 

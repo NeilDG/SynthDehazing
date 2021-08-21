@@ -584,8 +584,20 @@ def main():
     # produce_ihaze("transmission_albedo_estimator_v1.10_4", "airlight_estimator_v1.08_1")
     # benchmark_ihaze("transmission_albedo_estimator_v1.10_4", "airlight_estimator_v1.08_1")
 
-    produce_ihaze("transmission_albedo_estimator_v1.10_5", "airlight_estimator_v1.08_1")
-    benchmark_ihaze("transmission_albedo_estimator_v1.10_5", "airlight_estimator_v1.08_1")
+    # produce_ihaze("transmission_albedo_estimator_v1.10_5", "airlight_estimator_v1.08_1")
+    # benchmark_ihaze("transmission_albedo_estimator_v1.10_5", "airlight_estimator_v1.08_1")
+
+    produce_ihaze("transmission_albedo_estimator_v1.11_2", "airlight_estimator_v1.10_2")
+    benchmark_ihaze("transmission_albedo_estimator_v1.11_2", "airlight_estimator_v1.10_2")
+
+    produce_ihaze("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3")
+    benchmark_ihaze("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3")
+
+    produce_ihaze("transmission_albedo_estimator_v1.11_4", "airlight_estimator_v1.10_4")
+    benchmark_ihaze("transmission_albedo_estimator_v1.11_4", "airlight_estimator_v1.10_4")
+
+    produce_ihaze("transmission_albedo_estimator_v1.11_5", "airlight_estimator_v1.10_5")
+    benchmark_ihaze("transmission_albedo_estimator_v1.11_5", "airlight_estimator_v1.10_5")
 
     #CHECKPT_NAME = "dehazer_v2.07_3"
     #produce_ihaze(CHECKPT_NAME, "airlight_estimator_v1.08_1")

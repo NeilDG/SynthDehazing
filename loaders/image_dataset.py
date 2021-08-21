@@ -19,7 +19,18 @@ from utils import dehazing_proper
 import kornia
 
 class DehazingDataset(data.Dataset):
-    def __init__(self, image_list_a, depth_dir, crop_size, should_crop, return_ground_truth):
+    TRANSMISSION_MIN = 0.7
+    TRANSMISSION_MAX = 0.95
+    ATMOSPHERE_MIN = 0.3
+    ATMOSPHERE_MAX = 0.95
+
+    def __init__(self, image_list_a, depth_dir, crop_size, should_crop, return_ground_truth, opts):
+        self.TRANSMISSION_MIN = opts.t_min
+        self.TRANSMISSION_MAX = opts.t_max
+        self.ATMOSPHERE_MIN = opts.a_min
+        self.ATMOSPHERE_MAX = opts.a_max
+
+        print("Set dataset values: ", self.TRANSMISSION_MIN, self.TRANSMISSION_MAX, self.ATMOSPHERE_MIN, self.ATMOSPHERE_MAX)
         self.image_list_a = image_list_a
         self.depth_dir = depth_dir
         self.crop_size = crop_size
@@ -58,14 +69,12 @@ class DehazingDataset(data.Dataset):
         transmission_img = cv2.cvtColor(transmission_img, cv2.COLOR_BGR2GRAY)
         transmission_img = cv2.resize(transmission_img, np.shape(clear_img[:, :, 0]))
         transmission_img = cv2.normalize(transmission_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.uniform(0.7, 0.95)) #also include clear samples
-        #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(1.25, 0.75))
-        #T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.normal(0.625, 0.55))
+        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.uniform(DehazingDataset.TRANSMISSION_MIN, DehazingDataset.TRANSMISSION_MAX)) #also include clear samples
 
         #formulate hazy img
         atmosphere = [0.0, 0.0, 0.0]
         spread = 0.125
-        atmosphere[0] = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
+        atmosphere[0] = np.random.uniform(DehazingDataset.ATMOSPHERE_MIN, DehazingDataset.ATMOSPHERE_MAX)
         atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
         atmosphere[2] = np.random.normal(atmosphere[0], spread)
 
@@ -233,20 +242,26 @@ class DehazingDatasetPaired(data.Dataset):
         return len(self.image_list_a)
 
 class AirlightDataset(data.Dataset):
-    ATMOSPHERE_MIN = 0.3
-    ATMOSPHERE_MAX = 0.95
+    # ATMOSPHERE_MIN = 0.3
+    # ATMOSPHERE_MAX = 0.95
     #ATMOSPHERE_MIN = 0.35
     #ATMOSPHERE_MAX = 1.0
 
-    @staticmethod
-    def atmosphere_mean():
-        return (AirlightDataset.ATMOSPHERE_MIN + AirlightDataset.ATMOSPHERE_MAX) / 2.0;
+    # @staticmethod
+    # def atmosphere_mean():
+    #     return (AirlightDataset.ATMOSPHERE_MIN + AirlightDataset.ATMOSPHERE_MAX) / 2.0;
+    #
+    # @staticmethod
+    # def atmosphere_std():
+    #     return math.sqrt(pow(AirlightDataset.ATMOSPHERE_MAX - AirlightDataset.ATMOSPHERE_MIN, 2) / 12)
 
-    @staticmethod
-    def atmosphere_std():
-        return math.sqrt(pow(AirlightDataset.ATMOSPHERE_MAX - AirlightDataset.ATMOSPHERE_MIN, 2) / 12)
+    def __init__(self, image_list_a, depth_dir, crop_size, should_crop, return_ground_truth, opts):
+        self.TRANSMISSION_MIN = opts.t_min
+        self.TRANSMISSION_MAX = opts.t_max
+        self.ATMOSPHERE_MIN = opts.a_min
+        self.ATMOSPHERE_MAX = opts.a_max
 
-    def __init__(self, image_list_a, depth_dir, crop_size, should_crop, return_ground_truth):
+        print("Set airlight dataset values: ", self.TRANSMISSION_MIN, self.TRANSMISSION_MAX, self.ATMOSPHERE_MIN, self.ATMOSPHERE_MAX)
         self.image_list_a = image_list_a
         self.depth_dir = depth_dir
         self.crop_size = crop_size
@@ -286,12 +301,12 @@ class AirlightDataset(data.Dataset):
         transmission_img = cv2.cvtColor(transmission_img, cv2.COLOR_BGR2GRAY)
         transmission_img = cv2.resize(transmission_img, np.shape(clear_img[:, :, 0]))
         transmission_img = cv2.normalize(transmission_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.uniform(0.7, 0.95))  # also include clear samples
+        T = dehazing_proper.generate_transmission(1 - transmission_img, np.random.uniform(self.TRANSMISSION_MIN, self.TRANSMISSION_MAX))  # also include clear samples
 
         # formulate hazy img
         atmosphere = [0.0, 0.0, 0.0]
         spread = 0.125
-        atmosphere[0] = np.random.uniform(AirlightDataset.ATMOSPHERE_MIN, AirlightDataset.ATMOSPHERE_MAX)
+        atmosphere[0] = np.random.uniform(self.ATMOSPHERE_MIN, self.ATMOSPHERE_MAX)
         atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
         atmosphere[2] = np.random.normal(atmosphere[0], spread)
 

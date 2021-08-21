@@ -101,10 +101,14 @@ class TransmissionTrainer:
 
         return loss(pred_grad, target_grad)
 
-    def train(self, iteration, hazy_tensor, transmission_tensor):
+    def train(self, iteration, hazy_tensor, transmission_tensor, unlit_enabled = 1):
         with amp.autocast():
-            albedo_tensor = self.albedo_G(hazy_tensor)
-            depth_like = self.G_T(albedo_tensor)
+            if(unlit_enabled == 1):
+                albedo_tensor = self.albedo_G(hazy_tensor)
+                depth_like = self.G_T(albedo_tensor)
+            else:
+                print("Unlit disabled")
+                depth_like = self.G_T(hazy_tensor)
 
             self.D_T.train()
             self.optimizerD.zero_grad()
@@ -148,10 +152,13 @@ class TransmissionTrainer:
             self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
             self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
 
-    def test(self, hazy_tensor):
+    def test(self, hazy_tensor, unlit_enabled = 1):
         with torch.no_grad():
-            albedo_tensor = self.albedo_G(hazy_tensor)
-            transmission_like = self.G_T(albedo_tensor)
+            if (unlit_enabled == 1):
+                albedo_tensor = self.albedo_G(hazy_tensor)
+                transmission_like = self.G_T(albedo_tensor)
+            else:
+                transmission_like = self.G_T(hazy_tensor)
 
             return transmission_like
     
@@ -204,6 +211,29 @@ class TransmissionTrainer:
 
         torch.save(save_dict, constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
+
+    def save_states_unstable(self, epoch, iteration):
+        save_dict = {'epoch': epoch, 'iteration': iteration}
+        netGA_state_dict = self.G_T.state_dict()
+        netDA_state_dict = self.D_T.state_dict()
+
+        optimizerG_state_dict = self.optimizerG.state_dict()
+        optimizerD_state_dict = self.optimizerD.state_dict()
+
+        schedulerG_state_dict = self.schedulerG.state_dict()
+        schedulerD_state_dict = self.schedulerD.state_dict()
+
+        save_dict[constants.GENERATOR_KEY + "T"] = netGA_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "T"] = netDA_state_dict
+
+        save_dict[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY] = optimizerG_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY] = optimizerD_state_dict
+
+        save_dict[constants.GENERATOR_KEY + "scheduler"] = schedulerG_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "scheduler"] = schedulerD_state_dict
+
+        torch.save(save_dict, constants.TRANSMISSION_ESTIMATOR_CHECKPATH + ".checkpt")
+        print("Saved checkpt: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
 
         # #clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training
         # if(epoch % 5 == 0):

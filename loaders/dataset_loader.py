@@ -74,14 +74,14 @@ def load_test_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1):
 
     return data_loader
 
-def load_dehazing_dataset(path_a, path_b, return_ground_truth = False, batch_size=8, num_image_to_load=-1):
+def load_dehazing_dataset(path_a, path_b, opts, return_ground_truth = False, batch_size=8, num_image_to_load=-1, num_workers = 12):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
     print("Length of training transmission dataset: %d" % (len(a_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.DehazingDataset(a_list, path_b, (32, 32), True, return_ground_truth),
+        image_dataset.DehazingDataset(a_list, path_b, (32, 32), True, return_ground_truth, opts),
         batch_size=batch_size,
-        num_workers=constants.num_workers,
+        num_workers=num_workers,
         shuffle=True
     )
     return data_loader
@@ -207,12 +207,12 @@ def load_color_albedo_test_dataset(path_a, path_c, depth_dir, batch_size=8, num_
 
     return data_loader
 
-def load_airlight_dataset_train(path_a, path_b, return_ground_truth = False, batch_size=8, num_image_to_load=-1):
+def load_airlight_dataset_train(path_a, path_b, opts, return_ground_truth = False, batch_size=8, num_image_to_load=-1):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)
     print("Length of training airlight dataset: %d" % (len(a_list)))
 
     data_loader = torch.utils.data.DataLoader(
-        image_dataset.AirlightDataset(a_list, path_b, (32, 32), True, return_ground_truth),
+        image_dataset.AirlightDataset(a_list, path_b, (32, 32), True, return_ground_truth, opts),
         batch_size=batch_size,
         num_workers=6,
         shuffle=True
