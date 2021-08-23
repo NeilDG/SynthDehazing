@@ -35,7 +35,6 @@ parser.add_option('--gen_blocks', type=int, help="Weight", default="19")
 parser.add_option('--batch_size', type=int, help="batch_size", default="64")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
-
 #--img_to_load=-1 --load_previous=0
 #Update config if on COARE
 def update_config(opts):

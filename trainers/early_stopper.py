@@ -12,9 +12,9 @@ class EarlyStopperMethod(Enum):
     PSNR_TYPE = 2,
 
 class EarlyStopper():
-    def __init__(self, min_epochs, early_stopper_method):
+    def __init__(self, min_epochs, early_stopper_method, early_stop_tolerance):
         self.min_epochs = min_epochs
-        self.early_stop_tolerance = 2000
+        self.early_stop_tolerance = early_stop_tolerance
         self.stop_counter = 0
         self.last_metric = 10000.0
         self.stop_condition_met = False

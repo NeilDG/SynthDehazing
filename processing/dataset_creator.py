@@ -472,13 +472,22 @@ def main():
     # create_img_from_video_data(PATH_A, SAVE_PATH_A, 0)
     # create_img_from_video_data(PATH_B, SAVE_PATH_B, 0)
 
+    PATH_A = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/clean_003.mp4"
+    SAVE_PATH_A = constants.DATASET_CLEAN_LOW_PATH
+
+    PATH_B = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/depth_003.mp4"
+    SAVE_PATH_B = constants.DATASET_DEPTH_LOW_PATH
+
+    create_img_from_video_data(PATH_A, SAVE_PATH_A, 0)
+    create_img_from_video_data(PATH_B, SAVE_PATH_B, 0)
+
     PATH_A = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/hazy_002.mp4"
     SAVE_PATH_A = constants.DATASET_HAZY_END_TO_END_PATH_TEST
 
     PATH_B = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/clean_002.mp4"
     SAVE_PATH_B = constants.DATASET_CLEAN_END_TO_END_PATH_TEST
 
-    #create_img_from_video_data(PATH_A, SAVE_PATH_A, 0)
+    create_img_from_video_data(PATH_A, SAVE_PATH_A, 0)
     create_img_from_video_data(PATH_B, SAVE_PATH_B, 0)
 
     #create_hazy_data(0)

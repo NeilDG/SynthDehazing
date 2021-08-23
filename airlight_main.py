@@ -73,8 +73,8 @@ def update_config(opts):
 
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
-        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3
-        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = constants.DATASET_DEPTH_PATH_COMPLETE_3
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "Synth Hazy - Test Set/clean/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = "Synth Hazy - Test Set/depth/"
 
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/hazy/"
         constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/GT/"
@@ -104,17 +104,17 @@ def main(argv):
     manualSeed = random.randint(1, 10000)  # use if you want new results
     random.seed(manualSeed)
     torch.manual_seed(manualSeed)
-
+    #
     device = torch.device(opts.cuda_device if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
     airlight_term_trainer = airlight_trainer.AirlightTrainer(device, opts.batch_size, opts.num_layers, opts.d_lr)
     airlight_term_trainer.update_penalties(1.0, opts.comments)
 
-    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE)
+    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 10)
 
     start_epoch = 0
-    iteration = 0
+    # iteration = 0
 
     if (opts.load_previous):
         checkpoint = torch.load(constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
@@ -128,10 +128,10 @@ def main(argv):
     # Create the dataloader
     if (opts.style_transfer_enabled == 1):
         train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load)
-        test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load)
+        test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, opts.batch_size, opts.img_to_load)
     else:
         train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load)
-        test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load)
+        test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, opts.batch_size, opts.img_to_load)
 
     # Plot some training images
     if (constants.server_config == 0):
@@ -163,7 +163,7 @@ def main(argv):
 
             if ((i) % 5 == 0):
                 airlight_term_trainer.save_states_unstable(epoch, iteration)
-                airlight_term_trainer.visdom_report(iteration, rgb_tensor)
+                # airlight_term_trainer.visdom_report(iteration, rgb_tensor)
 
         if (early_stopper_l1.test(airlight_term_trainer, epoch, iteration, airlight_like, light_tensor)):
             break

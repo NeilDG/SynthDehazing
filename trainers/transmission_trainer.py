@@ -107,7 +107,7 @@ class TransmissionTrainer:
                 albedo_tensor = self.albedo_G(hazy_tensor)
                 depth_like = self.G_T(albedo_tensor)
             else:
-                print("Unlit disabled")
+                #print("Unlit disabled")
                 depth_like = self.G_T(hazy_tensor)
 
             self.D_T.train()

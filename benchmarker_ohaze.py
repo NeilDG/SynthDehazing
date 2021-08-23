@@ -94,7 +94,7 @@ def measure_performance(INPUT_PATH, GT_PATH):
     print("[Ours] SSIM of ", img_name, " : ", SSIM)
 
 
-def produce_ohaze(T_CHECKPT_NAME, A_ESTIMATOR_NAME):
+def produce_ohaze(T_CHECKPT_NAME, A_ESTIMATOR_NAME, use_unlit):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/O-HAZE/hazy/"
     SAVE_PATH = "results/Ours - Results - O-Haze/"
     SAVE_TRANSMISSION_PATH = "results/Ours - Results - O-Haze/Transmission/"
@@ -117,7 +117,7 @@ def produce_ohaze(T_CHECKPT_NAME, A_ESTIMATOR_NAME):
 
             #clear_img = model_dehazer.perform_dehazing_direct_v2(hazy_img)
             #clear_img = model_dehazer.perform_dehazing_direct_v3(hazy_img, 0.8)
-            clear_img, T_tensor, A_tensor = model_dehazer.perform_dehazing_direct_v4(hazy_img, 0.0)
+            clear_img, T_tensor, A_tensor = model_dehazer.perform_dehazing_direct_v4(hazy_img, 0.0, use_unlit)
             clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
             cv2.imwrite(SAVE_PATH + img_name + ".png", clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
 
@@ -589,26 +589,29 @@ def main():
     # benchmark_ohaze("transmission_albedo_estimator_v1.10_1", "airlight_estimator_v1.08_1")
     # output_best_worst("transmission_albedo_estimator_v1.10_1", "airlight_estimator_v1.08_1", 0.88, 0.77)
 
-    # produce_ohaze("transmission_albedo_estimator_v1.10_2", "airlight_estimator_v1.08_1")
-    # benchmark_ohaze("transmission_albedo_estimator_v1.10_2", "airlight_estimator_v1.08_1")
-    #
-    # produce_ohaze("transmission_albedo_estimator_v1.10_3", "airlight_estimator_v1.08_1")
-    # benchmark_ohaze("transmission_albedo_estimator_v1.10_3", "airlight_estimator_v1.08_1")
-    #
-    # produce_ohaze("transmission_albedo_estimator_v1.10_4", "airlight_estimator_v1.08_1")
-    # benchmark_ohaze("transmission_albedo_estimator_v1.10_4", "airlight_estimator_v1.08_1")
-
-    produce_ohaze("transmission_albedo_estimator_v1.11_2", "airlight_estimator_v1.10_2")
-    benchmark_ohaze("transmission_albedo_estimator_v1.11_2", "airlight_estimator_v1.10_2")
-
-    produce_ohaze("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3")
+    produce_ohaze("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3", True)
     benchmark_ohaze("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3")
 
-    produce_ohaze("transmission_albedo_estimator_v1.11_4", "airlight_estimator_v1.10_4")
+    produce_ohaze("transmission_albedo_estimator_v1.11_4", "airlight_estimator_v1.10_4", True)
     benchmark_ohaze("transmission_albedo_estimator_v1.11_4", "airlight_estimator_v1.10_4")
 
-    produce_ohaze("transmission_albedo_estimator_v1.11_5", "airlight_estimator_v1.10_5")
+    produce_ohaze("transmission_albedo_estimator_v1.11_5", "airlight_estimator_v1.10_5", True)
     benchmark_ohaze("transmission_albedo_estimator_v1.11_5", "airlight_estimator_v1.10_5")
+
+    produce_ohaze("transmission_albedo_estimator_v1.11_6", "airlight_estimator_v1.10_6", True)
+    benchmark_ohaze("transmission_albedo_estimator_v1.11_6", "airlight_estimator_v1.10_6")
+
+    produce_ohaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_7", True)
+    benchmark_ohaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_3")
+
+    produce_ohaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_7", True)
+    benchmark_ohaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_3")
+    #
+    # produce_ohaze("transmission_albedo_estimator_v1.11_97 - style_disabled", "airlight_estimator_v1.10_97 - style_disabled", True)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.11_97 - style_disabled", "airlight_estimator_v1.10_97 - style_disabled")
+
+    # produce_ohaze("transmission_albedo_estimator_v1.11_98 - unlit_disabled", "airlight_estimator_v1.10_98 - unlit_disabled", False)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.11_98 - unlit_disabled", "airlight_estimator_v1.10_98 - unlit_disabled")
 
     # produce_ohaze_end_to_end("end_to_end_dehazer_v1.00_1")
     # benchmark_ohaze("end_to_end_dehazer_v1.00_1", "")

@@ -38,7 +38,7 @@ parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0"
 parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
 parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
-parser.add_option('--batch_size', type=int, help="batch_size", default="128")
+parser.add_option('--batch_size', type=int, help="batch_size", default="256")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0001")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
@@ -80,6 +80,8 @@ def update_config(opts):
 
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "Synth Hazy - Test Set/clean/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = "Synth Hazy - Test Set/depth/"
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/hazy/"
         constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/GT/"
         constants.DATASET_STANDARD_PATH_COMPLETE = "Hazy Dataset Benchmark/Standard/"
@@ -115,7 +117,7 @@ def main(argv):
     trainer = transmission_trainer.TransmissionTrainer(device, opts.batch_size, opts.is_t_unet, opts.t_num_blocks, opts.g_lr, opts.d_lr)
     trainer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
 
-    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE)
+    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 2000)
 
     start_epoch = 0
     iteration = 0
@@ -132,10 +134,10 @@ def main(argv):
     # Create the dataloader
     if(opts.style_transfer_enabled == 1):
         train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, opts.num_workers)
-        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, 2)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, opts.batch_size, opts.img_to_load, 2)
     else:
         train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, opts.num_workers)
-        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, 2)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, opts.batch_size, opts.img_to_load, 2)
 
     # Plot some training images
     if (constants.server_config == 0):
@@ -171,7 +173,7 @@ def main(argv):
 
             if ((i) % 100 == 0):
                 trainer.save_states_unstable(epoch, iteration)
-                trainer.visdom_report(iteration)
+                # trainer.visdom_report(iteration)
                 # trainer.visdom_infer_train(hazy_tensor, transmission_tensor, 0)
                 # for i in range(len(test_loaders)):
                 #     _, rgb_batch, _ = next(iter(test_loaders[i]))
