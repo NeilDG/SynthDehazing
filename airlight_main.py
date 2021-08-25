@@ -114,7 +114,7 @@ def main(argv):
     early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 10)
 
     start_epoch = 0
-    # iteration = 0
+    iteration = 0
 
     if (opts.load_previous):
         checkpoint = torch.load(constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
@@ -155,11 +155,10 @@ def main(argv):
             rgb_tensor = rgb_batch.to(device).float()
             light_tensor = atmosphere_light.to(device).float()
             airlight_like = airlight_term_trainer.test(rgb_tensor, light_tensor)
+            iteration = iteration + 1
 
             if (early_stopper_l1.test(airlight_term_trainer, epoch, iteration, airlight_like, light_tensor)):
                 break
-
-            iteration = iteration + 1
 
             if ((i) % 5 == 0):
                 airlight_term_trainer.save_states_unstable(epoch, iteration)

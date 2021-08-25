@@ -575,28 +575,14 @@ def produce_ihaze_end_to_end(CHECKPT_NAME):
             print("Saved: " + SAVE_PATH + img_name)
 
 def main():
-    produce_ihaze("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3")
-
-    produce_ihaze("transmission_albedo_estimator_v1.11_4", "airlight_estimator_v1.10_4", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.11_4", "airlight_estimator_v1.10_4")
-
-    produce_ihaze("transmission_albedo_estimator_v1.11_5", "airlight_estimator_v1.10_5", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.11_5", "airlight_estimator_v1.10_5")
-
-    produce_ihaze("transmission_albedo_estimator_v1.11_6", "airlight_estimator_v1.10_6", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.11_6", "airlight_estimator_v1.10_6")
-
     produce_ihaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_7", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_3")
+    benchmark_ihaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_7")
 
-    produce_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_7", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_3")
+    produce_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_8", True)
+    benchmark_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_8")
 
-    # produce_ihaze("transmission_albedo_estimator_v1.11_98 - unlit_disabled", "airlight_estimator_v1.10_98 - unlit_disabled", False)
-    # benchmark_ihaze("transmission_albedo_estimator_v1.11_98 - unlit_disabled", "airlight_estimator_v1.10_98 - unlit_disabled")
-
-
+    produce_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9", True)
+    benchmark_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9")
 
 # FIX for broken pipe num_workers issue.
 if __name__ == "__main__":
