@@ -39,7 +39,7 @@ parser.add_option('--t_min', type=float, help="", default="0.1")
 parser.add_option('--t_max', type=float, help="", default="1.2")
 parser.add_option('--a_min', type=float, help="", default="0.1")
 parser.add_option('--a_max', type=float, help="", default="0.95")
-parser.add_option('--batch_size', type=int, help="batch_size", default="256")
+parser.add_option('--batch_size', type=int, help="batch_size", default="4")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Vanilla CycleGAN.")
 
@@ -107,32 +107,31 @@ def main(argv):
         show_images(noisy_batch, "Training - A Images")
         show_images(clean_batch, "Training - B Images")
     
-    # print("Starting Training Loop...")
-    # for epoch in range(start_epoch, constants.num_epochs):
-    #     # For each batch in the dataloader
-    #     for i, train_data in enumerate(train_loader, 0):
-    #         _, dirty_batch, clean_batch = train_data
-    #         dirty_tensor = dirty_batch.to(device)
-    #         clean_tensor = clean_batch.to(device)
-    #
-    #         gt.train(dirty_tensor, clean_tensor)
-    #         if(i % 100 == 0):
-    #             view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader_1))
-    #             view_dirty_batch = view_dirty_batch.to(device)
-    #             view_clean_batch = view_clean_batch.to(device)
-    #             gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
-    #
-    #             view_batch, view_dirty_batch, _ = next(iter(test_loader_2))
-    #             view_dirty_batch = view_dirty_batch.to(device)
-    #             gt.visdom_infer(view_dirty_batch, "O-Haze Hazy", "O-Haze Albedo")
-    #
-    #             iteration = iteration + 1
-    #             index = (index + 1) % len(test_loader_1)
-    #             if(index == 0):
-    #                 test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, 500)
-    #                 test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, None, constants.batch_size, 500)
-    #
-    #             gt.save_states(epoch, iteration)
+    print("Starting Training Loop...")
+    for epoch in range(start_epoch, constants.num_epochs):
+        # For each batch in the dataloader
+        for i, train_data in enumerate(train_loader, 0):
+            _, dirty_batch, clean_batch = train_data
+            dirty_tensor = dirty_batch.to(device)
+            clean_tensor = clean_batch.to(device)
+
+            gt.train(dirty_tensor, clean_tensor)
+            if(i % 100 == 0):
+                gt.save_states(epoch, iteration)
+                # view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader_1))
+                # view_dirty_batch = view_dirty_batch.to(device)
+                # view_clean_batch = view_clean_batch.to(device)
+                # gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
+                #
+                # view_batch, view_dirty_batch, _ = next(iter(test_loader_2))
+                # view_dirty_batch = view_dirty_batch.to(device)
+                # gt.visdom_infer(view_dirty_batch, "O-Haze Hazy", "O-Haze Albedo")
+                #
+                # iteration = iteration + 1
+                # index = (index + 1) % len(test_loader_1)
+                # if(index == 0):
+                #     test_loader_1 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, constants.batch_size, 500)
+                #     test_loader_2 = dataset_loader.load_color_albedo_test_dataset(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_ALBEDO_PATH_COMPLETE_3, None, constants.batch_size, 500)
 
 #FIX for broken pipe num_workers issue.
 if __name__=="__main__": 

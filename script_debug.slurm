@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J END_DB
+#SBATCH -J CYCLE_DB
 #SBATCH --partition=debug
 #SBATCH --qos=240c-1h_debug
 #SBATCH --ntasks=1
@@ -7,7 +7,7 @@
 #SBATCH --mail-user=neil.delgallego@dlsu.edu.ph
 #SBATCH --mail-type=END
 
-ITERATION=99
+ITERATION=2
 
 echo "CUDA_DEVICE=/dev/nvidia/$CUDA_VISIBLE_DEVICES"
 nvidia-smi
@@ -18,12 +18,11 @@ module load cuda/10.1_cudnn-7.6.5
 
 source activate NeilGAN_V2
 
-srun python end_to_end_dehaze_main.py \
+srun python cyclegan_main.py \
 --iteration=$ITERATION \
 --server_config=1 \
 --num_workers=6 \
---gen_blocks=4
 --batch_size=512 \
---img_to_load=-1 --load_previous=1
+--img_to_load=-1 --load_previous=0
 
 conda deactivate
