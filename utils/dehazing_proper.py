@@ -9,7 +9,7 @@ import cv2
 from model import dehaze_discriminator as dh
 from model import vanilla_cycle_gan as cg
 from model import unet_gan as un
-from model import ffa_net as ffa_gan
+from model import ffa_net as ffa
 import math
 from utils import pytorch_colors
 from itertools import combinations_with_replacement
@@ -217,206 +217,120 @@ class ModelDehazer():
         self.albedo_models = {}
         self.transmission_models = {}
         self.atmosphere_models = {}
+        self.end_to_end_models = {}
 
         #add models
         checkpt = torch.load("checkpoint/albedo_transfer_v1.04_1.pt")
-        self.albedo_models["albedo_transfer_v1.04_1"] = ffa_gan.FFA(gps=3, blocks=18).to(self.gpu_device)
+        self.albedo_models["albedo_transfer_v1.04_1"] = ffa.FFA(gps=3, blocks=18).to(self.gpu_device)
         self.albedo_models["albedo_transfer_v1.04_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.06_4.pt")
-        self.transmission_models["transmission_albedo_estimator_v1.06_4"] = cg.GeneratorNoDropOut(input_nc=3, output_nc=1, n_residual_blocks=8).to(self.gpu_device)
-        self.transmission_models["transmission_albedo_estimator_v1.06_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.10_1.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.10_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.10_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        # checkpt = torch.load("checkpoint/dehazer_v2.07_1.pt")
-        # self.transmission_models["dehazer_v2.07_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks= 8).to(self.gpu_device)
-        # self.transmission_models["dehazer_v2.07_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
-        #
-        # checkpt = torch.load("checkpoint/dehazer_v2.07_1.pt")
-        # self.atmosphere_models["dehazer_v2.07_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks= 8).to(self.gpu_device)
-        # self.atmosphere_models["dehazer_v2.07_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.10_2.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.10_2"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.10_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.07_2.pt")
-        self.transmission_models["dehazer_v2.07_2"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.07_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_3.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_3"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.07_2.pt")
-        self.atmosphere_models["dehazer_v2.07_2"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.07_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_3.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_3"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_3"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.07_3.pt")
-        self.transmission_models["dehazer_v2.07_3"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.07_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_4.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_4"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.07_3.pt")
-        self.atmosphere_models["dehazer_v2.07_3"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.07_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_4.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_4"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_4"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.07_4.pt")
-        self.transmission_models["dehazer_v2.07_4"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.07_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_5.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_5"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_5"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.07_4.pt")
-        self.atmosphere_models["dehazer_v2.07_4"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.07_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_5.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_5"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_5"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.07_5.pt")
-        self.transmission_models["dehazer_v2.07_5"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.07_5"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_6.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_6"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_6"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.07_5.pt")
-        self.atmosphere_models["dehazer_v2.07_5"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.07_5"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_6.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_6"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_6"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_2.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.03_2"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.03_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_7.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_7"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_7"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_2.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_2"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_7.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_7"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_7"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_3.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.03_3"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.03_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_8.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_8"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_8"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_3.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_3"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_8.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_8"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_8"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_4.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.03_4"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.03_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_9.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_9"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_9"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_4.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_4"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_9.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_9"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_9"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_5.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.03_5"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.03_5"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.12_1.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.12_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.12_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_5.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_5"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_5"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.12_1.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.12_1"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.12_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_8.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.03_8"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.03_8"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_97.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_97 - style_disabled"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_97 - style_disabled"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_8.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_8"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_8"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_97.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_97 - style_disabled"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_97 - style_disabled"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_9.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.03_9"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.03_9"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_98.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_98 - unlit_disabled"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_98 - unlit_disabled"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.03_9.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_9"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.03_9"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_98.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_98 - unlit_disabled"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_98 - unlit_disabled"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.05_1.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.05_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.05_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.11_99.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_99 - style_unlit_disabled"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.11_99 - style_unlit_disabled"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.05_1.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.05_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.05_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.10_99.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_99 - style_unlit_disabled"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.10_99 - style_unlit_disabled"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.05_2.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.05_2"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.05_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.13.LR_1.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.13.LR_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.13.LR_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.05_2.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.05_2"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.05_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.13.LR_1.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.13.LR_1"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.13.LR_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/dehazer_v2.05_3.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.05_3"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.05_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.05_3.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.05_3"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.05_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.06_2.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.06_2"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.06_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.06_2.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.06_2"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.06_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.06_3.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.06_3"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.06_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.06_3.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.06_3"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.06_3"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.06_4.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.06_4"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.06_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.06_4.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.06_4"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.06_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.06_5.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.06_5"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.06_5"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.06_5.pt", map_location=self.gpu_device)
-        self.atmosphere_models["dehazer_v2.06_5"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.06_5"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.09_4.pt", map_location=self.gpu_device)
-        self.transmission_models["dehazer_v2.09_4"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.transmission_models["dehazer_v2.09_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
-
-        checkpt = torch.load("checkpoint/airlight_estimator_v1.05_1.pt")
-        self.atmosphere_models["airlight_estimator_v1.05_1" + str(AtmosphereMethod.NETWORK_ESTIMATOR_V1)] = \
-            dh.AirlightEstimator_V2(num_channels=3, disc_feature_size=64, out_features=3).to(self.gpu_device)
-        self.atmosphere_models["airlight_estimator_v1.05_1" + str(AtmosphereMethod.NETWORK_ESTIMATOR_V1)].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_estimator_v1.06_1.pt")
-        self.atmosphere_models["airlight_estimator_v1.06_1"] = \
-            dh.AirlightEstimator_V2(num_channels=3, disc_feature_size=64, out_features=3).to(self.gpu_device)
-        self.atmosphere_models["airlight_estimator_v1.06_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_estimator_v1.07_1.pt")
-        self.atmosphere_models["airlight_estimator_v1.07_1"] = \
-            dh.AirlightEstimator_V2(num_channels=3, disc_feature_size=64, out_features=3).to(self.gpu_device)
-        self.atmosphere_models["airlight_estimator_v1.07_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_gen_v1.03_1.pt")
-        self.atmosphere_models["airlight_gen_v1.03_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["airlight_gen_v1.03_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_gen_v1.03_2.pt")
-        self.atmosphere_models["airlight_gen_v1.03_2"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["airlight_gen_v1.03_2"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_gen_v1.06_4.pt")
-        self.atmosphere_models["airlight_gen_v1.06_4"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["airlight_gen_v1.06_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_gen_v1.07_1.pt")
-        self.atmosphere_models["airlight_gen_v1.07_1"] = cg.Generator(input_nc=6, output_nc=3, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["airlight_gen_v1.07_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_gen_v1.08_1.pt")
-        self.atmosphere_models["airlight_gen_v1.08_1"] = cg.Generator(input_nc=6, output_nc=1, n_residual_blocks=10).to(self.gpu_device)
-        self.atmosphere_models["airlight_gen_v1.08_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/airlight_estimator_v1.08_1.pt")
-        self.atmosphere_models["airlight_estimator_v1.08_1"] = dh.AirlightEstimator_Residual(num_channels = 3, out_features = 3, num_layers = 4).to(self.gpu_device)
-        self.atmosphere_models["airlight_estimator_v1.08_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
-
-        checkpt = torch.load("checkpoint/dehazer_v2.09_4.pt")
-        self.atmosphere_models["dehazer_v2.09_4"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
-        self.atmosphere_models["dehazer_v2.09_4"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/end_to_end_dehazer_v1.00_1.pt")
+        self.end_to_end_models["end_to_end_dehazer_v1.00_1"] = ffa.FFA(gps=3, blocks=19).to(self.gpu_device)
+        self.end_to_end_models["end_to_end_dehazer_v1.00_1"].load_state_dict(checkpt[constants.GENERATOR_KEY])
 
         print("Dehazing models loaded.")
 
@@ -540,7 +454,7 @@ class ModelDehazer():
 
         return np.clip(clear_img, 0.0, 1.0)
 
-    def perform_dehazing_direct_v4(self, hazy_img, filter_strength):
+    def perform_dehazing_direct_v4(self, hazy_img, filter_strength, use_unlit):
         grey_transform_op = transforms.Compose([transforms.ToTensor(),
                                                transforms.Normalize((0.5), (0.5))])
 
@@ -551,12 +465,14 @@ class ModelDehazer():
         hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
 
         # translate to albedo first
-        unlit_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
+        if(use_unlit is True):
+            unlit_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
+            transmission_img = self.transmission_models[self.transmission_model_key](unlit_tensor)
+            transmission_img = torch.squeeze(transmission_img).cpu().numpy()
+        else:
+            transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
+            transmission_img = torch.squeeze(transmission_img).cpu().numpy()
 
-        concat_input = torch.cat([hazy_tensor, unlit_tensor], 1)
-
-        transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
-        transmission_img = torch.squeeze(transmission_img).cpu().numpy()
 
         # remove 0.5 normalization for dehazing equation
         T = ((transmission_img * 0.5) + 0.5)
@@ -595,119 +511,18 @@ class ModelDehazer():
 
         return np.clip(clear_img, 0.0, 1.0), T, A
 
-    def perform_dehazing_direct(self, hazy_img, atmosphere_sensitivity):
+    def perform_dehazing_end_to_end(self, hazy_img, CHECKPT_NAME):
 
-        transform_op = transforms.Compose([transforms.ToTensor(),
-                                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        rgb_transform_op = transforms.Compose([transforms.ToTensor(),
+                                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-        hazy_tensor = transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
+        hazy_tensor = rgb_transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
         hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
 
-        #translate to albedo first
-        hazy_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
+        clear_img = self.end_to_end_models[CHECKPT_NAME](hazy_tensor)
+        clear_img = torch.squeeze(clear_img).cpu()
+        clear_img = ((clear_img * 0.5) + 0.5) #remove normalization
+        clear_img = torch.clip(clear_img, 0.0, 1.0)
 
-        transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
-        transmission_img = torch.squeeze(transmission_img).cpu().numpy()
-
-        # remove 0.5 normalization for dehazing equation
-        T = ((transmission_img * 0.5) + 0.5)
-        #T = T * 0.9
-        hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
-        #print("Shape: ", np.shape(hazy_tensor))
-
-        A1 = (self.atmosphere_models[self.airlight_model_key](hazy_tensor).cpu() * 0.5) + 0.5  # normalize to 0.0 - 1.0
-        #A1 = (self.atmosphere_models[self.airlight_model_key](hazy_tensor).cpu())
-        A1 = torch.squeeze(A1)
-        A1 = A1 - atmosphere_sensitivity
-        A1 = A1.numpy()
-
-        A2 = estimate_atmosphere(hazy_img, get_dark_channel(hazy_img, 4)) / 255.0
-        print("A difference: ", (A1 - A2))
-
-        atmosphere = A1 - atmosphere_sensitivity
-        atmosphere = torch.from_numpy(atmosphere)
-        atmosphere = torch.squeeze(atmosphere).numpy()
-
-        hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        clear_img = np.ones_like(hazy_img)
-        T = np.resize(T, np.shape(clear_img[:, :, 0]))
-        #print("Airlight estimator network loaded. Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T), " Atmosphere estimate: ", np.shape(atmosphere))
-
-        clear_img[:, :, 0] = (hazy_img[:, :, 0] - np.multiply(1 - T, atmosphere[0])) / T
-        clear_img[:, :, 1] = (hazy_img[:, :, 1] - np.multiply(1 - T, atmosphere[1])) / T
-        clear_img[:, :, 2] = (hazy_img[:, :, 2] - np.multiply(1 - T, atmosphere[2])) / T
-
-        return np.clip(clear_img, 0.0, 1.0)
-
-    def perform_dehazing(self, hazy_img, filter_strength, atmosphere_sensitivity):
-
-        transform_op = transforms.Compose([transforms.ToTensor(),
-                                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-        hazy_tensor = transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
-        hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
-        transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
-        transmission_img = torch.squeeze(transmission_img).cpu().numpy()
-
-        # remove 0.5 normalization for dehazing equation
-        T = ((transmission_img * 0.5) + 0.5)
-        hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
-        print("Shape: ", np.shape(hazy_tensor))
-        # translate to albedo first
-        unlit_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
-        concat_input = torch.cat([hazy_tensor, unlit_tensor], 1)
-
-        atmosphere = (self.atmosphere_models[self.airlight_model_key](hazy_tensor).cpu() * 0.5) + 0.5  # normalize to 0.0 - 1.0
-        atmosphere = torch.squeeze(atmosphere)
-        atmosphere = atmosphere - atmosphere_sensitivity
-        atmosphere = atmosphere.numpy()
-
-        hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        clear_img = np.ones_like(hazy_img)
-        T = np.resize(T, np.shape(clear_img[:, :, 0]))
-        print("Airlight estimator network loaded. Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T),
-        "Atmosphere estimate: ", atmosphere)
-        clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])) / np.maximum(T, filter_strength)) + np.full(
-            np.shape(hazy_img[:, :, 0]), atmosphere[0])
-        clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])) / np.maximum(T, filter_strength)) + np.full(
-            np.shape(hazy_img[:, :, 1]), atmosphere[1])
-        clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])) / np.maximum(T, filter_strength)) + np.full(
-            np.shape(hazy_img[:, :, 2]), atmosphere[2])
-
-        return np.clip(clear_img, 0.0, 1.0)
-
-    # def derive_T_and_A(self, hazy_img):
-    #     transform_op = transforms.Compose([transforms.ToTensor(),
-    #                                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    #
-    #
-    #     hazy_tensor = transform_op(cv2.cvtColor(hazy_img, cv2.COLOR_BGR2RGB)).to(self.gpu_device)
-    #     hazy_tensor = torch.unsqueeze(hazy_tensor, 0)
-    #     hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
-    #
-    #     # translate to albedo first
-    #     unlit_tensor = self.albedo_models[self.albedo_model_key](hazy_tensor)
-    #     concat_input = torch.cat([hazy_tensor, unlit_tensor], 1)
-    #
-    #     transmission_img = self.transmission_models[self.transmission_model_key](hazy_tensor)
-    #     transmission_img = torch.squeeze(transmission_img).cpu()
-    #
-    #     # remove 0.5 normalization for dehazing equation
-    #     T = ((transmission_img * 0.5) + 0.5)
-    #     #T = T * 0.5
-    #     # hazy_tensor = interpolate(hazy_tensor, constants.TEST_IMAGE_SIZE)
-    #     # print("Shape: ", np.shape(hazy_tensor))
-    #
-    #     atmosphere_map = self.atmosphere_models[self.airlight_model_key](concat_input)  # normalize to 0.0 - 1.0
-    #     atmosphere_map = torch.squeeze(atmosphere_map).cpu()
-    #     # atmosphere_map = atmosphere_map - 0.1
-    #
-    #     # remove 0.5 normalization for dehazing equation
-    #     #A = ((atmosphere_map * 0.5) + 0.5)
-    #     A = ((atmosphere_map * 0.5) + 0.5)
-    #
-    #     #A_img = cv2.normalize(A_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    #
-    #     return T, A
-
+        return clear_img
 

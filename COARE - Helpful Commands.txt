@@ -3,6 +3,7 @@
 clear
 
 //For directories
+scratch2/Synth Hazy 3 - Patch
 cd scratch2/NeuralNets-GenerativeExperiment
 cd scratch2/NeuralNets-GenerativeExperiment-2
 cd scratch2/NeuralNets-GenerativeExperiment-3
@@ -15,7 +16,7 @@ cd scratch2/Visdom
 sbatch slurm_install.slurm
 sbatch slurm_visdom_test.slurm
 sbatch -w saliksik-cpu-23 visdom_run.slurm
-sbatch -w saliksik-cpu-23 --dependency=afterany:241137 visdom_run.slurm
+sbatch -w saliksik-cpu-23 --dependency=afterany:243408 visdom_run.slurm
 
 sbatch script_debug.slurm
 sbatch script_1.slurm
@@ -51,8 +52,12 @@ export XDG_RUNTIME_DIR=/scratch1/scratch2/neil.delgallego/Visdom/
 saliksik.asti.dost.gov.ph:8097
 
 //CCS SERVER-JUPYTERHUB
-python "dehaze_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:0 --batch_size=256 --iteration=2 --edge_weight=10.0 --likeness_weight=50.0
-python "dehaze_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:1 --batch_size=128 --iteration=3 --edge_weight=10.0 --adv_weight=2.0
+python "ccs_jupyter_main_1.py"
+python "ccs_jupyter_main_2.py"
+python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:0 --batch_size=512 --iteration=2 --t_min=0.1 --t_max=1.2 --a_min=0.1 --a_max=0.95
+python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:1 --batch_size=512 --iteration=3 --t_min=0.1 --t_max=1.2 --a_min=0.1 --a_max=1.2
+python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:0 --batch_size=512 --iteration=4 --t_min=0.25 --t_max=0.95 --a_min=0.1 --a_max=0.95
+python "transmission_main.py" --num_workers=10 --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:1 --batch_size=512 --iteration=5 --t_min=0.25 --t_max=0.95 --a_min=0.1 --a_max=1.2
 
 python "airlight_main.py" --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:0 --batch_size=16384 --iteration=2 --num_layers=6
 python "airlight_main.py" --img_to_load=-1 --load_previous=0 --server_config=2 --cuda_device=cuda:1 --batch_size=16 --iteration=3 --num_layers=7

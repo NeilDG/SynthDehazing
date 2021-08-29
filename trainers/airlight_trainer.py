@@ -27,11 +27,6 @@ class AirlightTrainer:
         self.fp16_scalers = [amp.GradScaler(),
                              amp.GradScaler()]
 
-        self.early_stop_tolerance = 40
-        self.stop_counter = 0
-        self.last_metric = 10000.0
-        self.stop_condition_met = False
-
     def initialize_dict(self):
         self.AIRLOSS_A_KEY = "AIRLOSS_A_KEY"
         self.AIRLOSS_B_KEY = "AIRLOSS_B_KEY"
@@ -110,26 +105,14 @@ class AirlightTrainer:
 
             self.fp16_scalers[0].update()
 
-    def test(self, epoch, rgb_tensor, airlight_tensor):
+    def test(self, rgb_tensor, airlight_tensor):
         self.A1.eval()
         with torch.no_grad(), amp.autocast():
-            D_A1_loss = self.network_loss(self.A1(rgb_tensor), airlight_tensor) * self.loss_weight
+            airlight_like = self.A1(rgb_tensor)
+            D_A1_loss = self.network_loss(airlight_like, airlight_tensor) * self.loss_weight
             self.losses_dict[self.AIRLOSS_A_KEY_TEST].append(D_A1_loss.item())
 
-        #early stopping mechanism
-        if(self.last_metric < D_A1_loss and epoch > 10):
-            self.stop_counter += 1
-        elif(self.last_metric >= D_A1_loss):
-            self.last_metric = D_A1_loss
-            self.stop_counter = 0
-            print("Early stopping mechanism reset. Best metric is now ", self.last_metric)
-
-        if (self.stop_counter == self.early_stop_tolerance):
-            self.stop_condition_met = True
-            print("Met stopping condition with best metric of: ", self.last_metric, ". Latest metric: ", D_A1_loss)
-
-    def did_stop_condition_met(self):
-        return self.stop_condition_met
+        return airlight_like
 
     def visdom_report(self, iteration, rgb_tensor):
         # report to visdom
@@ -165,3 +148,14 @@ class AirlightTrainer:
             self.losses_dict[self.AIRLOSS_D_KEY].clear()
             self.losses_dict[self.AIRLOSS_C_KEY_TEST].clear()
             self.losses_dict[self.AIRLOSS_D_KEY_TEST].clear()
+
+    def save_states_unstable(self, epoch, iteration):
+        save_dict = {'epoch': epoch, 'iteration': iteration}
+
+        save_dict[constants.DISCRIMINATOR_KEY + "A"] = self.A1.state_dict()
+
+        save_dict[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY + "A"] = self.optimizerDA.state_dict()
+        save_dict[constants.DISCRIMINATOR_KEY + "scheduler" + "A"] = self.schedulerDA.state_dict()
+
+        torch.save(save_dict, constants.AIRLIGHT_ESTIMATOR_CHECKPATH + ".checkpt")
+        print("Saved checkpt: %s Epoch: %d" % (len(save_dict), (epoch + 1)))

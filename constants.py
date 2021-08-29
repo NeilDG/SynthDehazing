@@ -12,6 +12,16 @@ DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
 
+DATASET_CLEAN_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/clean/"
+DATASET_HAZY_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/hazy/"
+
+DATASET_CLEAN_LOW_PATH = "E:/Synth Hazy - Low/clean/"
+DATASET_CLEAN_STYLED_LOW_PATH = "E:/Synth Hazy - Low/clean - styled/"
+DATASET_DEPTH_LOW_PATH = "E:/Synth Hazy - Low/depth/"
+
+DATASET_CLEAN_END_TO_END_PATH_TEST = "E:/Synth Hazy - End-to-End - Test/clean/"
+DATASET_HAZY_END_TO_END_PATH_TEST = "E:/Synth Hazy - End-to-End - Test/hazy/"
+
 DATASET_ALBEDO_PATH_PATCH_3 = "E:/Synth Hazy 3 - Patch/albedo/"
 DATASET_ALBEDO_PATH_PSEUDO_PATCH_3 = "E:/Synth Hazy 3 - Patch/albedo - pseudo/"
 DATASET_CLEAN_PATH_PATCH_3 = "E:/Synth Hazy 3 - Patch/clean/"
@@ -21,7 +31,6 @@ DATASET_ALBEDO_PATH_PSEUDO_TEST  = "E:/Synth Hazy - Test Set/albedo - pseudo/"
 DATASET_CLEAN_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "E:/Synth Hazy - Test Set/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/depth/"
-DATASET_LIGHTCOORDS_PATH_COMPLETE_TEST = "E:/Synth Hazy - Test Set/light/"
 
 DATASET_HAZY_PATH_PATCH = "E:/Synth Hazy - Patch/hazy/"
 DATASET_CLEAN_PATH_PATCH = "E:/Synth Hazy - Patch/clean/"
@@ -52,28 +61,23 @@ GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 LATENT_VECTOR_KEY = "latent_vector"
 
-COLORIZER_VERSION = "colorizer_v1.08"
-COLOR_TRANSFER_VERSION = "albedo_transfer_v1.04"
-TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.09"
+STYLE_TRANSFER_VERSION = "synth2places_v1.12"
+UNLIT_NETWORK_VERSION = "albedo_transfer_v1.04"
+TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.15"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
-AIRLIGHT_VERSION = "airlight_estimator_v1.09"
+AIRLIGHT_VERSION = "airlight_estimator_v1.15"
 DEHAZER_VERSION = "dehazer_v2.09"
-LIGHTS_ESTIMATOR_VERSION = "lightcoords_estimator_V1.00"
-LATENT_VERSION = "latent_v1.00"
+END_TO_END_DEHAZER_VERSION = "end_to_end_dehazer_v1.00"
 
-ITERATION = "2"
+ITERATION = "1"
 
-LATENT_CHECKPATH = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'.pt'
-LATENT_CHECKPATH_64 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_64.pt'
-LATENT_CHECKPATH_128 = 'checkpoint/' + LATENT_VERSION + "_" + ITERATION +'_128.pt'
-
+END_TO_END_CHECKPATH = 'checkpoint/' + END_TO_END_DEHAZER_VERSION + "_" + ITERATION + '.pt'
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
-COLORIZER_CHECKPATH = 'checkpoint/' + COLORIZER_VERSION + "_" + ITERATION +'.pt'
-COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + COLOR_TRANSFER_VERSION + "_" + ITERATION + '.pt'
+STYLE_TRANSFER_CHECKPATH = 'checkpoint/' + STYLE_TRANSFER_VERSION + "_" + ITERATION + '.pt'
+UNLIT_NETWORK_CHECKPATH = 'checkpoint/' + UNLIT_NETWORK_VERSION + "_" + ITERATION + '.pt'
 TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + TRANSMISSION_VERSION + "_" + ITERATION + '.pt'
 AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + AIRLIGHT_VERSION + "_" + ITERATION + '.pt'
 AIRLIGHT_GEN_CHECKPATH = 'checkpoint/' + AIRLIGHT_GEN_VERSION + "_" + ITERATION + '.pt'
-LIGHTCOORDS_ESTIMATOR_CHECKPATH = 'checkpoint/' + LIGHTS_ESTIMATOR_VERSION + "_" + ITERATION + '.pt'
 DENOISE_CHECKPATH = 'checkpoint/gta_denoise_v1.00_1.pt'
 
 # dictionary keys

@@ -46,7 +46,7 @@ def update_config(opts):
         constants.batch_size = opts.batch_size
         
         constants.ITERATION = str(opts.iteration)
-        constants.COLOR_TRANSFER_CHECKPATH = 'checkpoint/' + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + '.pt'
+        constants.UNLIT_NETWORK_CHECKPATH = 'checkpoint/' + constants.UNLIT_NETWORK_VERSION + "_" + constants.ITERATION + '.pt'
 
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
         constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
@@ -85,12 +85,12 @@ def main(argv):
     iteration = 0
     
     if(opts.load_previous): 
-        checkpoint = torch.load(constants.COLOR_TRANSFER_CHECKPATH)
+        checkpoint = torch.load(constants.UNLIT_NETWORK_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1   
         iteration = checkpoint['iteration'] + 1
         gt.load_saved_state(checkpoint)
  
-        print("Loaded checkpt: %s Current epoch: %d" % (constants.COLOR_TRANSFER_CHECKPATH, start_epoch))
+        print("Loaded checkpt: %s Current epoch: %d" % (constants.UNLIT_NETWORK_CHECKPATH, start_epoch))
         print("===================================================")
     
     # Create the dataloader

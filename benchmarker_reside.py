@@ -13,6 +13,22 @@ from utils import dehazing_proper
 import glob
 from skimage.metrics import peak_signal_noise_ratio
 
+def produce_dcp():
+    HAZY_PATH = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+    SAVE_PATH = "results/DCP - Results - RESIDE-3/"
+
+    hazy_list = glob.glob(HAZY_PATH + "*.jpeg")
+    for i, (hazy_path) in enumerate(hazy_list):
+        img_name = hazy_path.split("\\")[1].split(".")[0]  # save new image as PNG
+        hazy_img = cv2.imread(hazy_path)
+        hazy_img = cv2.resize(hazy_img, (512, 512))
+        dcp_clear_img = dark_channel_prior.perform_dcp_dehaze(hazy_img, True)
+        dcp_clear_img = cv2.normalize(dcp_clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        cv2.imwrite(SAVE_PATH + img_name + ".png", dcp_clear_img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
+        print("Saved DCP: ", img_name)
+
+
 def produce_reside(T_CHECKPT_NAME, A_ESTIMATOR_NAME):
     HAZY_PATH = "E:/Hazy Dataset Benchmark/RESIDE-Unannotated/"
     SAVE_PATH = "results/Ours - Results - RESIDE-3/"
@@ -194,9 +210,10 @@ def benchmark_reside():
                     column = 0
 
 def main():
-    CHECKPT_NAME = "dehazer_v2.07_3"
+    CHECKPT_NAME = "transmission_albedo_estimator_v1.10_1"
 
-    produce_reside(CHECKPT_NAME, "airlight_estimator_v1.08_1")
+    produce_dcp()
+    #produce_reside(CHECKPT_NAME, "airlight_estimator_v1.08_1")
     #benchmark_reside()
 
 # FIX for broken pipe num_workers issue.

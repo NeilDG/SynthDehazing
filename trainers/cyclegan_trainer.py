@@ -78,9 +78,9 @@ class CycleGANTrainer:
         self.smoothness_weight = smoothness_weight
 
         # save hyperparameters for bookeeping
-        HYPERPARAMS_PATH = "checkpoint/" + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + ".config"
+        HYPERPARAMS_PATH = "checkpoint/" + constants.UNLIT_NETWORK_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
-            print("Version: ", constants.COLOR_TRANSFER_CHECKPATH, file=f)
+            print("Version: ", constants.UNLIT_NETWORK_CHECKPATH, file=f)
             print("Comment: ", comments, file=f)
             print("Learning rate for G: ", str(self.g_lr), file=f)
             print("Learning rate for D: ", str(self.d_lr), file=f)
@@ -91,8 +91,6 @@ class CycleGANTrainer:
             print("Smoothness weight: ", str(self.smoothness_weight), file=f)
             print("Cycle weight: ", str(self.cycle_weight), file=f)
             print("====================================", file=f)
-            print("Brightness enhance: ", str(constants.brightness_enhance), file=f)
-            print("Contrast enhance: ", str(constants.contrast_enhance), file=f)
 
     def adversarial_loss(self, pred, target):
         loss = nn.BCEWithLogitsLoss()
@@ -232,14 +230,14 @@ class CycleGANTrainer:
             test_clean_like = kornia.adjust_brightness(test_clean_like, 0.6)
 
         # report to visdom
-        self.visdom_reporter.plot_finegrain_loss(str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
-        self.visdom_reporter.plot_image(dirty_tensor, "Training Dirty images - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image(clean_tensor, "Training Clean images - " +str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image(clean_like, "Training Clean-like images - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_dirty_tensor, "Test Dirty images - " +str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_dirty_like, "Test Dirty-like images - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_clean_tensor, "Test Clean images - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_clean_like, "Test Clean-like images - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
+        self.visdom_reporter.plot_finegrain_loss(str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
+        self.visdom_reporter.plot_image(dirty_tensor, "Training Dirty images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(clean_tensor, "Training Clean images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(clean_like, "Training Clean-like images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_dirty_tensor, "Test Dirty images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_dirty_like, "Test Dirty-like images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_clean_tensor, "Test Clean images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_clean_like, "Test Clean-like images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
 
     def visdom_infer(self, test_dirty_tensor, caption_dirty, caption_clean):
         with torch.no_grad():
@@ -247,8 +245,8 @@ class CycleGANTrainer:
             # inferred albedo image appears darker --> adjust brightness and contrast of albedo image
             test_clean_like = kornia.adjust_brightness(test_clean_like, 0.6)
 
-        self.visdom_reporter.plot_image(test_dirty_tensor, caption_dirty + " - " +str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_clean_like, caption_clean + " - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_dirty_tensor, caption_dirty + " - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_clean_like, caption_clean + " - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
 
     def produce_image(self, dirty_tensor):
         with torch.no_grad():
@@ -318,7 +316,7 @@ class CycleGANTrainer:
         save_dict[constants.GENERATOR_KEY + "scheduler"] = schedulerG_state_dict
         save_dict[constants.DISCRIMINATOR_KEY + "scheduler"] = schedulerD_state_dict
 
-        torch.save(save_dict, constants.COLOR_TRANSFER_CHECKPATH)
+        torch.save(save_dict, constants.STYLE_TRANSFER_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
 
         # clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training

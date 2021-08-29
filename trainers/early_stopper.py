@@ -12,9 +12,9 @@ class EarlyStopperMethod(Enum):
     PSNR_TYPE = 2,
 
 class EarlyStopper():
-    def __init__(self, min_epochs, early_stopper_method):
+    def __init__(self, min_epochs, early_stopper_method, early_stop_tolerance):
         self.min_epochs = min_epochs
-        self.early_stop_tolerance = 2000
+        self.early_stop_tolerance = early_stop_tolerance
         self.stop_counter = 0
         self.last_metric = 10000.0
         self.stop_condition_met = False
@@ -25,7 +25,7 @@ class EarlyStopper():
         elif(early_stopper_method is EarlyStopperMethod.SSIM_TYPE):
             self.loss_op = kornia.losses.SSIMLoss(5)
 
-    def test(self, epoch, input_tensor, gt_tensor):
+    def test(self, trainer, epoch, iteration, input_tensor, gt_tensor):
         if(epoch < self.min_epochs):
             return
 
@@ -39,6 +39,7 @@ class EarlyStopper():
             self.last_metric = D_loss
             self.stop_counter = 0
             print("Early stopping mechanism reset. Best metric is now ", self.last_metric)
+            trainer.save_states(epoch, iteration)
 
         if (self.stop_counter == self.early_stop_tolerance):
             self.stop_condition_met = True

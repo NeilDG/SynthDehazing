@@ -7,6 +7,8 @@ Created on Sun Apr 19 13:22:06 2020
 """
 
 from __future__ import print_function
+
+import itertools
 import os
 import sys
 import logging
@@ -19,52 +21,74 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 from loaders import dataset_loader
-from trainers import transmission_trainer
+from trainers import transmission_trainer, early_stopper
 from model import style_transfer_gan as color_gan
 from model import vanilla_cycle_gan as cycle_gan
 import constants
 
 parser = OptionParser()
-parser.add_option('--coare', type=int, help="Is running on COARE?", default=0)
+parser.add_option('--server_config', type=int, help="Is running on COARE?", default=0)
+parser.add_option('--cuda_device', type=str, help="CUDA Device?", default="cuda:0")
+parser.add_option('--albedo_checkpt', type=str, help="Albedo checkpt?", default="checkpoint/albedo_transfer_v1.04_1.pt")
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
 parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--batch_size', type=int, help="batch_size", default="8")
-parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
+parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
+parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
+parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
+parser.add_option('--batch_size', type=int, help="batch_size", default="256")
+parser.add_option('--patch_size', type=int, help="patch_size", default="32")
+parser.add_option('--g_lr', type=float, help="LR", default="0.0001")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
-parser.add_option('--is_unet',type=int, help="Is Unet?", default="0")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n"
-                                                                                     "Using BCE-discriminator loss. 10 blocks. \n"
-                                                                                     "Increased range of transmission value \n"
-                                                                                     "128 x 128 patch size1")
+parser.add_option('--num_workers', type=int, help="Workers", default="12")
+parser.add_option('--t_min', type=float, help="", default="0.1")
+parser.add_option('--t_max', type=float, help="", default="1.2")
+parser.add_option('--a_min', type=float, help="", default="0.1")
+parser.add_option('--a_max', type=float, help="", default="0.95")
+parser.add_option('--style_transfer_enabled', type=int, help="", default="1")
+parser.add_option('--unlit_enabled', type=int, help="", default="1")
+parser.add_option('--use_lowres', type=int, help="", default="0")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n")
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE
 def update_config(opts):
-    constants.is_coare = opts.coare
+    constants.server_config = opts.server_config
+    constants.ITERATION = str(opts.iteration)
+    constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
 
-    if (constants.is_coare == 1):
-        print("Using COARE configuration.")
+    if (constants.server_config == 1):
+        constants.num_workers = opts.num_workers
 
-        constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
+        print("Using COARE configuration. Workers: ", constants.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
 
-        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/clean - styled/"
         constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo/"
         constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/albedo - pseudo/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3/depth/"
         constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
-        constants.DATASET_ALBEDO_PATH_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo/"
-        constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/albedo - pseudo/"
-        constants.DATASET_CLEAN_PATH_PATCH_STYLED_3 = "/scratch1/scratch2/neil.delgallego/Synth Hazy 3 - Patch/clean - styled/"
+    elif (constants.server_config == 2):
+        constants.num_workers = opts.num_workers
+        constants.ALBEDO_CHECKPT = opts.albedo_checkpt
 
-        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/hazy/"
-        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/scratch1/scratch2/neil.delgallego/Synth Hazy - Depth 2/depth/"
+        print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
 
-        constants.num_workers = 4
+        constants.DATASET_CLEAN_STYLED_LOW_PATH = "Synth Hazy - Low/clean - styled/"
+        constants.DATASET_DEPTH_LOW_PATH = "Synth Hazy - Low/depth/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "Synth Hazy - Test Set/clean/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = "Synth Hazy - Test Set/depth/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "Hazy Dataset Benchmark/Standard/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
 
 def show_images(img_tensor, caption):
@@ -81,20 +105,23 @@ def show_images(img_tensor, caption):
 def main(argv):
     (opts, args) = parser.parse_args(argv)
     update_config(opts)
+    print(opts)
     print("=====================BEGIN============================")
-    print("Is Coare? %d Has GPU available? %d Count: %d" % (
-    constants.is_coare, torch.cuda.is_available(), torch.cuda.device_count()))
+    print("Server config? %d Has GPU available? %d Count: %d" % (constants.server_config, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
 
     manualSeed = random.randint(1, 10000)  # use if you want new results
     random.seed(manualSeed)
     torch.manual_seed(manualSeed)
 
-    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    device = torch.device(opts.cuda_device if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    gt = transmission_trainer.TransmissionTrainer(constants.TRANSMISSION_VERSION, constants.ITERATION, device, opts.batch_size, opts.is_unet, opts.g_lr, opts.d_lr)
-    gt.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
+    trainer = transmission_trainer.TransmissionTrainer(device, opts.batch_size, opts.is_t_unet, opts.t_num_blocks, False, opts.g_lr, opts.d_lr)
+    trainer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
+
+    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 2000)
+
     start_epoch = 0
     iteration = 0
 
@@ -102,25 +129,27 @@ def main(argv):
         checkpoint = torch.load(constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1
         iteration = checkpoint['iteration'] + 1
-        gt.load_saved_state(checkpoint)
+        trainer.load_saved_state(checkpoint)
 
         print("Loaded checkpt: %s Current epoch: %d" % (constants.TRANSMISSION_ESTIMATOR_CHECKPATH, start_epoch))
         print("===================================================")
 
     # Create the dataloader
-    train_loader = dataset_loader.load_transmission_albedo_dataset(constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.DATASET_ALBEDO_PATH_PSEUDO_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, False, opts.batch_size, opts.img_to_load)
-    test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_COMPLETE_3, opts.batch_size, 500),
-                    dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3,opts.batch_size, 500),
-                    dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500)]
-    index = 0
+    if(opts.style_transfer_enabled == 1 and opts.use_lowres == 0):
+        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.num_workers)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, 2)
+    elif (opts.use_lowres == 1):
+        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_STYLED_LOW_PATH, constants.DATASET_DEPTH_LOW_PATH, opts, False, opts.num_workers)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_STYLED_LOW_PATH, constants.DATASET_DEPTH_LOW_PATH, opts, False, 2)
+    else:
+        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.num_workers)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, 2)
 
     # Plot some training images
-    if (constants.is_coare == 0):
+    if (constants.server_config == 0):
         _, a, b, _ = next(iter(train_loader))
-        _, c = next(iter(test_loaders[0]))
-        show_images(a, "Training - RGB Images")
+        show_images(a, "Training - Hazy Images")
         show_images(b, "Training - Transmission Images")
-        show_images(c, "Test - RGB Images")
 
     print("Starting Training Loop...")
     # for i, train_data in enumerate(train_loader, 0):
@@ -132,27 +161,37 @@ def main(argv):
 
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
-        for i, train_data in enumerate(train_loader, 0):
-            _, rgb_batch, transmission_batch, _ = train_data
-            rgb_tensor = rgb_batch.to(device).float()
+        for i, (train_data, test_data) in enumerate(zip(train_loader, test_loader)):
+            _, hazy_batch, transmission_batch, _ = train_data
+            hazy_tensor = hazy_batch.to(device)
             transmission_tensor = transmission_batch.to(device).float()
 
-            gt.train(rgb_tensor, transmission_tensor)
+            trainer.train(iteration, hazy_tensor, transmission_tensor, opts.unlit_enabled)
             iteration = iteration + 1
-            if ((i) % 2000 == 0):
-                gt.visdom_report(iteration)
-                gt.visdom_infer_train(rgb_tensor, transmission_tensor, 0)
-                for i in range(len(test_loaders)):
-                    _, rgb_batch = next(iter(test_loaders[i]))
-                    rgb_batch = rgb_batch.to(device)
-                    gt.visdom_infer_test(rgb_batch, i)
 
-                    index = (index + 1) % len(test_loaders[0])
-                    if (index == 0):
-                        test_loaders = [dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_COMPLETE_3, opts.batch_size, 500),
-                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_ALBEDO_PATH_PSEUDO_3, opts.batch_size, 500),
-                                        dataset_loader.load_transmission_albedo_dataset_test(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, opts.batch_size, 500)]
-                gt.save_states(epoch, iteration)
+            _, hazy_batch, transmission_batch, _ = test_data
+            hazy_tensor = hazy_batch.to(device)
+            transmission_tensor = transmission_batch.to(device).float()
+            transmission_like = trainer.test(hazy_tensor)
+
+            if (early_stopper_l1.test(trainer, epoch, iteration, transmission_like, transmission_tensor)):
+                break
+
+            if ((i) % 100 == 0):
+                trainer.save_states_unstable(epoch, iteration)
+                # trainer.visdom_report(iteration)
+                # trainer.visdom_infer_train(hazy_tensor, transmission_tensor, 0)
+                # for i in range(len(test_loaders)):
+                #     _, rgb_batch, _ = next(iter(test_loaders[i]))
+                #     rgb_batch = rgb_batch.to(device)
+                #     trainer.visdom_infer_test(rgb_batch, i)
+                #
+                #     index = (index + 1) % len(test_loaders[0])
+                #     if (index == 0):
+                #         test_loaders = [dataset_loader.load_dehaze_dataset_test_paired(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, opts.batch_size, opts.img_to_load)]
+
+        if (early_stopper_l1.test(trainer, epoch, iteration, transmission_like, transmission_tensor)):
+            break
 
 # FIX for broken pipe num_workers issue.
 if __name__ == "__main__":

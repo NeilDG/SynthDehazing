@@ -335,21 +335,36 @@ def create_hazy_data(offset):
             print("Saved albedo: synth_%d.png" % count)
             count += 1
 
+
+def create_img_from_video_data(VIDEO_PATH, SAVE_PATH, offset):
+    vidcap = cv2.VideoCapture(VIDEO_PATH)
+    count = offset
+
+    success = True
+    while success:
+        success, image = vidcap.read()
+        if (success):
+            w, h, c = np.shape(image)
+            image = cv2.resize(image, (int(h / 4), int(w / 4)), interpolation=cv2.INTER_CUBIC)
+            cv2.imwrite(SAVE_PATH + "synth_%d.png" % count, image)
+            print("Saved: synth_%d.png" % count)
+            count += 1
+
 def produce_color_images():
-    SAVE_PATH = "E:/Synth Hazy 3/clean - styled/"
-    CHECKPT_ROOT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    SAVE_PATH = "E:/Synth Hazy - End-to-End - Test/clean - styled/"
+    CHECKPT_ROOT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
     # load color transfer
     color_transfer_checkpt = torch.load(CHECKPT_ROOT + "color_transfer_v1.11_2.pt")
-    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    color_transfer_gan = cycle_gan.Generator(downsampling_blocks=2, n_residual_blocks=10, has_dropout = False).to(device)
     color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
     color_transfer_gan.eval()
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset("E:/Synth Hazy - End-to-End - Test/clean/", constants.DATASET_PLACES_PATH, constants.infer_size, -1)
 
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -382,8 +397,8 @@ def produce_color_images():
                 print("Saved styled image: ", img_name)
 
 def produce_pseudo_albedo_images():
-    SAVE_PATH = "E:/Synth Hazy - Test Set/albedo - pseudo/"
-    CHECKPT_ROOT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    SAVE_PATH = "E:/Synth Hazy - Low/albedo - pseudo/"
+    CHECKPT_ROOT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     # load color transfer
@@ -400,7 +415,7 @@ def produce_pseudo_albedo_images():
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset("E:/Synth Hazy - Low/clean - styled/", constants.DATASET_ALBEDO_PATH_COMPLETE_3, constants.infer_size, -1)
 
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
@@ -426,15 +441,15 @@ def produce_pseudo_albedo_images():
                 img_name = name[i].split(".")[0]
                 #first check with discrminator score. If it's good, save image
 
-                if(prediction[i].item() > 3.55):
-                    style_img = result[i].cpu().numpy()
-                    style_img = ((style_img * 0.5) + 0.5) #remove normalization
-                    style_img = np.rollaxis(style_img, 0, 3)
-                    style_img = cv2.normalize(style_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-                    style_img = cv2.cvtColor(style_img, cv2.COLOR_BGR2RGB)
+                # if(prediction[i].item() > 3.55):
+                style_img = result[i].cpu().numpy()
+                style_img = ((style_img * 0.5) + 0.5) #remove normalization
+                style_img = np.rollaxis(style_img, 0, 3)
+                style_img = cv2.normalize(style_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                style_img = cv2.cvtColor(style_img, cv2.COLOR_BGR2RGB)
 
-                    cv2.imwrite(SAVE_PATH + img_name + ".png", style_img)
-                    print("Prediction of %s from discriminator: %f. Saved styled image: %s" % (img_name, prediction[i].item(), img_name))
+                cv2.imwrite(SAVE_PATH + img_name + ".png", style_img)
+                print("Prediction of %s from discriminator: %f. Saved styled image: %s" % (img_name, prediction[i].item(), img_name))
 
 def main():
     # VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_1.mp4"
@@ -448,16 +463,32 @@ def main():
     #SAVE_PATH_A = constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3
     #create_filtered_img_data(PATH_A, SAVE_PATH_A, "frame_%d.png", (256, 256), (32, 32), 25, 16, offset = 0)
 
-    PATH_A = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3
-    PATH_B = constants.DATASET_ALBEDO_PATH_COMPLETE_3
-    PATH_C = constants.DATASET_ALBEDO_PATH_PSEUDO_3
+    # PATH_A = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/hazy_001.mp4"
+    # SAVE_PATH_A = constants.DATASET_HAZY_END_TO_END_PATH
+    #
+    # PATH_B = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/clean_001.mp4"
+    # SAVE_PATH_B = constants.DATASET_CLEAN_END_TO_END_PATH
+    #
+    # create_img_from_video_data(PATH_A, SAVE_PATH_A, 0)
+    # create_img_from_video_data(PATH_B, SAVE_PATH_B, 0)
 
-    SAVE_PATH_A = constants.DATASET_CLEAN_PATH_PATCH_STYLED_3
-    SAVE_PATH_B = constants.DATASET_ALBEDO_PATH_PATCH_3
-    SAVE_PATH_C = constants.DATASET_ALBEDO_PATH_PSEUDO_PATCH_3
+    # PATH_A = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/clean_003.mp4"
+    # SAVE_PATH_A = constants.DATASET_CLEAN_LOW_PATH
+    #
+    # PATH_B = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/depth_003.mp4"
+    # SAVE_PATH_B = constants.DATASET_DEPTH_LOW_PATH
+    #
+    # create_img_from_video_data(PATH_A, SAVE_PATH_A, 0)
+    # create_img_from_video_data(PATH_B, SAVE_PATH_B, 0)
 
-    #create_paired_img_data(PATH_A, PATH_B, SAVE_PATH_A, SAVE_PATH_B, "frame_%d.png", (256, 256), (32, 32), 16)
-    #create_tri_img_data(PATH_A, PATH_B, PATH_C, SAVE_PATH_A, SAVE_PATH_B, SAVE_PATH_C, "frame_%d.png", (256, 256), (32, 32), 16, 0)
+    # PATH_A = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/hazy_002.mp4"
+    # SAVE_PATH_A = constants.DATASET_HAZY_END_TO_END_PATH_TEST
+    #
+    # PATH_B = "D:/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/clean_002.mp4"
+    # SAVE_PATH_B = constants.DATASET_CLEAN_END_TO_END_PATH_TEST
+    #
+    # create_img_from_video_data(PATH_A, SAVE_PATH_A, 0)
+    # create_img_from_video_data(PATH_B, SAVE_PATH_B, 0)
 
     #create_hazy_data(0)
     #produce_color_images()

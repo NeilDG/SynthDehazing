@@ -63,9 +63,9 @@ class AlbedoTrainer:
         self.use_psnr = use_psnr
 
         # save hyperparameters for bookeeping
-        HYPERPARAMS_PATH = "checkpoint/" + constants.COLOR_TRANSFER_VERSION + "_" + constants.ITERATION + ".config"
+        HYPERPARAMS_PATH = "checkpoint/" + constants.UNLIT_NETWORK_VERSION + "_" + constants.ITERATION + ".config"
         with open(HYPERPARAMS_PATH, "w") as f:
-            print("Version: ", constants.COLOR_TRANSFER_CHECKPATH, file=f)
+            print("Version: ", constants.UNLIT_NETWORK_CHECKPATH, file=f)
             print("Comment: ", comments, file=f)
             print("Learning rate for G: ", str(self.g_lr), file=f)
             print("Learning rate for D: ", str(self.d_lr), file=f)
@@ -163,20 +163,20 @@ class AlbedoTrainer:
 
 
         # report to visdom
-        self.visdom_reporter.plot_finegrain_loss(str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
-        self.visdom_reporter.plot_image(styled_tensor, "Training Dirty images - " + str(constants.COLOR_TRANSFER_VERSION) + str(constants.ITERATION))
-        self.visdom_reporter.plot_image(albedo_tensor, "Training Clean images - " + str(constants.COLOR_TRANSFER_VERSION) + str(constants.ITERATION))
-        self.visdom_reporter.plot_image(albedo_like, "Training Clean-like images - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_styled_tensor, "Test Dirty images - " + str(constants.COLOR_TRANSFER_VERSION) + str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_albedo_tensor, "Test Clean images - " + str(constants.COLOR_TRANSFER_VERSION) + str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_albedo_like, "Test Clean-like images - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
+        self.visdom_reporter.plot_finegrain_loss(str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
+        self.visdom_reporter.plot_image(styled_tensor, "Training Dirty images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(albedo_tensor, "Training Clean images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(albedo_like, "Training Clean-like images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_styled_tensor, "Test Dirty images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_albedo_tensor, "Test Clean images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_albedo_like, "Test Clean-like images - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
 
     def visdom_infer(self, test_styled_tensor, caption_dirty, caption_clean):
         with torch.no_grad():
             test_clean_like = self.G_A(test_styled_tensor)
 
-        self.visdom_reporter.plot_image(test_styled_tensor, caption_dirty + " - " + str(constants.COLOR_TRANSFER_VERSION) + str(constants.ITERATION))
-        self.visdom_reporter.plot_image(test_clean_like, caption_clean + " - "+str(constants.COLOR_TRANSFER_VERSION) +str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_styled_tensor, caption_dirty + " - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
+        self.visdom_reporter.plot_image(test_clean_like, caption_clean + " - " + str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION))
 
     def produce_image(self, dirty_tensor):
         with torch.no_grad():
@@ -240,7 +240,7 @@ class AlbedoTrainer:
         save_dict[constants.GENERATOR_KEY + "scheduler"] = schedulerG_state_dict
         save_dict[constants.DISCRIMINATOR_KEY + "scheduler"] = schedulerD_state_dict
 
-        torch.save(save_dict, constants.COLOR_TRANSFER_CHECKPATH)
+        torch.save(save_dict, constants.UNLIT_NETWORK_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
 
         # clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training
