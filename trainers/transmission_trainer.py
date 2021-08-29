@@ -16,7 +16,7 @@ import kornia
 
 class TransmissionTrainer:
     
-    def __init__(self, gpu_device, batch_size, is_unet, num_blocks, g_lr = 0.0002, d_lr = 0.0002):
+    def __init__(self, gpu_device, batch_size, is_unet, num_blocks, has_dropout, g_lr = 0.0002, d_lr = 0.0002):
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
@@ -25,7 +25,7 @@ class TransmissionTrainer:
         if(is_unet == 1):
             self.G_T = un.UnetGenerator(input_nc=3, output_nc=1, num_downs = num_blocks).to(self.gpu_device)
         else:
-            self.G_T = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = num_blocks).to(self.gpu_device)
+            self.G_T = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = num_blocks,  has_dropout=has_dropout).to(self.gpu_device)
 
         self.D_T = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 

@@ -39,6 +39,7 @@ parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
 parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
 parser.add_option('--batch_size', type=int, help="batch_size", default="256")
+parser.add_option('--patch_size', type=int, help="patch_size", default="32")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0001")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
@@ -48,8 +49,8 @@ parser.add_option('--a_min', type=float, help="", default="0.1")
 parser.add_option('--a_max', type=float, help="", default="0.95")
 parser.add_option('--style_transfer_enabled', type=int, help="", default="1")
 parser.add_option('--unlit_enabled', type=int, help="", default="1")
-parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n"
-                                                                                     "32 x 32 patch size\n")
+parser.add_option('--use_lowres', type=int, help="", default="0")
+parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Patch-based transmission estimation network using CycleGAN architecture. \n")
 
 # --img_to_load=-1 --load_previous=1
 # Update config if on COARE
@@ -78,6 +79,8 @@ def update_config(opts):
 
         print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
 
+        constants.DATASET_CLEAN_STYLED_LOW_PATH = "Synth Hazy - Low/clean - styled/"
+        constants.DATASET_DEPTH_LOW_PATH = "Synth Hazy - Low/depth/"
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "Synth Hazy - Test Set/clean/"
@@ -114,7 +117,7 @@ def main(argv):
     device = torch.device(opts.cuda_device if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    trainer = transmission_trainer.TransmissionTrainer(device, opts.batch_size, opts.is_t_unet, opts.t_num_blocks, opts.g_lr, opts.d_lr)
+    trainer = transmission_trainer.TransmissionTrainer(device, opts.batch_size, opts.is_t_unet, opts.t_num_blocks, False, opts.g_lr, opts.d_lr)
     trainer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
 
     early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 2000)
@@ -132,12 +135,15 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    if(opts.style_transfer_enabled == 1):
-        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, opts.num_workers)
-        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, opts.batch_size, opts.img_to_load, 2)
+    if(opts.style_transfer_enabled == 1 and opts.use_lowres == 0):
+        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.num_workers)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, 2)
+    elif (opts.use_lowres == 1):
+        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_STYLED_LOW_PATH, constants.DATASET_DEPTH_LOW_PATH, opts, False, opts.num_workers)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_STYLED_LOW_PATH, constants.DATASET_DEPTH_LOW_PATH, opts, False, 2)
     else:
-        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load, opts.num_workers)
-        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, opts.batch_size, opts.img_to_load, 2)
+        train_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.num_workers)
+        test_loader = dataset_loader.load_dehazing_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, 2)
 
     # Plot some training images
     if (constants.server_config == 0):

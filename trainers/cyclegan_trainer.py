@@ -316,7 +316,7 @@ class CycleGANTrainer:
         save_dict[constants.GENERATOR_KEY + "scheduler"] = schedulerG_state_dict
         save_dict[constants.DISCRIMINATOR_KEY + "scheduler"] = schedulerD_state_dict
 
-        torch.save(save_dict, constants.UNLIT_NETWORK_CHECKPATH)
+        torch.save(save_dict, constants.STYLE_TRANSFER_CHECKPATH)
         print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
 
         # clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training

@@ -42,7 +42,7 @@ class ResidualBlock(nn.Module):
         return x + self.conv_block(x)
 
 class Generator(nn.Module):
-    def __init__(self, input_nc=3, output_nc=3, downsampling_blocks = 2, n_residual_blocks=6):
+    def __init__(self, input_nc=3, output_nc=3, downsampling_blocks = 2, n_residual_blocks=6, has_dropout = True):
         super(Generator, self).__init__()
 
         # Initial convolution block       
@@ -57,8 +57,11 @@ class Generator(nn.Module):
         for _ in range(downsampling_blocks):
             model += [  nn.Conv2d(in_features, out_features, 4, stride=2, padding=1),
                         nn.InstanceNorm2d(out_features),
-                        nn.ReLU(inplace=True),
-                        nn.Dropout2d(p = 0.1)]
+                        nn.ReLU(inplace=True)
+                    ]
+
+            if(has_dropout):
+                model +=[nn.Dropout2d(p = 0.1)]
             in_features = out_features
             out_features = clamp(in_features*2, 1024)
 
@@ -71,8 +74,10 @@ class Generator(nn.Module):
         for _ in range(downsampling_blocks):
             model += [  nn.ConvTranspose2d(in_features, out_features, 4, stride=2, padding=1, output_padding=1),
                         nn.InstanceNorm2d(out_features),
-                        nn.ReLU(inplace=True),
-                        nn.Dropout2d(p = 0.1)]
+                        nn.ReLU(inplace=True)]
+
+            if (has_dropout):
+                model += [nn.Dropout2d(p=0.1)]
             in_features = out_features
             out_features = in_features//2
 

@@ -33,7 +33,8 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--num_layers', type=int, help="num_layers", default="4")
-parser.add_option('--batch_size', type=int, help="batch_size", default="16384") #16384 default
+parser.add_option('--batch_size', type=int, help="batch_size", default="1024") #16384 default
+parser.add_option('--patch_size', type=int, help="patch_size", default="32")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--t_min', type=float, help="", default="0.1")
@@ -41,6 +42,7 @@ parser.add_option('--t_max', type=float, help="", default="1.2")
 parser.add_option('--a_min', type=float, help="", default="0.1")
 parser.add_option('--a_max', type=float, help="", default="0.95")
 parser.add_option('--style_transfer_enabled', type=int, help="", default="1")
+parser.add_option('--use_lowres', type=int, help="", default="0")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default="New airlight estimator network. 32 x 32 patch")
 
 
@@ -71,6 +73,8 @@ def update_config(opts):
 
         print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
 
+        constants.DATASET_CLEAN_STYLED_LOW_PATH = "Synth Hazy - Low/clean - styled/"
+        constants.DATASET_DEPTH_LOW_PATH = "Synth Hazy - Low/depth/"
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "clean - styled/"
         constants.DATASET_DEPTH_PATH_COMPLETE_3 = "depth/"
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = "Synth Hazy - Test Set/clean/"
@@ -126,12 +130,15 @@ def main(argv):
         print("===================================================")
 
     # Create the dataloader
-    if (opts.style_transfer_enabled == 1):
-        train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load)
-        test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, opts.batch_size, opts.img_to_load)
+    if(opts.style_transfer_enabled == 1 and opts.use_lowres == 0):
+        train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False)
+        test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False)
+    elif(opts.use_lowres == 1):
+        train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_STYLED_LOW_PATH, constants.DATASET_DEPTH_LOW_PATH, opts, False)
+        test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_STYLED_LOW_PATH, constants.DATASET_DEPTH_LOW_PATH, opts, False)
     else:
-        train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False, opts.batch_size, opts.img_to_load)
-        test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False, opts.batch_size, opts.img_to_load)
+        train_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_DEPTH_PATH_COMPLETE_3, opts, False)
+        test_loader = dataset_loader.load_airlight_dataset_train(constants.DATASET_CLEAN_PATH_COMPLETE_TEST, constants.DATASET_DEPTH_PATH_COMPLETE_TEST, opts, False)
 
     # Plot some training images
     if (constants.server_config == 0):
@@ -139,7 +146,7 @@ def main(argv):
         # _, d = next(iter(test_loaders[0]))
         show_images(a, "Training - RGB Images")
         show_images(b, "Training - Transmission Images")
-        show_images(c, "Training - Atmosphere Images")
+        show_images(c, "Training - 1 - T Images")
 
     print("Starting Training Loop for Airlight Estimator...", constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
     for epoch in range(start_epoch, constants.num_epochs):

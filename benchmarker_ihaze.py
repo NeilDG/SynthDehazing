@@ -575,14 +575,18 @@ def produce_ihaze_end_to_end(CHECKPT_NAME):
             print("Saved: " + SAVE_PATH + img_name)
 
 def main():
-    produce_ihaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_7", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_7")
+    # produce_ihaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_7", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_7")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_8", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_8")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9")
 
-    produce_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_8", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_8")
+    produce_ihaze("transmission_albedo_estimator_v1.13.LR_1", "airlight_estimator_v1.13.LR_1", True)
+    benchmark_ihaze("transmission_albedo_estimator_v1.13.LR_1", "airlight_estimator_v1.13.LR_1")
 
-    produce_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9")
 
 # FIX for broken pipe num_workers issue.
 if __name__ == "__main__":

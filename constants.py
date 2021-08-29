@@ -16,6 +16,7 @@ DATASET_CLEAN_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/clean/"
 DATASET_HAZY_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/hazy/"
 
 DATASET_CLEAN_LOW_PATH = "E:/Synth Hazy - Low/clean/"
+DATASET_CLEAN_STYLED_LOW_PATH = "E:/Synth Hazy - Low/clean - styled/"
 DATASET_DEPTH_LOW_PATH = "E:/Synth Hazy - Low/depth/"
 
 DATASET_CLEAN_END_TO_END_PATH_TEST = "E:/Synth Hazy - End-to-End - Test/clean/"
@@ -62,9 +63,9 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 STYLE_TRANSFER_VERSION = "synth2places_v1.12"
 UNLIT_NETWORK_VERSION = "albedo_transfer_v1.04"
-TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.11"
+TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.15"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
-AIRLIGHT_VERSION = "airlight_estimator_v1.10"
+AIRLIGHT_VERSION = "airlight_estimator_v1.15"
 DEHAZER_VERSION = "dehazer_v2.09"
 END_TO_END_DEHAZER_VERSION = "end_to_end_dehazer_v1.00"
 
