@@ -1,1 +1,1 @@
-# NeuralNets-GenerativeExperiment
+# SynthDehazing
