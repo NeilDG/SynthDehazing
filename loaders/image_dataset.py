@@ -73,7 +73,8 @@ class DehazingDataset(data.Dataset):
 
         #formulate hazy img
         atmosphere = [0.0, 0.0, 0.0]
-        spread = 0.125
+        #spread = 0.125
+        spread = 0.25
         atmosphere[0] = np.random.uniform(DehazingDataset.ATMOSPHERE_MIN, DehazingDataset.ATMOSPHERE_MAX)
         atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
         atmosphere[2] = np.random.normal(atmosphere[0], spread)
@@ -305,7 +306,8 @@ class AirlightDataset(data.Dataset):
 
         # formulate hazy img
         atmosphere = [0.0, 0.0, 0.0]
-        spread = 0.125
+        #spread = 0.125
+        spread = 0.25
         atmosphere[0] = np.random.uniform(self.ATMOSPHERE_MIN, self.ATMOSPHERE_MAX)
         atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
         atmosphere[2] = np.random.normal(atmosphere[0], spread)

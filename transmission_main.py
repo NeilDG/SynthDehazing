@@ -120,7 +120,7 @@ def main(argv):
     trainer = transmission_trainer.TransmissionTrainer(device, opts.batch_size, opts.is_t_unet, opts.t_num_blocks, False, opts.g_lr, opts.d_lr)
     trainer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
 
-    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 2000)
+    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 8000)
 
     start_epoch = 0
     iteration = 0
