@@ -230,8 +230,8 @@ def mse(predictions, targets):
     return ((predictions - targets) ** 2).mean()
 
 def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num_albedo_blocks):
-    ABS_PATH_RESULTS = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
-    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    ABS_PATH_RESULTS = "//results/"
+    ABS_PATH_CHECKPOINT = "//checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(airlight_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -295,8 +295,8 @@ def perform_airlight_predictions(airlight_checkpt_name, albedo_checkpt_name, num
         print("Overall MSE for A2: " + str(average_MSE[2]), file=f)
 
 def perform_transmission_map_estimation(model_checkpt_name, is_unet, blocks = 8):
-    ABS_PATH_RESULTS = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
-    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    ABS_PATH_RESULTS = "//results/"
+    ABS_PATH_CHECKPOINT = "//checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -363,8 +363,8 @@ def perform_transmission_map_estimation(model_checkpt_name, is_unet, blocks = 8)
         print("Overall SSIM: " + str(ave_losses[3]), file=f)
 
 def perform_atmospheric_map_estimation(model_checkpt_name, is_unet, blocks = 8):
-    ABS_PATH_RESULTS = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
-    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    ABS_PATH_RESULTS = "//results/"
+    ABS_PATH_CHECKPOINT = "//checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -431,12 +431,12 @@ def perform_atmospheric_map_estimation(model_checkpt_name, is_unet, blocks = 8):
         print("Overall SSIM: " + str(ave_losses[3]), file=f)
 
 def save_albedos(model_checkpt_name):
-    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    ABS_PATH_CHECKPOINT = "//checkpoint/"
     SAVE_PATH__PSEUDO = "E:/Synth Hazy 3/albedo - pseudo/"
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
     # load albedo
-    checkpt = torch.load("D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/" + constants.ALBEDO_CHECKPT)
+    checkpt = torch.load("D:/Documents/GithubProjects/SynthDehazing/" + constants.ALBEDO_CHECKPT)
     albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(device)
     albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     albedo_G.eval()
@@ -466,7 +466,7 @@ def save_albedos(model_checkpt_name):
 
 
 def save_maps(model_checkpt_name):
-    ABS_PATH_CHECKPOINT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    ABS_PATH_CHECKPOINT = "//checkpoint/"
     SAVE_PATH_A_GT = "E:/Synth Hazy 3/atmosphere/"
     SAVE_PATH_A_PSEUDO = "E:/Synth Hazy 3/atmosphere - pseudo/"
     SAVE_PATH_T_GT = "E:/Synth Hazy 3/transmission/"
@@ -489,7 +489,7 @@ def save_maps(model_checkpt_name):
     print("===================================================")
 
     # load albedo
-    checkpt = torch.load("D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/" + constants.ALBEDO_CHECKPT)
+    checkpt = torch.load("D:/Documents/GithubProjects/SynthDehazing/" + constants.ALBEDO_CHECKPT)
     albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(device)
     albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     albedo_G.eval()
@@ -557,7 +557,7 @@ def save_maps(model_checkpt_name):
                 print("Saved img name: " + file_name)
 
 def save_transmissions(model_checkpt_name):
-    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/SynthDehazing/checkpoint/"
     SAVE_PATH_HAZY = "E:/Synth Hazy 3/hazy - styled/"
     SAVE_PATH_GT = "E:/Synth Hazy 3/transmission/"
     SAVE_PATH_PSEUDO = "E:/Synth Hazy 3/transmission - pseudo/"
@@ -573,7 +573,7 @@ def save_transmissions(model_checkpt_name):
     print("===================================================")
 
     # load albedo
-    checkpt = torch.load("D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/" + constants.ALBEDO_CHECKPT)
+    checkpt = torch.load("D:/Documents/GithubProjects/SynthDehazing/" + constants.ALBEDO_CHECKPT)
     albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(device)
     albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
     albedo_G.eval()
@@ -638,8 +638,8 @@ def save_transmissions(model_checkpt_name):
             # visdom_reporter.plot_image(transmission_like, "Transmission Like " +str(i))
 
 def perform_albedo_reconstruction(model_checkpt_name, num_blocks):
-    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/results/"
-    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    ABS_PATH_RESULTS = "D:/Users/delgallegon/Documents/GithubProjects/SynthDehazing/results/"
+    ABS_PATH_CHECKPOINT = "D:/Users/delgallegon/Documents/GithubProjects/SynthDehazing/checkpoint/"
     PATH_TO_FILE = ABS_PATH_RESULTS + str(model_checkpt_name) + ".txt"
 
     print("Loading: ", ABS_PATH_CHECKPOINT + model_checkpt_name)

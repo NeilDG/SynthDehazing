@@ -115,7 +115,7 @@ def main(argv):
     airlight_term_trainer = airlight_trainer.AirlightTrainer(device, opts.batch_size, opts.num_layers, opts.d_lr)
     airlight_term_trainer.update_penalties(1.0, opts.comments)
 
-    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 10)
+    early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 20)
 
     start_epoch = 0
     iteration = 0

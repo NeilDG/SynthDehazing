@@ -328,6 +328,22 @@ class ModelDehazer():
         self.atmosphere_models["airlight_estimator_v1.13.LR_1"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
         self.atmosphere_models["airlight_estimator_v1.13.LR_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.15_1.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.15_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.15_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.15_1.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.15_1"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.15_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.14.128_1.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.14.128_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.14.128_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.14.128_1.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.14.128_1"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.14.128_1"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
+
         checkpt = torch.load("checkpoint/end_to_end_dehazer_v1.00_1.pt")
         self.end_to_end_models["end_to_end_dehazer_v1.00_1"] = ffa.FFA(gps=3, blocks=19).to(self.gpu_device)
         self.end_to_end_models["end_to_end_dehazer_v1.00_1"].load_state_dict(checkpt[constants.GENERATOR_KEY])

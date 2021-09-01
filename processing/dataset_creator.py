@@ -352,7 +352,7 @@ def create_img_from_video_data(VIDEO_PATH, SAVE_PATH, offset):
 
 def produce_color_images():
     SAVE_PATH = "E:/Synth Hazy - End-to-End - Test/clean - styled/"
-    CHECKPT_ROOT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    CHECKPT_ROOT = "D:/Documents/GithubProjects/SynthDehazing/checkpoint/"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
@@ -398,7 +398,7 @@ def produce_color_images():
 
 def produce_pseudo_albedo_images():
     SAVE_PATH = "E:/Synth Hazy - Low/albedo - pseudo/"
-    CHECKPT_ROOT = "D:/Documents/GithubProjects/NeuralNets-GenerativeExperiment/checkpoint/"
+    CHECKPT_ROOT = "D:/Documents/GithubProjects/SynthDehazing/checkpoint/"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     # load color transfer
