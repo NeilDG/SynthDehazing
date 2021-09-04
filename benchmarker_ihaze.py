@@ -587,8 +587,8 @@ def main():
     # produce_ihaze("transmission_albedo_estimator_v1.13.LR_1", "airlight_estimator_v1.13.LR_1", True)
     # benchmark_ihaze("transmission_albedo_estimator_v1.13.LR_1", "airlight_estimator_v1.13.LR_1")
 
-    produce_ihaze("transmission_albedo_estimator_v1.15_1", "airlight_estimator_v1.15_1", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.15_1", "airlight_estimator_v1.15_1")
+    produce_ihaze("transmission_albedo_estimator_v1.15_4", "airlight_estimator_v1.15_4", True)
+    benchmark_ihaze("transmission_albedo_estimator_v1.15_4", "airlight_estimator_v1.15_4")
 
 
 # FIX for broken pipe num_workers issue.

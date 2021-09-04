@@ -76,8 +76,10 @@ class DehazingDataset(data.Dataset):
         #spread = 0.125
         spread = 0.25
         atmosphere[0] = np.random.uniform(DehazingDataset.ATMOSPHERE_MIN, DehazingDataset.ATMOSPHERE_MAX)
-        atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
-        atmosphere[2] = np.random.normal(atmosphere[0], spread)
+        atmosphere[1] = np.random.uniform(DehazingDataset.ATMOSPHERE_MIN, DehazingDataset.ATMOSPHERE_MAX)
+        atmosphere[2] = np.random.uniform(DehazingDataset.ATMOSPHERE_MIN, DehazingDataset.ATMOSPHERE_MAX)
+        # atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
+        # atmosphere[2] = np.random.normal(atmosphere[0], spread)
 
         hazy_img_like = np.zeros_like(clear_img)
         T = np.resize(T, np.shape(clear_img[:, :, 0]))
@@ -308,9 +310,13 @@ class AirlightDataset(data.Dataset):
         atmosphere = [0.0, 0.0, 0.0]
         #spread = 0.125
         spread = 0.25
-        atmosphere[0] = np.random.uniform(self.ATMOSPHERE_MIN, self.ATMOSPHERE_MAX)
-        atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
-        atmosphere[2] = np.random.normal(atmosphere[0], spread)
+        # atmosphere[0] = np.random.uniform(self.ATMOSPHERE_MIN, self.ATMOSPHERE_MAX)
+        # atmosphere[1] = np.random.normal(atmosphere[0], spread)  # randomize by gaussian on other channels using R channel atmosphere
+        # atmosphere[2] = np.random.normal(atmosphere[0], spread)
+
+        atmosphere[0] = np.random.uniform(DehazingDataset.ATMOSPHERE_MIN, DehazingDataset.ATMOSPHERE_MAX)
+        atmosphere[1] = np.random.uniform(DehazingDataset.ATMOSPHERE_MIN, DehazingDataset.ATMOSPHERE_MAX)
+        atmosphere[2] = np.random.uniform(DehazingDataset.ATMOSPHERE_MIN, DehazingDataset.ATMOSPHERE_MAX)
 
         atmosphere_map = np.zeros_like(clear_img)
         atmosphere_map[:, :, 0] = atmosphere[0] * (1 - T)

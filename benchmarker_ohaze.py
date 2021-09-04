@@ -603,8 +603,8 @@ def main():
     # produce_ohaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9", True)
     # benchmark_ohaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9")
 
-    produce_ohaze("transmission_albedo_estimator_v1.15_1", "airlight_estimator_v1.15_1", True)
-    benchmark_ohaze("transmission_albedo_estimator_v1.15_1", "airlight_estimator_v1.15_1")
+    produce_ohaze("transmission_albedo_estimator_v1.15_4", "airlight_estimator_v1.15_4", True)
+    benchmark_ohaze("transmission_albedo_estimator_v1.15_4", "airlight_estimator_v1.15_4")
 
     # produce_ohaze("transmission_albedo_estimator_v1.14.128_1", "airlight_estimator_v1.14.128_1", True)
     # benchmark_ohaze("transmission_albedo_estimator_v1.14.128_1", "airlight_estimator_v1.14.128_1")
