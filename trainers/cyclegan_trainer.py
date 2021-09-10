@@ -20,13 +20,13 @@ from utils import pytorch_colors
 
 class CycleGANTrainer:
 
-    def __init__(self, gpu_device, g_lr, d_lr):
+    def __init__(self, gpu_device, g_lr, d_lr, num_blocks):
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
-        self.G_A = discrim_gan.Generator(n_residual_blocks=8).to(self.gpu_device)
+        self.G_A = discrim_gan.Generator(n_residual_blocks=num_blocks).to(self.gpu_device)
         # self.G_A = transfer_gan.Generator(n_residual_blocks=8).to(self.gpu_device)
-        self.G_B = discrim_gan.Generator(n_residual_blocks=8).to(self.gpu_device)
+        self.G_B = discrim_gan.Generator(n_residual_blocks=num_blocks).to(self.gpu_device)
         # self.G_B = transfer_gan.Generator(n_residual_blocks=8).to(self.gpu_device)
 
         self.D_A = discrim_gan.Discriminator().to(self.gpu_device)  # use CycleGAN's discriminator
@@ -178,17 +178,18 @@ class CycleGANTrainer:
 
             identity_like = self.G_A(clean_tensor)
             clean_like = self.G_A(dirty_tensor)
-            dirty_like = self.G_B(clean_like)
 
-            identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
+            A_identity_loss = self.identity_loss(identity_like, clean_tensor) * self.id_weight
             A_likeness_loss = self.likeness_loss(clean_like, clean_tensor) * self.likeness_weight
             A_smoothness_loss = self.smoothness_loss(clean_like, clean_tensor) * self.smoothness_weight
-            A_cycle_loss = self.cycle_loss(dirty_like, dirty_tensor) * self.cycle_weight
+            A_cycle_loss = self.cycle_loss(self.G_B(self.G_A(dirty_tensor)), dirty_tensor) * self.cycle_weight
 
+            identity_like = self.G_B(dirty_tensor)
             dirty_like = self.G_B(clean_tensor)
+            B_identity_loss = self.identity_loss(identity_like, dirty_tensor) * self.id_weight
             B_likeness_loss = self.likeness_loss(dirty_like, dirty_tensor) * self.likeness_weight
             B_smoothness_loss = self.smoothness_loss(dirty_like, dirty_tensor) * self.smoothness_weight
-            B_cycle_loss = self.cycle_loss(self.G_A(dirty_like), clean_tensor) * self.cycle_weight
+            B_cycle_loss = self.cycle_loss(self.G_A(self.G_B(clean_tensor)), clean_tensor) * self.cycle_weight
 
             prediction = self.D_A(clean_like)
             real_tensor = torch.ones_like(prediction)
@@ -198,7 +199,7 @@ class CycleGANTrainer:
             real_tensor = torch.ones_like(prediction)
             B_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            errG = identity_loss + A_likeness_loss + B_likeness_loss + A_smoothness_loss + B_smoothness_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
+            errG = A_identity_loss + B_identity_loss + A_likeness_loss + B_likeness_loss + A_smoothness_loss + B_smoothness_loss + A_adv_loss + B_adv_loss + A_cycle_loss + B_cycle_loss
             # errG.backward()
             # self.optimizerG.step()
             self.fp16_scaler.scale(errG).backward()
@@ -210,7 +211,7 @@ class CycleGANTrainer:
         # what to put to losses dict for visdom reporting?
         self.losses_dict[constants.G_LOSS_KEY].append(errG.item())
         self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
-        self.losses_dict[constants.IDENTITY_LOSS_KEY].append(identity_loss.item())
+        self.losses_dict[constants.IDENTITY_LOSS_KEY].append(A_identity_loss.item() + B_identity_loss.item())
         self.losses_dict[constants.LIKENESS_LOSS_KEY].append(B_likeness_loss.item())
         self.losses_dict[constants.SMOOTHNESS_LOSS_KEY].append(A_smoothness_loss.item() + B_smoothness_loss.item())
         self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item() + B_adv_loss.item())

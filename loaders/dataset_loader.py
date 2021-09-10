@@ -149,29 +149,30 @@ def load_rgb_dataset(path_a, batch_size=8, num_image_to_load=-1):
     return rgb_data_loader
 
 
-def load_color_test_dataset(path_a, batch_size=8, num_image_to_load=-1):
-    a_list = assemble_unpaired_data(path_a, num_image_to_load)
-    print("Length of color dataset: %d." % (len(a_list)))
+def load_color_test_dataset(path_a, path_c, opts):
+    a_list = assemble_unpaired_data(path_a, opts.img_to_load / 2)
+    c_list = assemble_unpaired_data(path_c, len(a_list), True)
+    print("Length of images: %d, %d." % (len(a_list), len(c_list)))
 
     rgb_data_loader = torch.utils.data.DataLoader(
-        image_dataset.ColorTestDataset(a_list),
-        batch_size=batch_size,
+        image_dataset.ColorTransferTestDataset(a_list, c_list),
+        batch_size=opts.batch_size,
         num_workers=2,
         shuffle=True
     )
 
     return rgb_data_loader
 
-def load_color_train_dataset(path_a, path_c, batch_size=8, num_image_to_load=-1):
-    a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
+def load_color_train_dataset(path_a, path_c, opts):
+    a_list = assemble_unpaired_data(path_a, opts.img_to_load / 2)
     c_list = assemble_unpaired_data(path_c, len(a_list), True)
 
     print("Length of images: %d, %d." % (len(a_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
         image_dataset.ColorTransferDataset(a_list, c_list),
-        batch_size=batch_size,
-        num_workers=6,
+        batch_size=opts.batch_size,
+        num_workers=opts.num_workers,
         shuffle=True
     )
 
@@ -192,15 +193,15 @@ def load_color_albedo_train_dataset(path_a, path_c, depth_dir, opts):
 
     return data_loader
 
-def load_color_albedo_test_dataset(path_a, path_c, depth_dir, batch_size=8, num_image_to_load=-1):
-    a_list = assemble_unpaired_data(path_a, num_image_to_load / 2)
+def load_color_albedo_test_dataset(path_a, path_c, depth_dir, opts):
+    a_list = assemble_unpaired_data(path_a, opts.img_to_load / 2)
     c_list = assemble_unpaired_data(path_c, len(a_list), True)
 
     print("Length of images: %d, %d." % (len(a_list), len(c_list)))
 
     data_loader = torch.utils.data.DataLoader(
         image_dataset.ColorAlbedoTestDataset(a_list, c_list, depth_dir),
-        batch_size=batch_size,
+        batch_size=opts.batch_size,
         num_workers=2,
         shuffle=True
     )

@@ -61,7 +61,7 @@ GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 LATENT_VECTOR_KEY = "latent_vector"
 
-STYLE_TRANSFER_VERSION = "synth2places_v1.12"
+STYLE_TRANSFER_VERSION = "synth2places_v1.13"
 UNLIT_NETWORK_VERSION = "albedo_transfer_v1.04"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.15"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
@@ -105,7 +105,7 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 300
+num_epochs = 200
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size

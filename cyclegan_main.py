@@ -26,20 +26,19 @@ parser.add_option('--cuda_device', type=str, help="CUDA Device?", default="cuda:
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
-parser.add_option('--identity_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--identity_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--smoothness_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--likeness_weight', type=float, help="Weight", default="1.0")
+parser.add_option('--smoothness_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--cycle_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--brightness_enhance', type=float, help="Weight", default="1.00") 
-parser.add_option('--contrast_enhance', type=float, help="Weight", default="1.00")
+parser.add_option('--num_blocks', type=int, help="", default="10")
 parser.add_option('--g_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--t_min', type=float, help="", default="0.1")
 parser.add_option('--t_max', type=float, help="", default="1.2")
 parser.add_option('--a_min', type=float, help="", default="0.1")
 parser.add_option('--a_max', type=float, help="", default="0.95")
-parser.add_option('--batch_size', type=int, help="batch_size", default="4")
+parser.add_option('--batch_size', type=int, help="batch_size", default="128")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default = "Vanilla CycleGAN.")
 
@@ -82,12 +81,12 @@ def main(argv):
     device = torch.device(opts.cuda_device if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
     
-    gt = cyclegan_trainer.CycleGANTrainer(device, opts.g_lr, opts.d_lr)
+    gt = cyclegan_trainer.CycleGANTrainer(device, opts.g_lr, opts.d_lr, opts.num_blocks)
     gt.update_penalties(opts.adv_weight, opts.identity_weight, opts.likeness_weight, opts.cycle_weight, opts.smoothness_weight, opts.comments)
     start_epoch = 0
     iteration = 0
     
-    if(opts.load_previous): 
+    if(opts.load_previous):
         checkpoint = torch.load(constants.STYLE_TRANSFER_CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1   
         iteration = checkpoint['iteration'] + 1
@@ -97,7 +96,8 @@ def main(argv):
         print("===================================================")
     
     # Create the dataloader
-    train_loader = dataset_loader.load_color_albedo_train_dataset(constants.DATASET_CLEAN_LOW_PATH, constants.DATASET_PLACES_PATH, constants.DATASET_DEPTH_LOW_PATH, opts)
+    train_loader = dataset_loader.load_color_train_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_PLACES_PATH, opts)
+    test_loader = dataset_loader.load_color_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE_3, constants.DATASET_PLACES_PATH, opts)
     index = 0
     
     # Plot some training images
@@ -106,7 +106,18 @@ def main(argv):
 
         show_images(noisy_batch, "Training - A Images")
         show_images(clean_batch, "Training - B Images")
-    
+
+    # for i, train_data in enumerate(train_loader, 0):
+    #     _, dirty_batch, clean_batch = train_data
+    #     dirty_tensor = dirty_batch.to(device)
+    #     clean_tensor = clean_batch.to(device)
+    #
+    #     view_batch, view_dirty_batch, view_clean_batch = next(iter(test_loader))
+    #     view_dirty_batch = view_dirty_batch.to(device)
+    #     view_clean_batch = view_clean_batch.to(device)
+    #     gt.visdom_report(iteration, dirty_tensor, clean_tensor, view_dirty_batch, view_clean_batch)
+    #     break
+
     print("Starting Training Loop...")
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader

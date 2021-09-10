@@ -344,13 +344,13 @@ class ModelDehazer():
         self.atmosphere_models["airlight_estimator_v1.15_3"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
         self.atmosphere_models["airlight_estimator_v1.15_3"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.15_4.pt", map_location=self.gpu_device)
-        self.transmission_models["transmission_albedo_estimator_v1.15_4"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
-        self.transmission_models["transmission_albedo_estimator_v1.15_4"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.15_6.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.15_6"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.15_6"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/airlight_estimator_v1.15_4.pt", map_location=self.gpu_device)
-        self.atmosphere_models["airlight_estimator_v1.15_4"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
-        self.atmosphere_models["airlight_estimator_v1.15_4"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.15_6.pt", map_location=self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.15_6"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
+        self.atmosphere_models["airlight_estimator_v1.15_6"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 
         checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.14.128_1.pt", map_location=self.gpu_device)
         self.transmission_models["transmission_albedo_estimator_v1.14.128_1"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
