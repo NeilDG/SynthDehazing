@@ -19,15 +19,12 @@ source activate NeilGAN_V2
 conda update python
 
 #do fresh install
-conda uninstall pytorch
-
-conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
-conda install -c conda-forge scikit-image
-pip install kornia
-pip install opencv-python
-pip install visdom
-pip install requests
-
+#conda uninstall pytorch
+#conda install pytorch torchvision cudatoolkit=10.1 -c pytorch
+#conda install -c conda-forge scikit-image
+#pip install kornia
+#pip install opencv-python
+pip install --upgrade pillow
 conda list
 
 conda deactivate

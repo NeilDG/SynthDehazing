@@ -24,7 +24,8 @@ srun python cyclegan_main.py \
 --iteration=$ITERATION \
 --server_config=1 \
 --num_workers=6 \
---batch_size=512 \
+--batch_size=1024 \
+--num_blocks=6 --net_config=1 --use_bce=0 \
 --img_to_load=-1 --load_previous=0
 
 conda deactivate
