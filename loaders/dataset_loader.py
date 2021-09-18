@@ -49,7 +49,6 @@ def assemble_unpaired_data(path_a, num_image_to_load=-1, force_complete=False):
                 break
 
     while loaded != num_image_to_load and force_complete:
-        print("Looking for files in ", path_a)
         for (root, dirs, files) in os.walk(path_a):
             for f in files:
                 file_name = os.path.join(root, f)
@@ -156,7 +155,7 @@ def load_color_test_dataset(path_a, path_c, opts):
 
     rgb_data_loader = torch.utils.data.DataLoader(
         image_dataset.ColorTransferTestDataset(a_list, c_list),
-        batch_size=opts.batch_size,
+        batch_size=4,
         num_workers=2,
         shuffle=True
     )
