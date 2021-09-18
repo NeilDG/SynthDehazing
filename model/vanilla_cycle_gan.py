@@ -63,7 +63,7 @@ class Generator(nn.Module):
             if(has_dropout):
                 model +=[nn.Dropout2d(p = 0.1)]
             in_features = out_features
-            #out_features = clamp(in_features*2, 1024)
+            out_features = clamp(in_features*2, 8192)
 
         # Residual blocks
         for _ in range(n_residual_blocks):
