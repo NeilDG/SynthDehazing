@@ -575,17 +575,23 @@ def produce_ihaze_end_to_end(CHECKPT_NAME):
             print("Saved: " + SAVE_PATH + img_name)
 
 def main():
-    produce_ihaze("transmission_albedo_estimator_v1.15_7", "airlight_estimator_v1.15_7", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.15_7", "airlight_estimator_v1.15_7")
+    # produce_ihaze("transmission_albedo_estimator_v1.15_6", "airlight_estimator_v1.15_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.15_6", "airlight_estimator_v1.15_6")
 
-    produce_ihaze("transmission_albedo_estimator_v1.15_8", "airlight_estimator_v1.15_8", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.15_8", "airlight_estimator_v1.15_8")
+    # produce_ihaze("transmission_albedo_estimator_v1.15_7", "airlight_estimator_v1.15_7", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.15_7", "airlight_estimator_v1.15_7")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.15_8", "airlight_estimator_v1.15_8", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.15_8", "airlight_estimator_v1.15_8")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.15_9", "airlight_estimator_v1.15_9", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.15_9", "airlight_estimator_v1.15_9")
 
-    produce_ihaze("transmission_albedo_estimator_v1.15_9", "airlight_estimator_v1.15_9", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.15_9", "airlight_estimator_v1.15_9")
+    # produce_ihaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10")
 
-    produce_ihaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10")
+    produce_ihaze("transmission_albedo_estimator_v1.15_11", "airlight_estimator_v1.15_11", True)
+    benchmark_ihaze("transmission_albedo_estimator_v1.15_11", "airlight_estimator_v1.15_11")
 
 
 # FIX for broken pipe num_workers issue.

@@ -62,7 +62,7 @@ GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 LATENT_VECTOR_KEY = "latent_vector"
 
-STYLE_TRANSFER_VERSION = "synth2places_v1.14"
+STYLE_TRANSFER_VERSION = "synth2places_v1.16"
 UNLIT_NETWORK_VERSION = "albedo_transfer_v1.04"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.15"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"

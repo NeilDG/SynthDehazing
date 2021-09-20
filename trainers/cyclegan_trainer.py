@@ -15,6 +15,7 @@ import torchvision.utils as vutils
 import constants
 from model import vanilla_cycle_gan as cycle_gan
 from model import style_transfer_gan as transfer_gan
+from model import unet_gan
 from utils import plot_utils
 from utils import pytorch_colors
 
@@ -32,10 +33,15 @@ class CycleGANTrainer:
             print("Using vanilla cycle GAN")
             self.G_A = cycle_gan.Generator(n_residual_blocks=num_blocks, has_dropout=False).to(self.gpu_device)
             self.G_B = cycle_gan.Generator(n_residual_blocks=num_blocks, has_dropout=False).to(self.gpu_device)
-        else:
+        elif(net_config == 2):
             print("Using style transfer GAN")
             self.G_A = transfer_gan.Generator(n_residual_blocks=num_blocks).to(self.gpu_device)
             self.G_B = transfer_gan.Generator(n_residual_blocks=num_blocks).to(self.gpu_device)
+
+        else:
+            print("Using U-Net GAN")
+            self.G_A = unet_gan.UnetGenerator(input_nc=3, output_nc=3, num_downs=num_blocks).to(self.gpu_device)
+            self.G_B = unet_gan.UnetGenerator(input_nc=3, output_nc=3, num_downs=num_blocks).to(self.gpu_device)
 
         self.D_A = cycle_gan.Discriminator().to(self.gpu_device)  # use CycleGAN's discriminator
         self.D_B = cycle_gan.Discriminator().to(self.gpu_device)
