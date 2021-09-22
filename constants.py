@@ -11,6 +11,7 @@ DATASET_ALBEDO_PATH_PSEUDO_3 = "E:/Synth Hazy 3/albedo - pseudo/"
 DATASET_CLEAN_PATH_COMPLETE_3 = "E:/Synth Hazy 3/clean/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
+DATASET_ATMOSPHERE_PATH_COMPLETE_3 = "E:/Synth Hazy 3/atmosphere/"
 
 DATASET_CLEAN_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/clean/"
 DATASET_HAZY_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/hazy/"
@@ -61,7 +62,7 @@ GENERATOR_KEY = "generator"
 DISCRIMINATOR_KEY = "discriminator"
 LATENT_VECTOR_KEY = "latent_vector"
 
-STYLE_TRANSFER_VERSION = "synth2places_v1.12"
+STYLE_TRANSFER_VERSION = "synth2places_v1.15"
 UNLIT_NETWORK_VERSION = "albedo_transfer_v1.04"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.15"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
@@ -105,7 +106,7 @@ DC_FILTER_SIZE = 1
 manualSeed = 999
 
 # Number of training epochs
-num_epochs = 300
+num_epochs = 200
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size

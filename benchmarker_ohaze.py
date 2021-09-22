@@ -593,30 +593,23 @@ def output_best_worst(T_CHECKPT_NAME, A_CHECKPT_NAME, best_threshold, worst_thre
 
 
 def main():
+    # produce_ohaze("transmission_albedo_estimator_v1.15_6", "airlight_estimator_v1.15_6", True)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.15_6", "airlight_estimator_v1.15_6")
 
-    # produce_ohaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_7", True)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.11_7", "airlight_estimator_v1.10_7")
+    # produce_ohaze("transmission_albedo_estimator_v1.15_7", "airlight_estimator_v1.15_7", True)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.15_7", "airlight_estimator_v1.15_7")
     #
-    # produce_ohaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_8", True)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_8")
+    # produce_ohaze("transmission_albedo_estimator_v1.15_8", "airlight_estimator_v1.15_8", True)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.15_8", "airlight_estimator_v1.15_8")
     #
-    # produce_ohaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9", True)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.11_8", "airlight_estimator_v1.10_9")
+    # produce_ohaze("transmission_albedo_estimator_v1.15_9", "airlight_estimator_v1.15_9", True)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.15_9", "airlight_estimator_v1.15_9")
+    #
+    produce_ohaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10", True)
+    benchmark_ohaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10")
 
-    produce_ohaze("transmission_albedo_estimator_v1.15_4", "airlight_estimator_v1.15_4", True)
-    benchmark_ohaze("transmission_albedo_estimator_v1.15_4", "airlight_estimator_v1.15_4")
-
-    # produce_ohaze("transmission_albedo_estimator_v1.14.128_1", "airlight_estimator_v1.14.128_1", True)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.14.128_1", "airlight_estimator_v1.14.128_1")
-
-    # produce_ohaze("transmission_albedo_estimator_v1.11_97 - style_disabled", "airlight_estimator_v1.10_97 - style_disabled", True)
-    #benchmark_ohaze("transmission_albedo_estimator_v1.11_97 - style_disabled", "airlight_estimator_v1.10_97 - style_disabled")
-
-    # produce_ohaze("transmission_albedo_estimator_v1.11_98 - unlit_disabled", "airlight_estimator_v1.10_98 - unlit_disabled", False)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.11_98 - unlit_disabled", "airlight_estimator_v1.10_98 - unlit_disabled")
-
-    # produce_ohaze("transmission_albedo_estimator_v1.11_99 - style_unlit_disabled", "airlight_estimator_v1.10_99 - style_unlit_disabled", False)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.11_99 - style_unlit_disabled", "airlight_estimator_v1.10_99 - style_unlit_disabled")
+    # produce_ohaze("transmission_albedo_estimator_v1.15_12", "airlight_estimator_v1.15_12", True)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.15_12", "airlight_estimator_v1.15_12")
 
     # produce_ohaze_end_to_end("end_to_end_dehazer_v1.00_1")
     # benchmark_ohaze("end_to_end_dehazer_v1.00_1", "")
@@ -624,8 +617,8 @@ def main():
 
     # dehaze_single_end_to_end("end_to_end_dehazer_v1.00_1", "E:/Hazy Dataset Benchmark/OTS_BETA/haze/0899_0.95_0.2.jpg")
 
-    # dehaze_single("transmission_albedo_estimator_v1.11_3", "airlight_estimator_v1.10_3",
-    #               "E:/Hazy Dataset Benchmark/OTS_BETA/haze/0899_0.95_0.2.jpg", True)
+    dehaze_single("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10",
+                  "E:/Hazy Dataset Benchmark/OTS_BETA/haze/0920_0.95_0.2.jpg", True)
 
     # measure_performance("./results/Single/li_hazy_1.png", "E:/Hazy Dataset Benchmark/Standard/li_clear_1.png")
     # measure_performance("E:/Hazy Dataset Benchmark/Standard/li_produced_1.png", "E:/Hazy Dataset Benchmark/Standard/li_clear_1.png")

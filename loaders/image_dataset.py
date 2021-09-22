@@ -30,7 +30,7 @@ class DehazingDataset(data.Dataset):
         self.ATMOSPHERE_MIN = opts.a_min
         self.ATMOSPHERE_MAX = opts.a_max
 
-        print("Set dataset values: ", self.TRANSMISSION_MIN, self.TRANSMISSION_MAX, self.ATMOSPHERE_MIN, self.ATMOSPHERE_MAX)
+        print("Set dataset values: ", self.ATMOSPHERE_MIN, self.ATMOSPHERE_MAX, self.TRANSMISSION_MIN, self.TRANSMISSION_MAX)
         self.image_list_a = image_list_a
         self.depth_dir = depth_dir
         self.crop_size = crop_size
