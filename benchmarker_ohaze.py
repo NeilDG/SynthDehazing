@@ -605,11 +605,11 @@ def main():
     # produce_ohaze("transmission_albedo_estimator_v1.15_9", "airlight_estimator_v1.15_9", True)
     # benchmark_ohaze("transmission_albedo_estimator_v1.15_9", "airlight_estimator_v1.15_9")
     #
-    # produce_ohaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10", True)
-    # benchmark_ohaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10")
+    produce_ohaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10", True)
+    benchmark_ohaze("transmission_albedo_estimator_v1.15_10", "airlight_estimator_v1.15_10")
 
-    produce_ohaze("transmission_albedo_estimator_v1.15_11", "airlight_estimator_v1.15_11", True)
-    benchmark_ohaze("transmission_albedo_estimator_v1.15_11", "airlight_estimator_v1.15_11")
+    # produce_ohaze("transmission_albedo_estimator_v1.15_12", "airlight_estimator_v1.15_12", True)
+    # benchmark_ohaze("transmission_albedo_estimator_v1.15_12", "airlight_estimator_v1.15_12")
 
     # produce_ohaze_end_to_end("end_to_end_dehazer_v1.00_1")
     # benchmark_ohaze("end_to_end_dehazer_v1.00_1", "")
