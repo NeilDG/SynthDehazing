@@ -13,6 +13,10 @@ DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
 DATASET_ATMOSPHERE_PATH_COMPLETE_3 = "E:/Synth Hazy 3/atmosphere/"
 
+DATASET_CLEAN_PATH_COMPLETE_4 = "E:/Synth Hazy 4/clean/"
+DATASET_ALBEDO_PATH_COMPLETE_4 = "E:/Synth Hazy 4/albedo/"
+DATASET_CLEAN_PATH_COMPLETE_STYLED_4 = "E:/Synth Hazy 4/clean - styled/"
+
 DATASET_CLEAN_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/clean/"
 DATASET_HAZY_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/hazy/"
 
@@ -63,7 +67,7 @@ DISCRIMINATOR_KEY = "discriminator"
 LATENT_VECTOR_KEY = "latent_vector"
 
 STYLE_TRANSFER_VERSION = "synth2places_v1.15"
-UNLIT_NETWORK_VERSION = "albedo_transfer_v1.04"
+UNLIT_NETWORK_VERSION = "albedo_transfer_v1.05"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.15"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
 AIRLIGHT_VERSION = "airlight_estimator_v1.15"
