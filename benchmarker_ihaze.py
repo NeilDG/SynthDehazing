@@ -575,8 +575,11 @@ def produce_ihaze_end_to_end(CHECKPT_NAME):
             print("Saved: " + SAVE_PATH + img_name)
 
 def main():
-    produce_ihaze("transmission_albedo_estimator_v1.15_6", "airlight_estimator_v1.15_6", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.15_6", "airlight_estimator_v1.15_6")
+    # produce_ihaze("transmission_albedo_estimator_v1.15_6", "airlight_estimator_v1.15_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.15_6", "airlight_estimator_v1.15_6")
+
+    produce_ihaze("transmission_albedo_estimator_v1.16_6", "airlight_estimator_v1.16_6", True)
+    benchmark_ihaze("transmission_albedo_estimator_v1.16_6", "airlight_estimator_v1.16_6")
 
     # produce_ihaze("transmission_albedo_estimator_v1.15_7", "airlight_estimator_v1.15_7", True)
     # benchmark_ihaze("transmission_albedo_estimator_v1.15_7", "airlight_estimator_v1.15_7")

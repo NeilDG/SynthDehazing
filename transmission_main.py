@@ -58,6 +58,7 @@ def update_config(opts):
     constants.server_config = opts.server_config
     constants.ITERATION = str(opts.iteration)
     constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
+    constants.ALBEDO_CHECKPT = opts.albedo_checkpt
 
     if (constants.server_config == 1):
         constants.num_workers = opts.num_workers
@@ -75,7 +76,6 @@ def update_config(opts):
 
     elif (constants.server_config == 2):
         constants.num_workers = opts.num_workers
-        constants.ALBEDO_CHECKPT = opts.albedo_checkpt
 
         print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
 

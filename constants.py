@@ -68,13 +68,13 @@ LATENT_VECTOR_KEY = "latent_vector"
 
 STYLE_TRANSFER_VERSION = "synth2places_v1.15"
 UNLIT_NETWORK_VERSION = "albedo_transfer_v1.05"
-TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.15"
+TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.16"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
-AIRLIGHT_VERSION = "airlight_estimator_v1.15"
+AIRLIGHT_VERSION = "airlight_estimator_v1.16"
 DEHAZER_VERSION = "dehazer_v2.09"
 END_TO_END_DEHAZER_VERSION = "end_to_end_dehazer_v1.00"
 
-ITERATION = "1"
+ITERATION = "6"
 
 END_TO_END_CHECKPATH = 'checkpoint/' + END_TO_END_DEHAZER_VERSION + "_" + ITERATION + '.pt'
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'

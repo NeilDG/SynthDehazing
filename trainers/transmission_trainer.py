@@ -40,10 +40,11 @@ class TransmissionTrainer:
         self.fp16_scaler = amp.GradScaler()  # for automatic mixed precision
 
         checkpt = torch.load(constants.ALBEDO_CHECKPT)
-        self.albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(self.gpu_device)
+        # self.albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(self.gpu_device)
+        self.albedo_G = ffa_gan.FFA(gps=3, blocks=4).to(self.gpu_device)
         self.albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
         self.albedo_G.eval()
-        print("Albedo network loaded.")
+        print("Albedo network loaded: ", constants.ALBEDO_CHECKPT)
         
     
     def initialize_dict(self):

@@ -52,6 +52,7 @@ def update_config(opts):
     constants.server_config = opts.server_config
     constants.ITERATION = str(opts.iteration)
     constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_VERSION + "_" + constants.ITERATION + '.pt'
+    constants.ALBEDO_CHECKPT = opts.albedo_checkpt
 
     if (constants.server_config == 1):
         constants.num_workers = opts.num_workers
@@ -69,8 +70,6 @@ def update_config(opts):
 
     elif (constants.server_config == 2):
         constants.num_workers = opts.num_workers
-        constants.ALBEDO_CHECKPT = opts.albedo_checkpt
-
         print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
 
         constants.DATASET_CLEAN_STYLED_LOW_PATH = "Synth Hazy - Low/clean - styled/"
