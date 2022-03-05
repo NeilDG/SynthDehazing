@@ -541,7 +541,8 @@ def main():
     # create_img_from_video_data(PATH_B, SAVE_PATH_B, 0)
 
     #create_hazy_data(0)
-    produce_color_images("E:/Synth Hazy 4/clean/", "E:/Synth Hazy 4/clean - styled/",  "synth2places_v1.15_1.pt", net_config = 3)
+    # produce_color_images("E:/Synth Hazy 4/clean/", "E:/Synth Hazy 4/clean - styled/",  "synth2places_v1.15_1.pt", net_config = 3)
+    produce_color_images("E:/SynthWeather Dataset/default/", "E:/SynthWeather Dataset/styled/", "color_transfer_v1.11_1 - stable.pt", net_config=2)
 
     #produce_pseudo_albedo_images()
     # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.15_1.pt", net_config = 3)
