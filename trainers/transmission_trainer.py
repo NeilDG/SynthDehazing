@@ -13,19 +13,23 @@ from utils import plot_utils
 from utils import tensor_utils
 import torch.cuda.amp as amp
 import kornia
+from model import iteration_table
 
 class TransmissionTrainer:
     
-    def __init__(self, gpu_device, batch_size, is_unet, num_blocks, has_dropout, g_lr = 0.0002, d_lr = 0.0002):
+    def __init__(self, gpu_device, opts):
         self.gpu_device = gpu_device
-        self.g_lr = g_lr
-        self.d_lr = d_lr
-        self.batch_size = batch_size
+        self.g_lr = opts.g_lr
+        self.d_lr = opts.d_lr
+        self.batch_size = opts.batch_size
+        self.iteration = opts.iteration
+        num_blocks = opts.t_num_blocks
+        is_unet = opts.is_t_unet
 
         if(is_unet == 1):
             self.G_T = un.UnetGenerator(input_nc=3, output_nc=1, num_downs = num_blocks).to(self.gpu_device)
         else:
-            self.G_T = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = num_blocks,  has_dropout=has_dropout).to(self.gpu_device)
+            self.G_T = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = num_blocks,  has_dropout=False).to(self.gpu_device)
 
         self.D_T = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 
@@ -34,8 +38,8 @@ class TransmissionTrainer:
 
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_T.parameters()), lr=self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_T.parameters()), lr=self.d_lr)
-        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 100000 / batch_size, threshold = 0.00005)
-        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 100000 / batch_size, threshold = 0.00005)
+        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 100000 / self.batch_size, threshold = 0.00005)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 100000 / self.batch_size, threshold = 0.00005)
 
         self.fp16_scaler = amp.GradScaler()  # for automatic mixed precision
 
@@ -68,11 +72,15 @@ class TransmissionTrainer:
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
         
     
-    def update_penalties(self, adv_weight, likeness_weight, edge_weight, comments):
+    def update_penalties(self, adv_weight, comments):
         #what penalties to use for losses?
         self.adv_weight = adv_weight
-        self.likeness_weight = likeness_weight
-        self.edge_weight = edge_weight
+
+        it = iteration_table.IterationTable()
+
+        self.likeness_weight = it.get_l1_weight(self.iteration)
+        self.edge_weight = it.get_edge_weight(self.iteration)
+        self.lpip_weight = it.get_lpip_weight(self.iteration)
 
         # save hyperparameters for bookkeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + ".config"
@@ -85,10 +93,11 @@ class TransmissionTrainer:
             print("Adv weight: ", str(self.adv_weight), file=f)
             print("Likeness weight: ", str(self.likeness_weight), file=f)
             print("Edge weight: ", str(self.edge_weight), file=f)
+            print("LPIP weight: ", str(self.lpip_weight), file=f)
     
     def adversarial_loss(self, pred, target):
-        loss = nn.BCEWithLogitsLoss()
-        #loss = nn.L1Loss()
+        # loss = nn.BCEWithLogitsLoss()
+        loss = nn.L1Loss()
         return loss(pred, target)
 
     def likeness_loss(self, pred, target):

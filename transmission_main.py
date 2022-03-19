@@ -34,8 +34,10 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
+# parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
+# parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
+# parser.add_option('--lpips_weight', type=float, help="Weight", default="0.0")
+parser.add_option('--version_name', type=str, help="version_name")
 parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
 parser.add_option('--batch_size', type=int, help="batch_size", default="256")
@@ -57,6 +59,7 @@ parser.add_option('--comments', type=str, help="comments for bookmarking", defau
 def update_config(opts):
     constants.server_config = opts.server_config
     constants.ITERATION = str(opts.iteration)
+    constants.TRANSMISSION_VERSION = opts.version_name
     constants.TRANSMISSION_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + '.pt'
     constants.ALBEDO_CHECKPT = opts.albedo_checkpt
 
@@ -117,8 +120,8 @@ def main(argv):
     device = torch.device(opts.cuda_device if (torch.cuda.is_available()) else "cpu")
     print("Device: %s" % device)
 
-    trainer = transmission_trainer.TransmissionTrainer(device, opts.batch_size, opts.is_t_unet, opts.t_num_blocks, False, opts.g_lr, opts.d_lr)
-    trainer.update_penalties(opts.adv_weight, opts.likeness_weight, opts.edge_weight, opts.comments)
+    trainer = transmission_trainer.TransmissionTrainer(device, opts)
+    trainer.update_penalties(opts.adv_weight, opts.comments)
 
     early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 8000)
 
@@ -159,6 +162,7 @@ def main(argv):
     #     gt.visdom_infer_train(rgb_tensor, transmission_tensor, i)
     #     break
 
+    index = 0
     for epoch in range(start_epoch, constants.num_epochs):
         # For each batch in the dataloader
         for i, (train_data, test_data) in enumerate(zip(train_loader, test_loader)):
@@ -179,8 +183,8 @@ def main(argv):
 
             if ((i) % 100 == 0):
                 trainer.save_states_unstable(epoch, iteration)
-                # trainer.visdom_report(iteration)
-                # trainer.visdom_infer_train(hazy_tensor, transmission_tensor, 0)
+                trainer.visdom_report(iteration)
+                trainer.visdom_infer_train(hazy_tensor, transmission_tensor, 0)
                 # for i in range(len(test_loaders)):
                 #     _, rgb_batch, _ = next(iter(test_loaders[i]))
                 #     rgb_batch = rgb_batch.to(device)

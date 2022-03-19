@@ -71,7 +71,7 @@ UNLIT_NETWORK_VERSION = "albedo_transfer_v1.05"
 TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.16"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
 AIRLIGHT_VERSION = "airlight_estimator_v1.16"
-DEHAZER_VERSION = "dehazer_v2.09"
+DEHAZER_VERSION = "dehazer_v2.10"
 END_TO_END_DEHAZER_VERSION = "end_to_end_dehazer_v1.00"
 
 ITERATION = "6"
