@@ -96,6 +96,7 @@ REALNESS_LOSS_KEY = "realness"
 PSNR_LOSS_KEY = "colorshift"
 SMOOTHNESS_LOSS_KEY = "smoothness"
 EDGE_LOSS_KEY = "edge"
+LPIPS_LOSS_KEY = "lpips"
 
 D_OVERALL_LOSS_KEY = "d_loss"
 D_A_REAL_LOSS_KEY = "d_real_a"
@@ -122,4 +123,6 @@ DEHAZE_FILTER_STRENGTH = 0.1
 server_config = 0
 num_workers = 12
 ALBEDO_CHECKPT = "checkpoint/albedo_transfer_v1.04_1.pt"
+
+current_epoch = 0
     

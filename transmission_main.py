@@ -34,14 +34,12 @@ parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
 parser.add_option('--adv_weight', type=float, help="Weight", default="1.0")
-# parser.add_option('--likeness_weight', type=float, help="Weight", default="10.0")
-# parser.add_option('--edge_weight', type=float, help="Weight", default="5.0")
-# parser.add_option('--lpips_weight', type=float, help="Weight", default="0.0")
 parser.add_option('--version_name', type=str, help="version_name")
 parser.add_option('--is_t_unet',type=int, help="Is Unet?", default="0")
 parser.add_option('--t_num_blocks', type=int, help="Num Blocks", default = 10)
 parser.add_option('--batch_size', type=int, help="batch_size", default="256")
 parser.add_option('--patch_size', type=int, help="patch_size", default="32")
+parser.add_option('--filter_patches', type=int, default = 0)
 parser.add_option('--g_lr', type=float, help="LR", default="0.0001")
 parser.add_option('--d_lr', type=float, help="LR", default="0.0002")
 parser.add_option('--num_workers', type=int, help="Workers", default="12")
@@ -93,6 +91,19 @@ def update_config(opts):
         constants.DATASET_STANDARD_PATH_COMPLETE = "Hazy Dataset Benchmark/Standard/"
         constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "Hazy Dataset Benchmark/RESIDE-Unannotated/"
 
+    elif (constants.server_config == 3):
+        print("Using GCloud configuration. Workers: ", opts.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/home/neil_delgallego/Synth Hazy 3/clean - styled/"
+        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/home/neil_delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/home/neil_delgallego/Synth Hazy 3/albedo - pseudo/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/home/neil_delgallego/Synth Hazy 3/depth/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/home/neil_delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "/home/neil_delgallego/Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/home/neil_delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "/home/neil_delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3
+        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = constants.DATASET_DEPTH_PATH_COMPLETE_3
+
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -113,7 +124,8 @@ def main(argv):
     print("Server config? %d Has GPU available? %d Count: %d" % (constants.server_config, torch.cuda.is_available(), torch.cuda.device_count()))
     print("Torch CUDA version: %s" % torch.version.cuda)
 
-    manualSeed = random.randint(1, 10000)  # use if you want new results
+    # manualSeed = random.randint(1, 10000)  # use if you want new results
+    manualSeed = 1  # use if you want new results
     random.seed(manualSeed)
     torch.manual_seed(manualSeed)
 
@@ -194,6 +206,7 @@ def main(argv):
                 #     if (index == 0):
                 #         test_loaders = [dataset_loader.load_dehaze_dataset_test_paired(constants.DATASET_OHAZE_HAZY_PATH_COMPLETE, constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE, opts.batch_size, opts.img_to_load)]
 
+        constants.current_epoch = epoch
         if (early_stopper_l1.test(trainer, epoch, iteration, transmission_like, transmission_tensor)):
             break
 

@@ -5,7 +5,7 @@ Created on Fri Jun  7 19:01:36 2019
 
 @author: delgallegon
 """
-
+import numpy as np
 import torch
 from torch.utils import data
 from loaders import image_dataset
@@ -84,6 +84,7 @@ def load_dehazing_dataset(path_a, path_b, opts, return_ground_truth = False, num
         shuffle=True
     )
     return data_loader
+
 
 def load_end_to_end_dehazing_dataset(path_a, path_b, batch_size=8, num_image_to_load=-1, num_workers = 12):
     a_list = assemble_unpaired_data(path_a, num_image_to_load)

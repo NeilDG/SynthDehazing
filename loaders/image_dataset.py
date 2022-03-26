@@ -29,6 +29,7 @@ class DehazingDataset(data.Dataset):
         self.TRANSMISSION_MAX = opts.t_max
         self.ATMOSPHERE_MIN = opts.a_min
         self.ATMOSPHERE_MAX = opts.a_max
+        self.filter_patches = opts.filter_patches
 
         print("Set dataset values: ", self.ATMOSPHERE_MIN, self.ATMOSPHERE_MAX, self.TRANSMISSION_MIN, self.TRANSMISSION_MAX)
         self.image_list_a = image_list_a
@@ -58,7 +59,7 @@ class DehazingDataset(data.Dataset):
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
 
-        clear_img = cv2.imread(img_id);
+        clear_img = cv2.imread(img_id)
         clear_img = cv2.cvtColor(clear_img, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
         clear_img = cv2.resize(clear_img, self.resize_shape)
         clear_img_uint = clear_img
@@ -87,24 +88,39 @@ class DehazingDataset(data.Dataset):
         hazy_img_like[:, :, 1] = (clear_img[:, :, 1] * T) + atmosphere[1] * (1 - T)
         hazy_img_like[:, :, 2] = (clear_img[:, :, 2] * T) + atmosphere[2] * (1 - T)
 
-        img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-        img_a = self.initial_img_op(img_a)
-
-        transmission_img = cv2.resize(T, self.resize_shape)
-
         if(self.should_crop):
-            crop_indices = transforms.RandomCrop.get_params(img_a, output_size=self.crop_size)
-            i, j, h, w = crop_indices
+            while (True):
+                img_a = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+                img_a = self.initial_img_op(img_a)
+                transmission_img = cv2.resize(T, self.resize_shape)
+                crop_indices = transforms.RandomCrop.get_params(img_a, output_size=self.crop_size)
+                i, j, h, w = crop_indices
 
-            img_a = transforms.functional.crop(img_a, i, j, h, w)
-            hazy_img_like = hazy_img_like[i: i + h, j: j + w]
-            transmission_img = transmission_img[i: i + h, j: j + w]
-            clear_img_uint = clear_img_uint[i: i + h, j: j + w]
+                hazy_img_crop = hazy_img_like[i: i + h, j: j + w]
+                transmission_img = transmission_img[i: i + h, j: j + w]
+                clear_img_uint = clear_img_uint[i: i + h, j: j + w]
 
+                laplacian_img = cv2.Laplacian(transmission_img, cv2.CV_64F, ksize=3)
 
-        img_a = self.final_transform_op(hazy_img_like)
-        transmission_img = self.depth_transform_op(transmission_img)
-        atmosphere = torch.tensor(atmosphere)
+                patch_total = self.crop_size[0] * self.crop_size[1]
+
+                if (self.filter_patches == 0):
+                    break
+                elif(self.filter_patches == 1 and cv2.countNonZero(laplacian_img) > (patch_total * 0.5)):
+                    print("Sobel count: ", cv2.countNonZero(laplacian_img), " Patch total: ", patch_total)
+                    print("Crop indices:", crop_indices, "Seed: ", torch.random.seed())
+                    torch.random.manual_seed(torch.random.seed() + 1)
+                    break
+
+            img_a = self.final_transform_op(hazy_img_crop)
+            transmission_img = self.depth_transform_op(transmission_img)
+            atmosphere = torch.tensor(atmosphere)
+
+        else:
+            transmission_img = cv2.resize(T, self.resize_shape)
+            img_a = self.final_transform_op(hazy_img_like)
+            transmission_img = self.depth_transform_op(transmission_img)
+            atmosphere = torch.tensor(atmosphere)
 
         if(self.return_ground_truth):
             ground_truth_img = self.final_transform_op(clear_img_uint)

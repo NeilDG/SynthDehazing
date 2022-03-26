@@ -404,6 +404,46 @@ class ModelDehazer():
         self.transmission_models["transmission_albedo_estimator_v1.16_6"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
         self.transmission_models["transmission_albedo_estimator_v1.16_6"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_13.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_13"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_13"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_14.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_14"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_14"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_15.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_15"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_15"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_16.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_16"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_16"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_17.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_17"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_17"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_18.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_18"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_18"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_19.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_19"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_19"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_20.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_20"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_20"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_21.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_21"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_21"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_22.pt", map_location=self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_22"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
+        self.transmission_models["transmission_albedo_estimator_v1.16_22"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
+
         checkpt = torch.load("checkpoint/airlight_estimator_v1.16_6.pt", map_location=self.gpu_device)
         self.atmosphere_models["airlight_estimator_v1.16_6"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
         self.atmosphere_models["airlight_estimator_v1.16_6"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])

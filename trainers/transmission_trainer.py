@@ -14,6 +14,7 @@ from utils import tensor_utils
 import torch.cuda.amp as amp
 import kornia
 from model import iteration_table
+import lpips
 
 class TransmissionTrainer:
     
@@ -25,6 +26,10 @@ class TransmissionTrainer:
         self.iteration = opts.iteration
         num_blocks = opts.t_num_blocks
         is_unet = opts.is_t_unet
+
+        self.lpips_loss = lpips.LPIPS(net='vgg').to(self.gpu_device)
+        self.l1_loss = nn.L1Loss()
+        self.bce_loss = nn.BCEWithLogitsLoss()
 
         if(is_unet == 1):
             self.G_T = un.UnetGenerator(input_nc=3, output_nc=1, num_downs = num_blocks).to(self.gpu_device)
@@ -58,6 +63,7 @@ class TransmissionTrainer:
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
         self.losses_dict[constants.LIKENESS_LOSS_KEY] = []
         self.losses_dict[constants.EDGE_LOSS_KEY] = []
+        self.losses_dict[constants.LPIPS_LOSS_KEY] = []
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
@@ -67,6 +73,7 @@ class TransmissionTrainer:
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
         self.caption_dict[constants.EDGE_LOSS_KEY] = "Edge loss per iteration"
+        self.caption_dict[constants.LPIPS_LOSS_KEY] = "LPIPS loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
@@ -96,20 +103,21 @@ class TransmissionTrainer:
             print("LPIP weight: ", str(self.lpip_weight), file=f)
     
     def adversarial_loss(self, pred, target):
-        # loss = nn.BCEWithLogitsLoss()
-        loss = nn.L1Loss()
-        return loss(pred, target)
+        return self.bce_loss(pred, target)
 
     def likeness_loss(self, pred, target):
-        loss = nn.L1Loss()
-        return loss(pred, target)
+        return self.l1_loss(pred, target)
 
     def edge_loss(self, pred, target):
-        loss = nn.L1Loss()
         pred_grad = kornia.filters.spatial_gradient(pred)
         target_grad = kornia.filters.spatial_gradient(target)
 
-        return loss(pred_grad, target_grad)
+        return self.l1_loss(pred_grad, target_grad)
+
+    def lpips_loss_proper(self, pred, target):
+        result = torch.squeeze(self.lpips_loss(pred, target))
+        result = torch.mean(result)
+        return result
 
     def train(self, iteration, hazy_tensor, transmission_tensor, unlit_enabled = 1):
         with amp.autocast():
@@ -141,12 +149,13 @@ class TransmissionTrainer:
 
             A_likeness_loss = self.likeness_loss(self.G_T(hazy_tensor), transmission_tensor) * self.likeness_weight
             A_edge_loss = self.edge_loss(self.G_T(hazy_tensor), transmission_tensor) * self.edge_weight
+            A_lpips_loss = self.lpips_loss_proper(self.G_T(hazy_tensor), transmission_tensor) * self.lpip_weight
 
             prediction = self.D_T(self.G_T(hazy_tensor))
             real_tensor = torch.ones_like(prediction)
             A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            errG = A_likeness_loss + A_adv_loss + A_edge_loss
+            errG = A_likeness_loss + A_adv_loss + A_edge_loss + A_lpips_loss
             self.fp16_scaler.scale(errG).backward()
             if (iteration % (512 / self.batch_size) == 0):
                 self.fp16_scaler.step(self.optimizerG)
@@ -158,6 +167,7 @@ class TransmissionTrainer:
             self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
             self.losses_dict[constants.LIKENESS_LOSS_KEY].append(A_likeness_loss.item())
             self.losses_dict[constants.EDGE_LOSS_KEY].append(A_edge_loss.item())
+            self.losses_dict[constants.LPIPS_LOSS_KEY].append(A_lpips_loss.item())
             self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item())
             self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
             self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())

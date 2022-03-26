@@ -10,8 +10,32 @@ def main():
     # os.system("python \"dehaze_main.py\" --num_workers=12 --img_to_load=-1 --load_previous=1 --iteration=6 --batch_size=256 --t_min=0.6 --t_max=1.8 --a_min=0.7 --a_max=1.0 "
     #           "--version_name=\"dehazer_v2.10\" --iteration=6 "
     #           "--albedo_checkpt=\"checkpoint/albedo_transfer_v1.05_1.pt\"")
-    os.system("python \"transmission_main.py\" --num_workers=12 --img_to_load=-1 --load_previous=1 "
-              "--version_name=transmission_albedo_estimator_v1.16 --iteration=13 --batch_size=256 --albedo_checkpt=\"checkpoint/albedo_transfer_v1.05_1.pt\" "
+
+    os.system("python \"transmission_main.py\" --num_workers=1 --img_to_load=-1 --load_previous=0 "
+              "--version_name=transmission_albedo_estimator_v1.18 --iteration=13 --filter_patches=1 --patch_size=32 --batch_size=256 --albedo_checkpt=\"checkpoint/albedo_transfer_v1.05_1.pt\" "
               "--t_min=0.6 --t_max=1.8 --a_min=0.7 --a_max=1.0 ")
+
+    os.system("python \"transmission_main.py\" --num_workers=12 --img_to_load=-1 --load_previous=0 "
+              "--version_name=transmission_albedo_estimator_v1.18 --iteration=14 --filter_patches=1 --patch_size=32 --batch_size=256 --albedo_checkpt=\"checkpoint/albedo_transfer_v1.05_1.pt\" "
+              "--t_min=0.6 --t_max=1.8 --a_min=0.7 --a_max=1.0 ")
+
+    # os.system("shutdown /s /t 1")
+
+    #
+    # os.system("python \"transmission_main.py\" --num_workers=12 --img_to_load=-1 --load_previous=0 "
+    #           "--version_name=transmission_albedo_estimator_v1.16 --iteration=15 --batch_size=256 --albedo_checkpt=\"checkpoint/albedo_transfer_v1.05_1.pt\" "
+    #           "--t_min=0.6 --t_max=1.8 --a_min=0.7 --a_max=1.0 ")
+    #
+    # os.system("python \"transmission_main.py\" --num_workers=12 --img_to_load=-1 --load_previous=0 "
+    #           "--version_name=transmission_albedo_estimator_v1.16 --iteration=16 --batch_size=256 --albedo_checkpt=\"checkpoint/albedo_transfer_v1.05_1.pt\" "
+    #           "--t_min=0.6 --t_max=1.8 --a_min=0.7 --a_max=1.0 ")
+    #
+    # os.system("python \"transmission_main.py\" --num_workers=12 --img_to_load=-1 --load_previous=0 "
+    #           "--version_name=transmission_albedo_estimator_v1.16 --iteration=17 --batch_size=256 --albedo_checkpt=\"checkpoint/albedo_transfer_v1.05_1.pt\" "
+    #           "--t_min=0.6 --t_max=1.8 --a_min=0.7 --a_max=1.0 ")
+    #
+    # os.system("python \"transmission_main.py\" --num_workers=12 --img_to_load=-1 --load_previous=0 "
+    #           "--version_name=transmission_albedo_estimator_v1.16 --iteration=18 --batch_size=256 --albedo_checkpt=\"checkpoint/albedo_transfer_v1.05_1.pt\" "
+    #           "--t_min=0.6 --t_max=1.8 --a_min=0.7 --a_max=1.0 ")
 if __name__ == "__main__":
     main()
