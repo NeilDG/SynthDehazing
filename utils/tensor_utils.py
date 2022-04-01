@@ -79,6 +79,24 @@ def convert_to_opencv(img_tensor):
     return img
 
 
+def load_true_img(img_path):
+    img = cv2.imread(img_path)
+
+    img = cv2.normalize(img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    return img
+
+def load_metrics_compatible_img(img_path, im_size: tuple):
+    img = cv2.imread(img_path)
+    img = cv2.resize(img, im_size)
+
+    img = cv2.normalize(img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    return img
+
+
 # loads an image compatible with opencv
 def load_image(file_path):
     img = cv2.imread(file_path)

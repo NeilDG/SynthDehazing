@@ -29,6 +29,7 @@ parser = OptionParser()
 parser.add_option('--server_config', type=int, help="Is running on COARE?", default=0)
 parser.add_option('--cuda_device', type=str, help="CUDA Device?", default="cuda:0")
 parser.add_option('--albedo_checkpt', type=str, help="Albedo checkpt?", default="checkpoint/albedo_transfer_v1.04_1.pt")
+parser.add_option('--version_name', type=str, help="version_name")
 parser.add_option('--img_to_load', type=int, help="Image to load?", default=-1)
 parser.add_option('--load_previous', type=int, help="Load previous?", default=0)
 parser.add_option('--iteration', type=int, help="Style version?", default="1")
@@ -41,6 +42,7 @@ parser.add_option('--t_min', type=float, help="", default="0.1")
 parser.add_option('--t_max', type=float, help="", default="1.2")
 parser.add_option('--a_min', type=float, help="", default="0.1")
 parser.add_option('--a_max', type=float, help="", default="0.95")
+parser.add_option('--penalty_weight', type=float, help="", default="1.0")
 parser.add_option('--style_transfer_enabled', type=int, help="", default="1")
 parser.add_option('--use_lowres', type=int, help="", default="0")
 parser.add_option('--comments', type=str, help="comments for bookmarking", default="New airlight estimator network. 32 x 32 patch")
@@ -51,6 +53,7 @@ parser.add_option('--comments', type=str, help="comments for bookmarking", defau
 def update_config(opts):
     constants.server_config = opts.server_config
     constants.ITERATION = str(opts.iteration)
+    constants.AIRLIGHT_VERSION = opts.version_name
     constants.AIRLIGHT_ESTIMATOR_CHECKPATH = 'checkpoint/' + constants.AIRLIGHT_VERSION + "_" + constants.ITERATION + '.pt'
 
     if (constants.server_config == 1):
@@ -69,8 +72,6 @@ def update_config(opts):
 
     elif (constants.server_config == 2):
         constants.num_workers = opts.num_workers
-        constants.ALBEDO_CHECKPT = opts.albedo_checkpt
-
         print("Using CCS configuration. Workers: ", constants.num_workers, "Path: ", constants.AIRLIGHT_ESTIMATOR_CHECKPATH)
 
         constants.DATASET_CLEAN_STYLED_LOW_PATH = "Synth Hazy - Low/clean - styled/"
@@ -84,6 +85,19 @@ def update_config(opts):
         constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "Hazy Dataset Benchmark/O-HAZE/GT/"
         constants.DATASET_STANDARD_PATH_COMPLETE = "Hazy Dataset Benchmark/Standard/"
         constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "Hazy Dataset Benchmark/RESIDE-Unannotated/"
+
+    elif (constants.server_config == 3):
+        print("Using GCloud configuration. Workers: ", opts.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "/home/neil_delgallego/Synth Hazy 3/clean - styled/"
+        constants.DATASET_ALBEDO_PATH_COMPLETE_3 = "/home/neil_delgallego/Synth Hazy 3/albedo/"
+        constants.DATASET_ALBEDO_PATH_PSEUDO_3 = "/home/neil_delgallego/Synth Hazy 3/albedo - pseudo/"
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = "/home/neil_delgallego/Synth Hazy 3/depth/"
+        constants.DATASET_OHAZE_HAZY_PATH_COMPLETE = "/home/neil_delgallego/Hazy Dataset Benchmark/O-HAZE/hazy/"
+        constants.DATASET_OHAZE_CLEAN_PATH_COMPLETE = "/home/neil_delgallego/Hazy Dataset Benchmark/O-HAZE/GT/"
+        constants.DATASET_RESIDE_TEST_PATH_COMPLETE = "/home/neil_delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_STANDARD_PATH_COMPLETE = "/home/neil_delgallego/Hazy Dataset Benchmark/RESIDE-Unannotated/"
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3
+        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = constants.DATASET_DEPTH_PATH_COMPLETE_3
 
 
 def show_images(img_tensor, caption):
@@ -113,7 +127,7 @@ def main(argv):
     print("Device: %s" % device)
 
     airlight_term_trainer = airlight_trainer.AirlightTrainer(device, opts.batch_size, opts.num_layers, opts.d_lr)
-    airlight_term_trainer.update_penalties(1.0, opts.comments)
+    airlight_term_trainer.update_penalties(opts.penalty_weight, opts.comments)
 
     early_stopper_l1 = early_stopper.EarlyStopper(40, early_stopper.EarlyStopperMethod.L1_TYPE, 20)
 

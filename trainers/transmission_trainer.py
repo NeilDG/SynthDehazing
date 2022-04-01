@@ -13,19 +13,28 @@ from utils import plot_utils
 from utils import tensor_utils
 import torch.cuda.amp as amp
 import kornia
+from model import iteration_table
+import lpips
 
 class TransmissionTrainer:
     
-    def __init__(self, gpu_device, batch_size, is_unet, num_blocks, has_dropout, g_lr = 0.0002, d_lr = 0.0002):
+    def __init__(self, gpu_device, opts):
         self.gpu_device = gpu_device
-        self.g_lr = g_lr
-        self.d_lr = d_lr
-        self.batch_size = batch_size
+        self.g_lr = opts.g_lr
+        self.d_lr = opts.d_lr
+        self.batch_size = opts.batch_size
+        self.iteration = opts.iteration
+        num_blocks = opts.t_num_blocks
+        is_unet = opts.is_t_unet
+
+        self.lpips_loss = lpips.LPIPS(net='vgg').to(self.gpu_device)
+        self.l1_loss = nn.L1Loss()
+        self.bce_loss = nn.BCEWithLogitsLoss()
 
         if(is_unet == 1):
             self.G_T = un.UnetGenerator(input_nc=3, output_nc=1, num_downs = num_blocks).to(self.gpu_device)
         else:
-            self.G_T = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = num_blocks,  has_dropout=has_dropout).to(self.gpu_device)
+            self.G_T = cg.Generator(input_nc = 3, output_nc = 1, n_residual_blocks = num_blocks,  has_dropout=False).to(self.gpu_device)
 
         self.D_T = dh.Discriminator(input_nc = 1).to(self.gpu_device)
 
@@ -34,16 +43,17 @@ class TransmissionTrainer:
 
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_T.parameters()), lr=self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_T.parameters()), lr=self.d_lr)
-        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 100000 / batch_size, threshold = 0.00005)
-        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 100000 / batch_size, threshold = 0.00005)
+        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience = 100000 / self.batch_size, threshold = 0.00005)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience = 100000 / self.batch_size, threshold = 0.00005)
 
         self.fp16_scaler = amp.GradScaler()  # for automatic mixed precision
 
         checkpt = torch.load(constants.ALBEDO_CHECKPT)
-        self.albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(self.gpu_device)
+        # self.albedo_G = ffa_gan.FFA(gps=3, blocks=18).to(self.gpu_device)
+        self.albedo_G = ffa_gan.FFA(gps=3, blocks=4).to(self.gpu_device)
         self.albedo_G.load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
         self.albedo_G.eval()
-        print("Albedo network loaded.")
+        print("Albedo network loaded: ", constants.ALBEDO_CHECKPT)
         
     
     def initialize_dict(self):
@@ -53,6 +63,7 @@ class TransmissionTrainer:
         self.losses_dict[constants.D_OVERALL_LOSS_KEY] = []
         self.losses_dict[constants.LIKENESS_LOSS_KEY] = []
         self.losses_dict[constants.EDGE_LOSS_KEY] = []
+        self.losses_dict[constants.LPIPS_LOSS_KEY] = []
         self.losses_dict[constants.G_ADV_LOSS_KEY] = []
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY] = []
         self.losses_dict[constants.D_A_REAL_LOSS_KEY] = []
@@ -62,16 +73,21 @@ class TransmissionTrainer:
         self.caption_dict[constants.D_OVERALL_LOSS_KEY] = "D loss per iteration"
         self.caption_dict[constants.LIKENESS_LOSS_KEY] = "Likeness loss per iteration"
         self.caption_dict[constants.EDGE_LOSS_KEY] = "Edge loss per iteration"
+        self.caption_dict[constants.LPIPS_LOSS_KEY] = "LPIPS loss per iteration"
         self.caption_dict[constants.G_ADV_LOSS_KEY] = "G adv loss per iteration"
         self.caption_dict[constants.D_A_FAKE_LOSS_KEY] = "D(A) fake loss per iteration"
         self.caption_dict[constants.D_A_REAL_LOSS_KEY] = "D(A) real loss per iteration"
         
     
-    def update_penalties(self, adv_weight, likeness_weight, edge_weight, comments):
+    def update_penalties(self, adv_weight, comments):
         #what penalties to use for losses?
         self.adv_weight = adv_weight
-        self.likeness_weight = likeness_weight
-        self.edge_weight = edge_weight
+
+        it = iteration_table.IterationTable()
+
+        self.likeness_weight = it.get_l1_weight(self.iteration)
+        self.edge_weight = it.get_edge_weight(self.iteration)
+        self.lpip_weight = it.get_lpip_weight(self.iteration)
 
         # save hyperparameters for bookkeeping
         HYPERPARAMS_PATH = "checkpoint/" + constants.TRANSMISSION_VERSION + "_" + constants.ITERATION + ".config"
@@ -84,22 +100,24 @@ class TransmissionTrainer:
             print("Adv weight: ", str(self.adv_weight), file=f)
             print("Likeness weight: ", str(self.likeness_weight), file=f)
             print("Edge weight: ", str(self.edge_weight), file=f)
+            print("LPIP weight: ", str(self.lpip_weight), file=f)
     
     def adversarial_loss(self, pred, target):
-        loss = nn.BCEWithLogitsLoss()
-        #loss = nn.L1Loss()
-        return loss(pred, target)
+        return self.bce_loss(pred, target)
 
     def likeness_loss(self, pred, target):
-        loss = nn.L1Loss()
-        return loss(pred, target)
+        return self.l1_loss(pred, target)
 
     def edge_loss(self, pred, target):
-        loss = nn.L1Loss()
         pred_grad = kornia.filters.spatial_gradient(pred)
         target_grad = kornia.filters.spatial_gradient(target)
 
-        return loss(pred_grad, target_grad)
+        return self.l1_loss(pred_grad, target_grad)
+
+    def lpips_loss_proper(self, pred, target):
+        result = torch.squeeze(self.lpips_loss(pred, target))
+        result = torch.mean(result)
+        return result
 
     def train(self, iteration, hazy_tensor, transmission_tensor, unlit_enabled = 1):
         with amp.autocast():
@@ -131,12 +149,13 @@ class TransmissionTrainer:
 
             A_likeness_loss = self.likeness_loss(self.G_T(hazy_tensor), transmission_tensor) * self.likeness_weight
             A_edge_loss = self.edge_loss(self.G_T(hazy_tensor), transmission_tensor) * self.edge_weight
+            A_lpips_loss = self.lpips_loss_proper(self.G_T(hazy_tensor), transmission_tensor) * self.lpip_weight
 
             prediction = self.D_T(self.G_T(hazy_tensor))
             real_tensor = torch.ones_like(prediction)
             A_adv_loss = self.adversarial_loss(prediction, real_tensor) * self.adv_weight
 
-            errG = A_likeness_loss + A_adv_loss + A_edge_loss
+            errG = A_likeness_loss + A_adv_loss + A_edge_loss + A_lpips_loss
             self.fp16_scaler.scale(errG).backward()
             if (iteration % (512 / self.batch_size) == 0):
                 self.fp16_scaler.step(self.optimizerG)
@@ -148,6 +167,7 @@ class TransmissionTrainer:
             self.losses_dict[constants.D_OVERALL_LOSS_KEY].append(errD.item())
             self.losses_dict[constants.LIKENESS_LOSS_KEY].append(A_likeness_loss.item())
             self.losses_dict[constants.EDGE_LOSS_KEY].append(A_edge_loss.item())
+            self.losses_dict[constants.LPIPS_LOSS_KEY].append(A_lpips_loss.item())
             self.losses_dict[constants.G_ADV_LOSS_KEY].append(A_adv_loss.item())
             self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
             self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())

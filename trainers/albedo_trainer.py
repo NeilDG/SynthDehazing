@@ -18,7 +18,7 @@ from utils import plot_utils
 
 class AlbedoTrainer:
 
-    def __init__(self, gpu_device, g_lr, d_lr, num_blocks):
+    def __init__(self, gpu_device, batch_size, g_lr, d_lr, num_blocks):
         self.gpu_device = gpu_device
         self.g_lr = g_lr
         self.d_lr = d_lr
@@ -29,8 +29,8 @@ class AlbedoTrainer:
         self.visdom_reporter = plot_utils.VisdomReporter()
         self.optimizerG = torch.optim.Adam(itertools.chain(self.G_A.parameters()), lr=self.g_lr)
         self.optimizerD = torch.optim.Adam(itertools.chain(self.D_A.parameters()), lr=self.d_lr)
-        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience=100000 / constants.batch_size, threshold=0.00005)
-        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience=100000 / constants.batch_size, threshold=0.00005)
+        self.schedulerG = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerG, patience=100000 / batch_size, threshold=0.00005)
+        self.schedulerD = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizerD, patience=100000 / batch_size, threshold=0.00005)
         self.initialize_dict()
 
         self.fp16_scaler = amp.GradScaler()  # for automatic mixed precision
@@ -156,11 +156,15 @@ class AlbedoTrainer:
         self.losses_dict[constants.D_A_FAKE_LOSS_KEY].append(D_A_fake_loss.item())
         self.losses_dict[constants.D_A_REAL_LOSS_KEY].append(D_A_real_loss.item())
 
+    def test(self, styled_tensor):
+        with torch.no_grad():
+            albedo_like = self.G_A(styled_tensor)
+            return albedo_like
+
     def visdom_report(self, iteration, styled_tensor, albedo_tensor, test_styled_tensor, test_albedo_tensor):
         with torch.no_grad():
             albedo_like = self.G_A(styled_tensor)
             test_albedo_like = self.G_A(test_styled_tensor)
-
 
         # report to visdom
         self.visdom_reporter.plot_finegrain_loss(str(constants.UNLIT_NETWORK_VERSION) + str(constants.ITERATION), iteration, self.losses_dict, self.caption_dict)
@@ -241,14 +245,37 @@ class AlbedoTrainer:
         save_dict[constants.DISCRIMINATOR_KEY + "scheduler"] = schedulerD_state_dict
 
         torch.save(save_dict, constants.UNLIT_NETWORK_CHECKPATH)
-        print("Saved model state: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
+        print("Saved model: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
 
-        # clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training
-        if (epoch % 20 == 0):
-            self.losses_dict[constants.G_LOSS_KEY].clear()
-            self.losses_dict[constants.D_OVERALL_LOSS_KEY].clear()
-            self.losses_dict[constants.LIKENESS_LOSS_KEY].clear()
-            self.losses_dict[constants.PSNR_LOSS_KEY].clear()
-            self.losses_dict[constants.G_ADV_LOSS_KEY].clear()
-            self.losses_dict[constants.D_A_FAKE_LOSS_KEY].clear()
-            self.losses_dict[constants.D_A_REAL_LOSS_KEY].clear()
+    def save_states_unstable(self, epoch, iteration):
+        save_dict = {'epoch': epoch, 'iteration': iteration}
+        netGA_state_dict = self.G_A.state_dict()
+        netDA_state_dict = self.D_A.state_dict()
+
+        optimizerG_state_dict = self.optimizerG.state_dict()
+        optimizerD_state_dict = self.optimizerD.state_dict()
+
+        schedulerG_state_dict = self.schedulerG.state_dict()
+        schedulerD_state_dict = self.schedulerD.state_dict()
+
+        save_dict[constants.GENERATOR_KEY + "A"] = netGA_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "A"] = netDA_state_dict
+
+        save_dict[constants.GENERATOR_KEY + constants.OPTIMIZER_KEY] = optimizerG_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + constants.OPTIMIZER_KEY] = optimizerD_state_dict
+
+        save_dict[constants.GENERATOR_KEY + "scheduler"] = schedulerG_state_dict
+        save_dict[constants.DISCRIMINATOR_KEY + "scheduler"] = schedulerD_state_dict
+
+        torch.save(save_dict, constants.UNLIT_NETWORK_CHECKPATH + ".checkpt")
+        print("Saved checkpt: %s Epoch: %d" % (len(save_dict), (epoch + 1)))
+
+        # # clear plots to avoid potential sudden jumps in visualization due to unstable gradients during early training
+        # if (epoch % 20 == 0):
+        #     self.losses_dict[constants.G_LOSS_KEY].clear()
+        #     self.losses_dict[constants.D_OVERALL_LOSS_KEY].clear()
+        #     self.losses_dict[constants.LIKENESS_LOSS_KEY].clear()
+        #     self.losses_dict[constants.PSNR_LOSS_KEY].clear()
+        #     self.losses_dict[constants.G_ADV_LOSS_KEY].clear()
+        #     self.losses_dict[constants.D_A_FAKE_LOSS_KEY].clear()
+        #     self.losses_dict[constants.D_A_REAL_LOSS_KEY].clear()

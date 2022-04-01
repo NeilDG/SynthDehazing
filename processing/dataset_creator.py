@@ -4,18 +4,22 @@ Created on Tue Jul 14 20:11:02 2020
 
 @author: delgallegon
 """
+import glob
 import os
 import torch
+
+os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from utils import tensor_utils
-import torchvision.utils as vutils
+import torchvision.utils as torchutils
 from loaders import dataset_loader
 import torchvision.transforms as transforms
 import constants
 from model import vanilla_cycle_gan as cycle_gan
 from model import ffa_net as ffa_gan
+from model import unet_gan
 import kornia
 
 DATASET_DIV2K_PATH = "E:/DIV2K_train_HR/"
@@ -350,34 +354,42 @@ def create_img_from_video_data(VIDEO_PATH, SAVE_PATH, offset):
             print("Saved: synth_%d.png" % count)
             count += 1
 
-def produce_color_images():
-    SAVE_PATH = "E:/Synth Hazy - End-to-End - Test/clean - styled/"
+def produce_color_images(INPUT_PATH, SAVE_PATH, CHECKPT_NAME, net_config):
     CHECKPT_ROOT = "D:/Documents/GithubProjects/SynthDehazing/checkpoint/"
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
     # load color transfer
-    color_transfer_checkpt = torch.load(CHECKPT_ROOT + "color_transfer_v1.11_2.pt")
-    color_transfer_gan = cycle_gan.Generator(downsampling_blocks=2, n_residual_blocks=10, has_dropout = False).to(device)
+    if (net_config == 1):
+        print("Using vanilla cycle GAN")
+        color_transfer_gan = cycle_gan.Generator(n_residual_blocks=6, has_dropout=False).to(device)
+    elif (net_config == 3):
+        print("Using U-Net GAN")
+        color_transfer_gan = unet_gan.UnetGenerator(input_nc=3, output_nc=3, num_downs=4).to(device)
+    else:
+        print("Using stable CycleGAN")
+        color_transfer_gan = cycle_gan.Generator(downsampling_blocks=2, n_residual_blocks=10, has_dropout=False).to(device)
+
+    color_transfer_checkpt = torch.load(CHECKPT_ROOT + CHECKPT_NAME, map_location=device)
     color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
     color_transfer_gan.eval()
     print("Color transfer GAN model loaded.")
     print("===================================================")
 
-    dataloader = dataset_loader.load_test_dataset("E:/Synth Hazy - End-to-End - Test/clean/", constants.DATASET_PLACES_PATH, constants.infer_size, -1)
+    dataloader = dataset_loader.load_test_dataset(INPUT_PATH, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
 
     # Plot some training images
     name_batch, dirty_batch, clean_batch = next(iter(dataloader))
     plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Training - Old Images")
-    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.imshow(np.transpose(torchutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
     plt.show()
 
     plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Training - New Images")
-    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.imshow(np.transpose(torchutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
     plt.show()
 
     for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
@@ -395,6 +407,47 @@ def produce_color_images():
 
                 cv2.imwrite(SAVE_PATH + img_name + ".png", style_img)
                 print("Saved styled image: ", img_name)
+
+def produce_single_color_img(IMG_PATH, CHECKPT_NAME, net_config):
+    SAVE_PATH = "D:/Documents/GithubProjects/SynthDehazing/results/Single/"
+    CHECKPT_ROOT = "D:/Documents/GithubProjects/SynthDehazing/checkpoint/"
+
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+
+    # load color transfer
+    if (net_config == 1):
+        print("Using vanilla cycle GAN")
+        color_transfer_gan = cycle_gan.Generator(n_residual_blocks=6, has_dropout=False).to(device)
+    elif(net_config == 3):
+        print("Using U-Net GAN")
+        color_transfer_gan = unet_gan.UnetGenerator(input_nc=3, output_nc=3, num_downs=4).to(device)
+    else:
+        print("Using stable CycleGAN")
+        color_transfer_gan = cycle_gan.Generator(downsampling_blocks=2, n_residual_blocks=10, has_dropout=False).to(device)
+
+    color_transfer_checkpt = torch.load(CHECKPT_ROOT + CHECKPT_NAME, map_location=device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    color_transfer_gan.eval()
+    print("Color transfer GAN model loaded.")
+    print("===================================================")
+
+    img_name = IMG_PATH.split("/")[-1].split(".")[0]
+    img_a = cv2.imread(IMG_PATH)
+    img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)
+
+    transform_op = transforms.Compose([transforms.ToPILImage(),
+                                       transforms.Resize(constants.TEST_IMAGE_SIZE),
+                                       transforms.ToTensor(),
+                                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+    img_tensor = transform_op(img_a).to(device)
+    img_tensor = torch.unsqueeze(img_tensor, 0)
+
+    with torch.no_grad():
+        styled_tensor = color_transfer_gan(img_tensor)
+        styled_tensor = torch.squeeze(styled_tensor)
+        styled_tensor = (styled_tensor * 0.5) + 0.5 #remove normalization
+        torchutils.save_image(styled_tensor, SAVE_PATH + img_name + "_" + CHECKPT_NAME + ".png")
 
 def produce_pseudo_albedo_images():
     SAVE_PATH = "E:/Synth Hazy - Low/albedo - pseudo/"
@@ -422,13 +475,13 @@ def produce_pseudo_albedo_images():
     plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Test - Colored Images")
-    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.imshow(np.transpose(torchutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
     plt.show()
 
     plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Test - Albedo Images")
-    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.imshow(np.transpose(torchutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
     plt.show()
 
     for i, (name, dirty_batch, _) in enumerate(dataloader, 0):
@@ -451,7 +504,39 @@ def produce_pseudo_albedo_images():
                 cv2.imwrite(SAVE_PATH + img_name + ".png", style_img)
                 print("Prediction of %s from discriminator: %f. Saved styled image: %s" % (img_name, prediction[i].item(), img_name))
 
+
+def process_gta_images():
+
+    INPUT_PATH = "E:/GTAV_540/"
+    OUTPUT_PATH = "E:/GTAV_Processed/"
+
+    rgb_list = glob.glob(INPUT_PATH + "*/images/*.png", recursive=True)
+    depth_list = glob.glob(INPUT_PATH + "*/depths/*.exr", recursive=True)
+    print("Images found: ", len(rgb_list), len(depth_list))
+
+    for i, (rgb_path, depth_path) in enumerate(zip(rgb_list, depth_list)):
+        file_name = rgb_path.split("\\")[-1]
+        print(file_name)
+        rgb_img = tensor_utils.load_metrics_compatible_img(rgb_path, (810, 540))
+        depth_img = cv2.imread(depth_path, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
+        depth_img = np.reciprocal(depth_img)
+
+        depth_img = cv2.normalize(depth_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        # plt.imshow(depth_img, cmap = 'gray')
+        # plt.show()
+        # plt.imshow(rgb_img)
+        # plt.show()
+        # break
+
+        rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(OUTPUT_PATH + "/images/synth_" + str(i) + ".png", rgb_img)
+        cv2.imwrite(OUTPUT_PATH + "/depth/synth_" + str(i) + ".png", depth_img)
+
+
+
 def main():
+    # process_gta_images()
     # VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_1.mp4"
     # SAVE_PATH = "E:/Synth Hazy 2/directionality/"
     # create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (512, 512), (256, 256), offset = 0, repeats = 7)
@@ -491,8 +576,19 @@ def main():
     # create_img_from_video_data(PATH_B, SAVE_PATH_B, 0)
 
     #create_hazy_data(0)
-    #produce_color_images()
-    produce_pseudo_albedo_images()
+    # produce_color_images("E:/Synth Hazy 4/clean/", "E:/Synth Hazy 4/clean - styled/",  "synth2places_v1.15_1.pt", net_config = 3)
+    produce_color_images(constants.DATASET_CLEAN_PATH_COMPLETE_GTA, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_GTA, "color_transfer_v1.11_1 - stable.pt", net_config=2)
+
+    #produce_pseudo_albedo_images()
+    # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.15_1.pt", net_config = 3)
+    # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.15_2.pt", net_config=3)
+    # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.15_3.pt", net_config=3)
+    # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.15_4.pt", net_config=3)
+    # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.16_1.pt", net_config=1)
+    # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.16_2.pt", net_config=1)
+    # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.16_3.pt", net_config=1)
+    # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.16_4.pt", net_config=1)
+    # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "color_transfer_v1.11_2.pt", net_config=4)
 
 if __name__=="__main__": 
     main()   

@@ -332,10 +332,13 @@ def benchmark_reside():
                 column = 0
 
 def main():
-    monet_perceptual_loss()
+    # monet_perceptual_loss()
     #color_transfer()
+    # os.system("python \"inference.py\" --directory=\"E:/Hazy Dataset Benchmark/O-HAZE/hazy/\" --output=\"./output/O-Haze/\"")
+    # os.system("python \"inference.py\" --directory=\"E:/Hazy Dataset Benchmark/I-HAZE/hazy/\" --output=\"./output/I-Haze/\"")
+    os.system("python \"inference.py\" --directory=\"E:/Hazy Dataset Benchmark/OTS_BETA/haze/\" --output=\"./output/RESIDE-OTS/\"")
 
-#FIX for broken pipe num_workers issue.
+    #FIX for broken pipe num_workers issue.
 if __name__=="__main__":
     main()
 

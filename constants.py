@@ -13,6 +13,14 @@ DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
 DATASET_ATMOSPHERE_PATH_COMPLETE_3 = "E:/Synth Hazy 3/atmosphere/"
 
+DATASET_CLEAN_PATH_COMPLETE_GTA = "E:/GTAV_Processed/images/"
+DATASET_CLEAN_PATH_COMPLETE_STYLED_GTA = "E:/GTAV_Processed/styled/"
+DATASET_DEPTH_PATH_COMPLETE_GTA = "E:/GTAV_Processed/depth/"
+
+DATASET_CLEAN_PATH_COMPLETE_4 = "E:/Synth Hazy 4/clean/"
+DATASET_ALBEDO_PATH_COMPLETE_4 = "E:/Synth Hazy 4/albedo/"
+DATASET_CLEAN_PATH_COMPLETE_STYLED_4 = "E:/Synth Hazy 4/clean - styled/"
+
 DATASET_CLEAN_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/clean/"
 DATASET_HAZY_END_TO_END_PATH = "E:/Synth Hazy - End-to-End/hazy/"
 
@@ -63,14 +71,14 @@ DISCRIMINATOR_KEY = "discriminator"
 LATENT_VECTOR_KEY = "latent_vector"
 
 STYLE_TRANSFER_VERSION = "synth2places_v1.15"
-UNLIT_NETWORK_VERSION = "albedo_transfer_v1.04"
-TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.15"
+UNLIT_NETWORK_VERSION = "albedo_transfer_v1.05"
+TRANSMISSION_VERSION = "transmission_albedo_estimator_v1.16"
 AIRLIGHT_GEN_VERSION = "airlight_gen_v1.08"
-AIRLIGHT_VERSION = "airlight_estimator_v1.15"
-DEHAZER_VERSION = "dehazer_v2.09"
+AIRLIGHT_VERSION = "airlight_estimator_v1.16"
+DEHAZER_VERSION = "dehazer_v2.10"
 END_TO_END_DEHAZER_VERSION = "end_to_end_dehazer_v1.00"
 
-ITERATION = "1"
+ITERATION = "6"
 
 END_TO_END_CHECKPATH = 'checkpoint/' + END_TO_END_DEHAZER_VERSION + "_" + ITERATION + '.pt'
 DEHAZER_CHECKPATH = 'checkpoint/' + DEHAZER_VERSION + "_" + ITERATION +'.pt'
@@ -92,6 +100,7 @@ REALNESS_LOSS_KEY = "realness"
 PSNR_LOSS_KEY = "colorshift"
 SMOOTHNESS_LOSS_KEY = "smoothness"
 EDGE_LOSS_KEY = "edge"
+LPIPS_LOSS_KEY = "lpips"
 
 D_OVERALL_LOSS_KEY = "d_loss"
 D_A_REAL_LOSS_KEY = "d_real_a"
@@ -110,7 +119,7 @@ num_epochs = 200
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-infer_size = 32
+infer_size = 8
 
 DEHAZE_FILTER_STRENGTH = 0.1
 
@@ -118,4 +127,6 @@ DEHAZE_FILTER_STRENGTH = 0.1
 server_config = 0
 num_workers = 12
 ALBEDO_CHECKPT = "checkpoint/albedo_transfer_v1.04_1.pt"
+
+current_epoch = 0
     
