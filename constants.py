@@ -13,6 +13,10 @@ DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = "E:/Synth Hazy 3/clean - styled/"
 DATASET_DEPTH_PATH_COMPLETE_3 = "E:/Synth Hazy 3/depth/"
 DATASET_ATMOSPHERE_PATH_COMPLETE_3 = "E:/Synth Hazy 3/atmosphere/"
 
+DATASET_CLEAN_PATH_COMPLETE_GTA = "E:/GTAV_Processed/images/"
+DATASET_CLEAN_PATH_COMPLETE_STYLED_GTA = "E:/GTAV_Processed/styled/"
+DATASET_DEPTH_PATH_COMPLETE_GTA = "E:/GTAV_Processed/depth/"
+
 DATASET_CLEAN_PATH_COMPLETE_4 = "E:/Synth Hazy 4/clean/"
 DATASET_ALBEDO_PATH_COMPLETE_4 = "E:/Synth Hazy 4/albedo/"
 DATASET_CLEAN_PATH_COMPLETE_STYLED_4 = "E:/Synth Hazy 4/clean - styled/"
@@ -115,7 +119,7 @@ num_epochs = 200
 
 test_display_size = 8
 display_size = 16 #must not be larger than batch size
-infer_size = 32
+infer_size = 8
 
 DEHAZE_FILTER_STRENGTH = 0.1
 

@@ -107,8 +107,8 @@ class DehazingDataset(data.Dataset):
                 if (self.filter_patches == 0):
                     break
                 elif(self.filter_patches == 1 and cv2.countNonZero(laplacian_img) > (patch_total * 0.5)):
-                    print("Sobel count: ", cv2.countNonZero(laplacian_img), " Patch total: ", patch_total)
-                    print("Crop indices:", crop_indices, "Seed: ", torch.random.seed())
+                    # print("Sobel count: ", cv2.countNonZero(laplacian_img), " Patch total: ", patch_total)
+                    # print("Crop indices:", crop_indices, "Seed: ", torch.random.seed())
                     torch.random.manual_seed(torch.random.seed() + 1)
                     break
 
@@ -453,19 +453,25 @@ class ColorTransferTestDataset(data.Dataset):
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
+        self.transform_op_b = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
     def __getitem__(self, idx):
         img_id = self.img_list_a[idx]
         path_segment = img_id.split("/")
         file_name = path_segment[len(path_segment) - 1]
 
-        img_a = cv2.imread(img_id);
+        img_a = cv2.imread(img_id)
         img_a = cv2.cvtColor(img_a, cv2.COLOR_BGR2RGB)  # because matplot uses RGB, openCV is BGR
 
         img_id = self.img_list_b[idx]
-        img_b = cv2.imread(img_id);
+        img_b = cv2.imread(img_id)
         img_b = cv2.cvtColor(img_b, cv2.COLOR_BGR2RGB)
 
-        img_a = self.final_transform_op(img_a)
+        img_a = self.transform_op_b(img_a)
         img_b = self.final_transform_op(img_b)
 
         return file_name, img_a, img_b

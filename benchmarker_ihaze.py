@@ -594,20 +594,54 @@ def main():
     # produce_ihaze("transmission_albedo_estimator_v1.16_6", "airlight_estimator_v1.16_6", True)
     # benchmark_ihaze("transmission_albedo_estimator_v1.16_6", "airlight_estimator_v1.16_6")
     #
-    # produce_ihaze("transmission_albedo_estimator_v1.16_13", "airlight_estimator_v1.16_6", True)
-    # benchmark_ihaze("transmission_albedo_estimator_v1.16_13", "airlight_estimator_v1.16_6")
-    #
-    # produce_ihaze("transmission_albedo_estimator_v1.16_14", "airlight_estimator_v1.16_6", True)
-    # benchmark_ihaze("transmission_albedo_estimator_v1.16_14", "airlight_estimator_v1.16_6")
-    #
-    # produce_ihaze("transmission_albedo_estimator_v1.16_15", "airlight_estimator_v1.16_6", True)
-    # benchmark_ihaze("transmission_albedo_estimator_v1.16_15", "airlight_estimator_v1.16_6")
-    #
-    # produce_ihaze("transmission_albedo_estimator_v1.16_16", "airlight_estimator_v1.16_6", True)
-    # benchmark_ihaze("transmission_albedo_estimator_v1.16_16", "airlight_estimator_v1.16_6")
 
-    produce_ihaze("transmission_albedo_estimator_v1.16_17", "airlight_estimator_v1.16_6", True)
-    benchmark_ihaze("transmission_albedo_estimator_v1.16_17", "airlight_estimator_v1.16_6")
+    # produce_ihaze("transmission_albedo_estimator_v1.17_13", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_13", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.17_14", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_14", "airlight_estimator_v1.16_6")
+
+    # produce_ihaze("transmission_albedo_estimator_v1.17_15", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_15", "airlight_estimator_v1.16_6")
+
+    # produce_ihaze("transmission_albedo_estimator_v1.17_16", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_16", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.17_17", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_17", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.17_18", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_18", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.17_19", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_19", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.17_20", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_20", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.17_21", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_21", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.17_22", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.17_22", "airlight_estimator_v1.16_6")
+
+    # produce_ihaze("transmission_albedo_estimator_v1.21_13", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.21_13", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.21_14", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.21_14", "airlight_estimator_v1.16_6")
+
+    # produce_ihaze("transmission_albedo_estimator_v1.21_15", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.21_15", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.21_16", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.21_16", "airlight_estimator_v1.16_6")
+    #
+    # produce_ihaze("transmission_albedo_estimator_v1.21_17", "airlight_estimator_v1.16_6", True)
+    # benchmark_ihaze("transmission_albedo_estimator_v1.21_17", "airlight_estimator_v1.16_6")
+
+    produce_ihaze("transmission_albedo_estimator_v1.22_13", "airlight_estimator_v1.16_6", True)
+    benchmark_ihaze("transmission_albedo_estimator_v1.22_13", "airlight_estimator_v1.16_6")
 
 
 # FIX for broken pipe num_workers issue.

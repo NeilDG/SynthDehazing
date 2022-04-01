@@ -4,8 +4,11 @@ Created on Tue Jul 14 20:11:02 2020
 
 @author: delgallegon
 """
+import glob
 import os
 import torch
+
+os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -501,7 +504,39 @@ def produce_pseudo_albedo_images():
                 cv2.imwrite(SAVE_PATH + img_name + ".png", style_img)
                 print("Prediction of %s from discriminator: %f. Saved styled image: %s" % (img_name, prediction[i].item(), img_name))
 
+
+def process_gta_images():
+
+    INPUT_PATH = "E:/GTAV_540/"
+    OUTPUT_PATH = "E:/GTAV_Processed/"
+
+    rgb_list = glob.glob(INPUT_PATH + "*/images/*.png", recursive=True)
+    depth_list = glob.glob(INPUT_PATH + "*/depths/*.exr", recursive=True)
+    print("Images found: ", len(rgb_list), len(depth_list))
+
+    for i, (rgb_path, depth_path) in enumerate(zip(rgb_list, depth_list)):
+        file_name = rgb_path.split("\\")[-1]
+        print(file_name)
+        rgb_img = tensor_utils.load_metrics_compatible_img(rgb_path, (810, 540))
+        depth_img = cv2.imread(depth_path, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
+        depth_img = np.reciprocal(depth_img)
+
+        depth_img = cv2.normalize(depth_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        # plt.imshow(depth_img, cmap = 'gray')
+        # plt.show()
+        # plt.imshow(rgb_img)
+        # plt.show()
+        # break
+
+        rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(OUTPUT_PATH + "/images/synth_" + str(i) + ".png", rgb_img)
+        cv2.imwrite(OUTPUT_PATH + "/depth/synth_" + str(i) + ".png", depth_img)
+
+
+
 def main():
+    # process_gta_images()
     # VIDEO_PATH = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-SynthWorkplace/Recordings/directionality_1.mp4"
     # SAVE_PATH = "E:/Synth Hazy 2/directionality/"
     # create_data_from_video(VIDEO_PATH, SAVE_PATH, "lightdir_%d.png", (512, 512), (256, 256), offset = 0, repeats = 7)
@@ -542,7 +577,7 @@ def main():
 
     #create_hazy_data(0)
     # produce_color_images("E:/Synth Hazy 4/clean/", "E:/Synth Hazy 4/clean - styled/",  "synth2places_v1.15_1.pt", net_config = 3)
-    produce_color_images("E:/SynthWeather Dataset/default/", "E:/SynthWeather Dataset/styled/", "color_transfer_v1.11_1 - stable.pt", net_config=2)
+    produce_color_images(constants.DATASET_CLEAN_PATH_COMPLETE_GTA, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_GTA, "color_transfer_v1.11_1 - stable.pt", net_config=2)
 
     #produce_pseudo_albedo_images()
     # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.15_1.pt", net_config = 3)

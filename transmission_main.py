@@ -104,6 +104,20 @@ def update_config(opts):
         constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3
         constants.DATASET_DEPTH_PATH_COMPLETE_TEST = constants.DATASET_DEPTH_PATH_COMPLETE_3
 
+    elif (constants.server_config == 4):
+        print("Using GTA-Synth configuration. Workers: ", opts.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = constants.DATASET_CLEAN_PATH_COMPLETE_GTA
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = constants.DATASET_DEPTH_PATH_COMPLETE_GTA
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = constants.DATASET_CLEAN_PATH_COMPLETE_GTA
+        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = constants.DATASET_DEPTH_PATH_COMPLETE_GTA
+
+    elif (constants.server_config == 5):
+        print("Using GTA-Synth (with style transfer) configuration. Workers: ", opts.num_workers, "Path: ", constants.TRANSMISSION_ESTIMATOR_CHECKPATH)
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_3 = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_GTA
+        constants.DATASET_DEPTH_PATH_COMPLETE_3 = constants.DATASET_DEPTH_PATH_COMPLETE_GTA
+        constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_TEST = constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_GTA
+        constants.DATASET_DEPTH_PATH_COMPLETE_TEST = constants.DATASET_DEPTH_PATH_COMPLETE_GTA
+
 
 def show_images(img_tensor, caption):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
