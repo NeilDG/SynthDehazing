@@ -159,7 +159,7 @@ class CycleGANTrainer:
         loss = nn.L1Loss()
         return loss(pred, target)
 
-    def train(self, iteration, dirty_tensor, clean_tensor):
+    def train(self, dirty_tensor, clean_tensor):
         with amp.autocast():
             clean_like = self.G_A(dirty_tensor)
             dirty_like = self.G_B(clean_tensor)
