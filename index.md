@@ -1,6 +1,8 @@
-## <center> A New Approach for Training a Physics-Based Dehazing Network Using Synthetic Images </center>
 ### <center>Neil Patrick Del Gallego, Joel Ilao, Macario Cordel II, Conrado Ruiz Jr.</center>
 ### <center>De La Salle University, Grup de Recerca en Tecnologies Media, La Salle - Universitat Ramon Llull</center>
+
+# DISCLAIMER
+The source code is currently still in pre-deployment stage. Please stay tuned for the production and test-ready source code.
 
 [//]: # (### <center>In Signal Processing - Elsevier)
 
