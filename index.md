@@ -7,6 +7,8 @@
 
 <h3><strong>Paper (coming soon) | Source code (coming soon) | Pretrained model (coming soon)</h3>
 
+<img src="web_img/results_3.png"></img>
+
 ###Abstract
 
 In this study, we propose a new approach for training a physics-based dehazing network, using RGB images and depth maps gathered from a 3D urban virtual environment, with simulated global illumination and physically-based shaded materials. Since 3D scenes are rendered with depth buffers, full image depth can be extracted based on this information, using a custom shader, unlike
