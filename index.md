@@ -17,3 +17,18 @@ the extraction of real-world depth maps, which tend to be sparse. Our proposed p
 from the virtual environment. We formulate the training as a supervised image-to-image translation task, using our own DLSU-SYNSIDE (SYNthetic Single Image Dehazing Dataset), which consists of clear images, unlit image priors, transmission, and atmospheric maps.
 
 Our approach makes training stable and easier as compared to unsupervised approaches. Experimental results demonstrate the competitiveness of our approach against state-of-the-art dehazing works, using known benchmarking datasets such as I-Haze, O-Haze, and RESIDE, without our network seeing any real-world images during training. 
+
+### Directory for High-Resolution Image Results
+
+<strong><a href="web_img/">SynthDehazing Results</a>
+
+### DLSU-SYNSIDE (SYNthetic Single Dehazing Dataset)
+The training images used in our paper, will be released soon.
+
+### Citation
+
+Coming Soon
+
+### Acknowledgements
+
+We would like to acknowledge De La Salle University (DLSU), Department of Science and Technology (DOST), and the Google Cloud Research program, for funding this research.
