@@ -3,18 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="4f927810-d84f-4066-a295-2fb01ac7c661" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Model Performances.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/Model Performances.xlsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airlight_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/airlight_main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/benchmarker_ihaze.py" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarker_ihaze.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/benchmarker_ohaze.py" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarker_ohaze.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/benchmarker_ots.py" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarker_ots.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/constants.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gcloud_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/gcloud_main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loaders/image_dataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/loaders/image_dataset.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pc_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/pc_main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/processing/dataset_creator.py" beforeDir="false" afterPath="$PROJECT_DIR$/processing/dataset_creator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transmission_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/transmission_main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/dehazing_proper.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/dehazing_proper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainers/cyclegan_trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/trainers/cyclegan_trainer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -278,6 +267,11 @@
       <workItem from="1648519869671" duration="12921000" />
       <workItem from="1648551155706" duration="7119000" />
       <workItem from="1648610041815" duration="6683000" />
+      <workItem from="1648813832101" duration="271000" />
+      <workItem from="1649135956837" duration="51000" />
+      <workItem from="1649165740820" duration="171000" />
+      <workItem from="1649422405522" duration="1811000" />
+      <workItem from="1649479238717" duration="385000" />
     </task>
     <servers />
   </component>
