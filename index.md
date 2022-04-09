@@ -10,7 +10,7 @@
 
 ### <strong>Paper (coming soon) | Source code (coming soon) | Pretrained model (coming soon)
 
-<img src="web_img/results_3.png"></img>
+<img src="web_img/results_3.png">
 
 ### Abstract
 
