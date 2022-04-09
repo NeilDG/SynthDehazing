@@ -23,7 +23,7 @@ Our approach makes training stable and easier as compared to unsupervised approa
 
 ### Directory for High-Resolution Image Results
 
-<strong><a href="web_img/">SynthDehazing Results</a>
+<strong><a href="https://github.com/NeilDG/SynthDehazing/tree/gh-pages/web_img/">SynthDehazing Results</a>
 
 ### DLSU-SYNSIDE (SYNthetic Single Dehazing Dataset)
 The training images used in our paper, will be released soon.
