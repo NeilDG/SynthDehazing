@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="4f927810-d84f-4066-a295-2fb01ac7c661" name="Changes" comment="">
+    <list default="true" id="4f927810-d84f-4066-a295-2fb01ac7c661" name="Changes" comment="Updated text">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.md" beforeDir="false" afterPath="$PROJECT_DIR$/index.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -270,8 +271,16 @@
       <workItem from="1649135956837" duration="51000" />
       <workItem from="1649165740820" duration="171000" />
       <workItem from="1649422405522" duration="1811000" />
-      <workItem from="1649479238717" duration="1309000" />
+      <workItem from="1649479238717" duration="2109000" />
     </task>
+    <task id="LOCAL-00001" summary="Updated text">
+      <created>1649480920877</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1649480920877</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -287,6 +296,10 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Updated text" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated text" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/SynthDehazing$pc_main.coverage" NAME="pc_main Coverage Results" MODIFIED="1648640317214" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
