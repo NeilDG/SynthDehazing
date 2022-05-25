@@ -166,41 +166,6 @@ def produce_video(video_path):
         video_out.release()
 
 
-def color_transfer():
-    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
-
-    # load color transfer
-    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_2.pt')
-    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
-    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
-    print("Color transfer GAN model loaded.")
-    print("===================================================")
-    
-    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
-    
-    # Plot some training images
-    name_batch, dirty_batch, clean_batch = next(iter(dataloader))
-    plt.figure(figsize=constants.FIG_SIZE)
-    plt.axis("off")
-    plt.title("Training - Old Images")
-    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
-    plt.show()
-    
-    plt.figure(figsize=constants.FIG_SIZE)
-    plt.axis("off")
-    plt.title("Training - New Images")
-    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow = 8, padding=2, normalize=True).cpu(),(1,2,0)))
-    plt.show()
-    
-    item_number = 0
-    for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
-        with torch.no_grad():
-            input_tensor = dirty_batch.to(device)
-            item_number = item_number + 1
-            result = color_transfer_gan(input_tensor)
-            show_images(input_tensor, "Input images: " +str(item_number))
-            show_images(result, "Color transfer: " + str(item_number))
-
 def produce_video_batch():
     VIDEO_FOLDER_PATH = "E:/VEMON Dataset/vemon videos/"
     #VIDEO_FOLDER_PATH = "E:/VEMON Dataset/mmda videos/"
@@ -334,9 +299,9 @@ def benchmark_reside():
 def main():
     # monet_perceptual_loss()
     #color_transfer()
-    # os.system("python \"inference.py\" --directory=\"E:/Hazy Dataset Benchmark/O-HAZE/hazy/\" --output=\"./output/O-Haze/\"")
+    os.system("python \"inference.py\" --directory=\"E:/Hazy Dataset Benchmark/O-HAZE/hazy/*.jpg\" --output=\"./output/O-Haze/\"")
     # os.system("python \"inference.py\" --directory=\"E:/Hazy Dataset Benchmark/I-HAZE/hazy/\" --output=\"./output/I-Haze/\"")
-    os.system("python \"inference.py\" --directory=\"E:/Hazy Dataset Benchmark/OTS_BETA/haze/\" --output=\"./output/RESIDE-OTS/\"")
+    # os.system("python \"inference.py\" --directory=\"E:/Hazy Dataset Benchmark/OTS_BETA/haze/*0.95_0.2.jpg\" --output=\"./output/RESIDE-OTS/\"")
 
     #FIX for broken pipe num_workers issue.
 if __name__=="__main__":

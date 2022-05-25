@@ -359,6 +359,11 @@ def produce_color_images(INPUT_PATH, SAVE_PATH, CHECKPT_NAME, net_config):
 
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
+    try:
+        os.mkdir(SAVE_PATH)
+    except OSError as error:
+        print("Save path already exists. Skipping.", error)
+
     # load color transfer
     if (net_config == 1):
         print("Using vanilla cycle GAN")
@@ -379,8 +384,7 @@ def produce_color_images(INPUT_PATH, SAVE_PATH, CHECKPT_NAME, net_config):
     dataloader = dataset_loader.load_test_dataset(INPUT_PATH, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
 
     # Plot some training images
-    name_batch, dirty_batch, clean_batch = next(iter(dataloader))
-    plt.figure(figsize=constants.FIG_SIZE)
+    name_batch, dirty_batch, clean_batch = next(iter(dataloader))    plt.figure(figsize=constants.FIG_SIZE)
     plt.axis("off")
     plt.title("Training - Old Images")
     plt.imshow(np.transpose(torchutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
@@ -577,7 +581,10 @@ def main():
 
     #create_hazy_data(0)
     # produce_color_images("E:/Synth Hazy 4/clean/", "E:/Synth Hazy 4/clean - styled/",  "synth2places_v1.15_1.pt", net_config = 3)
-    produce_color_images(constants.DATASET_CLEAN_PATH_COMPLETE_GTA, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_GTA, "color_transfer_v1.11_1 - stable.pt", net_config=2)
+    # produce_color_images(constants.DATASET_CLEAN_PATH_COMPLETE_GTA, constants.DATASET_CLEAN_PATH_COMPLETE_STYLED_GTA, "color_transfer_v1.11_1 - stable.pt", net_config=2)
+
+    produce_color_images("E:/SynthWeather Dataset 6/azimuth/0deg/rgb/", "E:/SynthWeather Dataset 6/azimuth/0deg/rgb - styled/", "color_transfer_v1.11_1 - stable.pt", net_config=2)
+
 
     #produce_pseudo_albedo_images()
     # produce_single_color_img("E:/Synth Hazy - End-to-End - Test/clean/synth_4918.png", "synth2places_v1.15_1.pt", net_config = 3)
