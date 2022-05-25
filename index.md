@@ -34,9 +34,10 @@ from the virtual environment. We formulate the training as a supervised image-to
 The training images used in our paper, will be released soon.
   
 ### DLSU-SYNSIDE Pre-Trained Models
-Pre-trained models include the style transfer network, unlit network, airlight and transmission estimators, as described in the paper.
+Pre-trained models include the style transfer network, unlit network, airlight and transmission estimators, as described in the paper. <br>
 Link: https://drive.google.com/file/d/11HqA6xYMfrNRmNZOtN0S6jhZVWwa8roz/view?usp=sharing
 
+<br>
 Assuming you have the source project, place all models in "./checkpoint" directory.
   
 ### Citation
