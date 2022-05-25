@@ -35,15 +35,16 @@ The training images used in our paper, will be released soon.
   
 ### DLSU-SYNSIDE Pre-Trained Models
 Pre-trained models include the style transfer network, unlit network, airlight and transmission estimators, as described in the paper. <br>
-Link: https://drive.google.com/file/d/11HqA6xYMfrNRmNZOtN0S6jhZVWwa8roz/view?usp=sharing
+Link: <a href="https://drive.google.com/file/d/11HqA6xYMfrNRmNZOtN0S6jhZVWwa8roz/view?usp=sharing">Pre-trained models </a>
 
 <br>
 Assuming you have the source project, place all models in <b>"./checkpoint" <b> directory.
   
+### Running the code
+<TODO>
+  
 ### Citation
-
 Coming Soon
 
 ### Acknowledgements
-
 We would like to acknowledge De La Salle University (DLSU), Department of Science and Technology (DOST), and the Google Cloud Research program, for funding this research.
