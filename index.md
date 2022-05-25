@@ -25,10 +25,10 @@ from the virtual environment. We formulate the training as a supervised image-to
 
 ### Directory for High-Resolution Image Results
 
-<strong><a href="https://github.com/NeilDG/SynthDehazing/tree/gh-pages/web_img/">Figures in paper</a> <br>
-<strong><a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/I-Haze">I-Haze Dehazed Results </a> <br>
-<strong><a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/O-Haze">O-Haze Dehazed Results </a> <br>
-<strong><a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/RESIDE-OTS">RESIDE-OTS Dehazed Results </a> <br>
+<a href="https://github.com/NeilDG/SynthDehazing/tree/gh-pages/web_img/">Figures in paper</a> <br>
+<a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/I-Haze">I-Haze Dehazed Results </a> <br>
+<a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/O-Haze">O-Haze Dehazed Results </a> <br>
+<a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/RESIDE-OTS">RESIDE-OTS Dehazed Results </a> <br>
   
 ### DLSU-SYNSIDE (SYNthetic Single Dehazing Dataset)
 The training images used in our paper, will be released soon.
@@ -38,7 +38,7 @@ Pre-trained models include the style transfer network, unlit network, airlight a
 Link: https://drive.google.com/file/d/11HqA6xYMfrNRmNZOtN0S6jhZVWwa8roz/view?usp=sharing
 
 <br>
-Assuming you have the source project, place all models in "./checkpoint" directory.
+Assuming you have the source project, place all models in <b>"./checkpoint" <b> directory.
   
 ### Citation
 
