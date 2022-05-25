@@ -61,7 +61,7 @@ def dehaze_single(T_CHECKPT_NAME, A_ESTIMATOR_NAME, INPUT_PATH, use_unlit):
     AIRLIGHT_ESTIMATOR_CHECKPT = A_ESTIMATOR_NAME
 
     model_dehazer = dehazing_proper.ModelDehazer()
-    model_dehazer.set_models_v2(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_ESTIMATOR_CHECKPT)
+    model_dehazer.set_models(ALBEDO_CHECKPT, TRANSMISSION_CHECKPT, AIRLIGHT_ESTIMATOR_CHECKPT)
 
     with torch.no_grad():
         print("INPUT PATH: ", INPUT_PATH)

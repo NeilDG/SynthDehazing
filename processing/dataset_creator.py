@@ -384,7 +384,7 @@ def produce_color_images(INPUT_PATH, SAVE_PATH, CHECKPT_NAME, net_config):
     dataloader = dataset_loader.load_test_dataset(INPUT_PATH, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
 
     # Plot some training images
-    name_batch, dirty_batch, clean_batch = next(iter(dataloader))    plt.figure(figsize=constants.FIG_SIZE)
+    name_batch, dirty_batch, clean_batch = next(iter(dataloader))
     plt.axis("off")
     plt.title("Training - Old Images")
     plt.imshow(np.transpose(torchutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
