@@ -2,43 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="22a39c06-a661-4c6c-ac23-7a48083b702f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/airlight_gen_main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/benchmarker_ihaze.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/benchmarker_ohaze.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/benchmarker_ots.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/benchmarker_reside.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ccs_jupyter_main_1.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ccs_jupyter_main_2.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dehaze_app.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dehaze_main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/denoise_main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/end_to_end_dehaze_main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/gcloud_main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/dc_gan.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/div2k_gan.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/latent_network.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/multistyle_net.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/new_style_transfer_gan.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/model/style_transfer_gan.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script_1.slurm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script_2.slurm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script_3.slurm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script_4.slurm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script_debug.slurm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/slurm_install.slurm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/slurm_visdom_test.slurm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/trainers/airlight_gen_trainer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/trainers/denoise_net_trainer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/trainers/latent_trainers/latent_trainer_128.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/trainers/latent_trainers/latent_trainer_32.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/trainers/latent_trainers/latent_trainer_64.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/trainers/lightcoords_trainer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/nyu_parse_data.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/pytorch_colors.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/visdom_plot_test_main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/visdom_run.out" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/visdom_run.slurm" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/Dehazing Checkpoints.zip" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/processing/gist.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/processing/gist_extractor.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/processing/ipm.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/processing/vemon_video_decoder.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,13 +31,13 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Python.dehaze_app">
     <configuration name="color_transfer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="SynthDehazing" />
@@ -172,8 +140,17 @@
     </option>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/SynthDehazing$benchmarker_ots.coverage" NAME="benchmarker_ots Coverage Results" MODIFIED="1648552558598" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SynthDehazing$cyclegan_main.coverage" NAME="cyclegan_main Coverage Results" MODIFIED="1650550923951" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SynthDehazing$benchmarker_ohaze.coverage" NAME="benchmarker_ohaze Coverage Results" MODIFIED="1653445848484" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/SynthDehazing$color_transfer.coverage" NAME="color_transfer Coverage Results" MODIFIED="1653449298653" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/SynthDehazing$dehaze_app.coverage" NAME="dehaze_app Coverage Results" MODIFIED="1653453276038" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SynthDehazing$inference.coverage" NAME="inference Coverage Results" MODIFIED="1653443990193" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SynthDehazing$albedo_main.coverage" NAME="albedo_main Coverage Results" MODIFIED="1633524269244" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SynthDehazing$benchmarker_ihaze.coverage" NAME="benchmarker_ihaze Coverage Results" MODIFIED="1648644829623" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/SynthDehazing$infer_main.coverage" NAME="infer_main Coverage Results" MODIFIED="1653453095382" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SynthDehazing$ccs_jupyter_main_1.coverage" NAME="ccs_jupyter_main_1 Coverage Results" MODIFIED="1630667533016" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SynthDehazing$pc_main.coverage" NAME="pc_main Coverage Results" MODIFIED="1648640317214" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/SynthDehazing$dataset_creator.coverage" NAME="dataset_creator Coverage Results" MODIFIED="1649852334923" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/processing" />
   </component>
 </project>
