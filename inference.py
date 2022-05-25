@@ -15,10 +15,47 @@ parser.add_option('--albedo_checkpt_name', type=str, default="albedo_transfer_v1
 parser.add_option('--t_checkpt_name', type=str, default="transmission_albedo_estimator_v1.16_6") #place in checkpoint
 parser.add_option('--a_checkpt_name', type=str, default="airlight_estimator_v1.16_6")
 
+
+def color_transfer():
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+
+    # load color transfer
+    color_transfer_checkpt = torch.load('checkpoint/color_transfer_v1.11_2.pt')
+    color_transfer_gan = cycle_gan.Generator(n_residual_blocks=10).to(device)
+    color_transfer_gan.load_state_dict(color_transfer_checkpt[constants.GENERATOR_KEY + "A"])
+    print("Color transfer GAN model loaded.")
+    print("===================================================")
+
+    dataloader = dataset_loader.load_test_dataset(constants.DATASET_CLEAN_PATH_COMPLETE, constants.DATASET_PLACES_PATH, constants.infer_size, -1)
+
+    # Plot some training images
+    name_batch, dirty_batch, clean_batch = next(iter(dataloader))
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Training - Old Images")
+    plt.imshow(np.transpose(vutils.make_grid(dirty_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.show()
+
+    plt.figure(figsize=constants.FIG_SIZE)
+    plt.axis("off")
+    plt.title("Training - New Images")
+    plt.imshow(np.transpose(vutils.make_grid(clean_batch.to(device)[:constants.infer_size], nrow=8, padding=2, normalize=True).cpu(), (1, 2, 0)))
+    plt.show()
+
+    item_number = 0
+    for i, (name, dirty_batch, clean_batch) in enumerate(dataloader, 0):
+        with torch.no_grad():
+            input_tensor = dirty_batch.to(device)
+            item_number = item_number + 1
+            result = color_transfer_gan(input_tensor)
+            show_images(input_tensor, "Input images: " + str(item_number))
+            show_images(result, "Color transfer: " + str(item_number))
+
 def save_img(img, path):
     img = cv2.normalize(img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     cv2.imwrite(path, img)
+    # cv2.imwrite(path, img, [cv2.IMWRITE_PNG_COMPRESSION, 9])
 
 def main(argv):
     (opts, args) = parser.parse_args(argv)
@@ -27,8 +64,8 @@ def main(argv):
     model_dehazer = dehazing_proper.ModelDehazer()
     model_dehazer.set_models_v2(opts.albedo_checkpt_name, opts.t_checkpt_name, opts.a_checkpt_name)
 
-    # print(opts.directory + "*." + opts.image_type)
-    hazy_list = glob.glob(opts.directory + "*0.95_0.2.jpg")  # specify atmosphere intensity
+    print(opts.directory)
+    hazy_list = glob.glob(opts.directory)  # specify atmosphere intensity
     # hazy_list = glob.glob(opts.directory + "*" + opts.image_type)
     print(hazy_list)
 
@@ -39,14 +76,14 @@ def main(argv):
 
             #to avoid banding issues. Input images must be square
             input_size = (1024, 1024)
-            # im_size = (int(hazy_img.shape[1] / 3), int(hazy_img.shape[0] / 3))
             im_size = (hazy_img.shape[1], hazy_img.shape[0])
             hazy_img = cv2.resize(hazy_img, input_size, cv2.INTER_CUBIC)
 
             clear_img, T_tensor, A_tensor = model_dehazer.perform_dehazing_direct_v4(hazy_img, 0.0, True)
-
             clear_img = cv2.resize(clear_img, im_size, cv2.INTER_CUBIC)
-            save_img(clear_img, opts.output + img_name + ".jpg")
+
+            print("Processed: ", (opts.output + img_name + ".png"))
+            save_img(clear_img, opts.output + img_name + ".png")
 
 
 if __name__ == "__main__":
