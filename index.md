@@ -11,7 +11,7 @@
 
 <br>
 
-### <strong>Paper (to appear in Signal Processing - Elsevier) | Source code (coming soon) | Pretrained model (coming soon)
+### <strong>Paper (to appear in Signal Processing - Elsevier) | Source code (coming soon) | Pretrained model (coming soon) </strong>
 
 <img src="web_img/results_3.png">
 
