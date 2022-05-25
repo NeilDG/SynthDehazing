@@ -11,7 +11,6 @@ from model import vanilla_cycle_gan as cg
 from model import unet_gan as un
 from model import ffa_net as ffa
 import math
-from utils import pytorch_colors
 from itertools import combinations_with_replacement
 from collections import defaultdict
 from torch.nn.functional import interpolate
@@ -117,29 +116,29 @@ def estimate_transmission(im, A, dark_channel):
     transmission = 1 - omega * dark_channel
     return transmission
 
-def remove_haze(rgb_tensor, dark_channel_old, dark_channel_new):
-    yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
-
-    yuv_tensor = yuv_tensor.transpose(0, 1)
-    dark_channel_old = dark_channel_old.transpose(0, 1)
-    dark_channel_new = dark_channel_new.transpose(0, 1)
-
-    (y, u, v) = torch.chunk(yuv_tensor, 3)
-
-    # remove dark channel from y
-    y = y - dark_channel_old
-
-    print("Shape of YUV tensor: ", np.shape(yuv_tensor))
-
-    # replace with atmosphere and transmission from new dark channel
-    atmosphere = estimate_atmosphere(yuv_tensor[:, 0, :, :], dark_channel_new[:, 0, :, :])
-    transmission = estimate_transmission(yuv_tensor[:, 0, :, :], atmosphere, dark_channel_new[:, 0, :, :]).to('cuda:0')
-
-    y = y * transmission
-
-    yuv_tensor = torch.cat((y, u, v))
-    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
-    return rgb_tensor
+# def remove_haze(rgb_tensor, dark_channel_old, dark_channel_new):
+#     yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
+#
+#     yuv_tensor = yuv_tensor.transpose(0, 1)
+#     dark_channel_old = dark_channel_old.transpose(0, 1)
+#     dark_channel_new = dark_channel_new.transpose(0, 1)
+#
+#     (y, u, v) = torch.chunk(yuv_tensor, 3)
+#
+#     # remove dark channel from y
+#     y = y - dark_channel_old
+#
+#     print("Shape of YUV tensor: ", np.shape(yuv_tensor))
+#
+#     # replace with atmosphere and transmission from new dark channel
+#     atmosphere = estimate_atmosphere(yuv_tensor[:, 0, :, :], dark_channel_new[:, 0, :, :])
+#     transmission = estimate_transmission(yuv_tensor[:, 0, :, :], atmosphere, dark_channel_new[:, 0, :, :]).to('cuda:0')
+#
+#     y = y * transmission
+#
+#     yuv_tensor = torch.cat((y, u, v))
+#     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
+#     return rgb_tensor
 
 
 def get_dark_channel(I, w=1):
@@ -220,15 +219,15 @@ class ModelDehazer():
         self.end_to_end_models = {}
 
         #add models
-        checkpt = torch.load("checkpoint/albedo_transfer_v1.04_1.pt")
+        checkpt = torch.load("checkpoint/albedo_transfer_v1.04_1.pth")
         self.albedo_models["albedo_transfer_v1.04_1"] = ffa.FFA(gps=3, blocks=18).to(self.gpu_device)
         self.albedo_models["albedo_transfer_v1.04_1"].load_state_dict(checkpt[constants.GENERATOR_KEY + "A"])
 
-        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_6.pt", map_location=self.gpu_device)
+        checkpt = torch.load("checkpoint/transmission_albedo_estimator_v1.16_6.pth", map_location=self.gpu_device)
         self.transmission_models["transmission_albedo_estimator_v1.16_6"] = cg.Generator(input_nc=3, output_nc=1, n_residual_blocks=10, has_dropout=False).to(self.gpu_device)
         self.transmission_models["transmission_albedo_estimator_v1.16_6"].load_state_dict(checkpt[constants.GENERATOR_KEY + "T"])
 
-        checkpt = torch.load("checkpoint/airlight_estimator_v1.16_6.pt", map_location=self.gpu_device)
+        checkpt = torch.load("checkpoint/airlight_estimator_v1.16_6.pth", map_location=self.gpu_device)
         self.atmosphere_models["airlight_estimator_v1.16_6"] = dh.AirlightEstimator_Residual(num_channels=3, out_features=3, num_layers=4).to(self.gpu_device)
         self.atmosphere_models["airlight_estimator_v1.16_6"].load_state_dict(checkpt[constants.DISCRIMINATOR_KEY + "A"])
 

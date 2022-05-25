@@ -1,3 +1,4 @@
+import os
 import sys
 from optparse import OptionParser
 import glob
@@ -24,6 +25,11 @@ def main(argv):
     (opts, args) = parser.parse_args(argv)
     print(opts)
 
+    os.makedirs(opts.output, exist_ok=True)
+
+    hazy_copy_dir = "./output/hazy/I-Haze/"
+    os.makedirs(hazy_copy_dir, exist_ok=True)
+
     model_dehazer = dehazing_proper.ModelDehazer()
     model_dehazer.set_models(opts.albedo_checkpt_name, opts.t_checkpt_name, opts.a_checkpt_name)
 
@@ -41,9 +47,12 @@ def main(argv):
             hazy_img = cv2.resize(hazy_img, input_size, cv2.INTER_CUBIC)
 
             clear_img, T_tensor, A_tensor = model_dehazer.perform_dehazing_direct_v4(hazy_img, 0.0, True)
+
+            hazy_img = cv2.resize(hazy_img, im_size, cv2.INTER_CUBIC)
             clear_img = cv2.resize(clear_img, im_size, cv2.INTER_CUBIC)
 
             print("Processed: ", (opts.output + img_name + ".png"))
+            save_img(hazy_img, hazy_copy_dir + img_name + ".png")
             save_img(clear_img, opts.output + img_name + ".png")
 
 

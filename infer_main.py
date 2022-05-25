@@ -23,15 +23,14 @@ from utils import dark_channel_prior
 import os
 import glob
 from skimage.metrics import peak_signal_noise_ratio
-from processing import gist
 from custom_losses import vgg_loss_model
 
 def main():
-    # os.system("python \"inference.py\" --path=\"E:/Hazy Dataset Benchmark/O-HAZE/hazy/*.jpg\" --output=\"./output/O-Haze/\"")
-    # os.system("python \"inference.py\" --path=\"E:/Hazy Dataset Benchmark/I-HAZE/hazy/\" --output=\"./output/I-Haze/\"")
-    # os.system("python \"inference.py\" --path=\"E:/Hazy Dataset Benchmark/OTS_BETA/haze/*0.95_0.2.jpg\" --output=\"./output/RESIDE-OTS/\"")
+    # os.system("python \"inference.py\" --path=\"E:/Hazy Dataset Benchmark/O-HAZE/hazy/*.jpg\" --output=\"./output/dehazed/O-Haze/\"")
+    os.system("python \"inference.py\" --path=\"E:/Hazy Dataset Benchmark/I-HAZE/hazy/*.jpg\" --output=\"./output/dehazed/I-Haze/\"")
+    # os.system("python \"inference.py\" --path=\"E:/Hazy Dataset Benchmark/OTS_BETA/haze/*0.95_0.2.jpg\" --output=\"./output/dehazed/RESIDE-OTS/\"")
 
-    os.system("python \"color_transfer.py\" --path=\"E:/Synth Hazy 3/clean/*.png\" --output=\"./output/Styled/\"")
+    # os.system("python \"color_transfer.py\" --path=\"E:/Synth Hazy 3/clean/*.png\" --output=\"./output/Styled/\"")
 
 if __name__=="__main__":
     main()
