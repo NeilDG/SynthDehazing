@@ -41,7 +41,7 @@ Link: <a href="https://drive.google.com/file/d/11HqA6xYMfrNRmNZOtN0S6jhZVWwa8roz
 Assuming you have the source project, place all models in <b>"./checkpoint" <b> directory.
   
 ### Running the code
-<TODO>
+TODO
   
 ### Citation
 Coming Soon
