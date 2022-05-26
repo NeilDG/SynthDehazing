@@ -26,6 +26,8 @@ from the virtual environment. We formulate the training as a supervised image-to
 <p align="justify"> Our approach makes training stable and easier as compared to unsupervised approaches. Experimental results demonstrate the competitiveness of our approach against state-of-the-art dehazing works, using known benchmarking datasets such as I-Haze, O-Haze, and RESIDE, without our network seeing any real-world images during training. </p>
 
 ### Dehazing Results
+We showcase the capabilities of our dehazing network in GIF.
+  
 <center><img src="web_img/canyon.gif"> </center><br>
 <center><img src="web_img/train.gif"> </center><br>
 <center><img src="web_img/highway.gif"> </center><br>
@@ -46,10 +48,24 @@ Pre-trained models include the style transfer network, unlit network, airlight a
 Link: <a href="https://drive.google.com/file/d/11HqA6xYMfrNRmNZOtN0S6jhZVWwa8roz/view?usp=sharing">Pre-trained models </a>
 
 <br>
-Assuming you have the source project, place all models in <b>"./checkpoint" <b> directory.
-  
-### Running the code
-TODO
+Assuming you have the source project, place all models in <b>"./checkpoint" </b> directory.
+
+### Training
+Training our models is not end-to-end. We do not have one ```train.py``` script at the moment. Our training procedure, as described in the paper, is divided into
+several modules, namely ```cyclegan_main.py```, ```albedo_main.py```, ```transmission_main.py```, ```airlight_main.py```, which corresponds to the style-transfer, unlit image prior network, transmission map, atmospheric light estimation training respectively.
+
+```pc_main.py``` contains commented code, on how these modules are trained sequentially, with different weights, patch sizes, batch size, alpha-beta scattering terms, etc.
+
+### Inference
+Provided you already have the pre-trained models, you can perform inference by: 
+```
+python  inference.py  --path="<hazy image directory>" --output="<dehazed image directory>"
+```
+Example:
+```
+python  inference.py  --path="E:/Hazy Dataset Benchmark/I-HAZE/hazy/*.jpg" --output="./output/dehazed/I-Haze/"
+``` 
+You can further check ```infer_main.py``` for some examples.
   
 ### Citation
 Coming Soon
