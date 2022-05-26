@@ -35,7 +35,11 @@ We showcase the capabilities of our dehazing network in GIF.
 <a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/RESIDE-OTS">RESIDE-OTS Dehazed Results </a> <br>
   
 ### DLSU-SYNSIDE (SYNthetic Single Dehazing Dataset)
-The training images used in our paper, will be released soon.
+Training images used in our paper: <a href = "https://drive.google.com/drive/folders/11leU45dX0XEQTrbeNMr5Z7fnxnh9fLOT?usp=sharing">DLSU-SYNSIDE Dataset </a> <br>
+All images are numbered and paired. You can find each of these images, in their corresponding folders. Example: ```synth_0.png``` <br>
+
+To generate transmission and atmospheric maps, use the depth maps provided, and apply the atmospheric scattering model
+with your customized alpha and beta terms.
   
 ### DLSU-SYNSIDE Pre-Trained Models
 Pre-trained models include the style transfer network, unlit network, airlight and transmission estimators, as described in the paper. <br>
