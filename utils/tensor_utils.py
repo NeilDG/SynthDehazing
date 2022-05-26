@@ -15,7 +15,6 @@ import math
 import cv2
 from torch.autograd import Variable
 import torch
-from utils import pytorch_colors
 import matplotlib.pyplot as plt
 from skimage.metrics import structural_similarity
 from utils import dark_channel_prior
@@ -123,66 +122,66 @@ def preprocess_batch(batch):
     return batch
 
 
-def merge_yuv_results_to_rgb(y_tensor, uv_tensor):
-    uv_tensor = uv_tensor.transpose(0, 1)
-    y_tensor = y_tensor.transpose(0, 1)
-
-    (u, v) = torch.chunk(uv_tensor, 2)
-    yuv_tensor = torch.cat((y_tensor, u, v))
-    rgb_tensor = pytorch_colors.lab_to_rgb(yuv_tensor.transpose(0, 1))
-    # rgb_tensor = ((rgb_tensor * 0.5) + 0.5) #normalize back to 0-1 range
-    rgb_tensor = ((rgb_tensor * 1.0) + 1.0)
-    return rgb_tensor
-
-
-def yuv_to_rgb(yuv_tensor):
-    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor)
-    return rgb_tensor
-
-
-def rgb_to_yuv(rgb_tensor):
-    return pytorch_colors.rgb_to_yuv(rgb_tensor)
-
-
-def change_yuv(y_tensor, yuv_tensor):
-    yuv_tensor = yuv_tensor.transpose(0, 1)
-    y_tensor = y_tensor.transpose(0, 1)
-    (y, u, v) = torch.chunk(yuv_tensor, 3)
-    yuv_tensor = torch.cat((y_tensor, u, v))
-    return yuv_tensor.transpose(0, 1)
-
-
-def replace_dark_channel(rgb_tensor, dark_channel_old, dark_channel_new, alpha=0.7, beta=0.7):
-    yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
-
-    yuv_tensor = yuv_tensor.transpose(0, 1)
-    dark_channel_old = dark_channel_old.transpose(0, 1)
-    dark_channel_new = dark_channel_new.transpose(0, 1)
-
-    (y, u, v) = torch.chunk(yuv_tensor, 3)
-
-    # deduct old dark channel from all channels and add new one
-    # r = r - dark_channel_old + dark_channel_new
-    # g = g - dark_channel_old + dark_channel_new
-    # b = b - dark_channel_old + dark_channel_new
-    y = y - (dark_channel_old * alpha) + (dark_channel_new * beta)
-
-    yuv_tensor = torch.cat((y, u, v))
-    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
-    return rgb_tensor
-
-
-def replace_y_channel(rgb_tensor, y_new):
-    yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
-
-    yuv_tensor = yuv_tensor.transpose(0, 1)
-    y_new = y_new.transpose(0, 1)
-
-    (y, u, v) = torch.chunk(yuv_tensor, 3)
-
-    yuv_tensor = torch.cat((y_new, u, v))
-    rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
-    return rgb_tensor
+# def merge_yuv_results_to_rgb(y_tensor, uv_tensor):
+#     uv_tensor = uv_tensor.transpose(0, 1)
+#     y_tensor = y_tensor.transpose(0, 1)
+#
+#     (u, v) = torch.chunk(uv_tensor, 2)
+#     yuv_tensor = torch.cat((y_tensor, u, v))
+#     rgb_tensor = pytorch_colors.lab_to_rgb(yuv_tensor.transpose(0, 1))
+#     # rgb_tensor = ((rgb_tensor * 0.5) + 0.5) #normalize back to 0-1 range
+#     rgb_tensor = ((rgb_tensor * 1.0) + 1.0)
+#     return rgb_tensor
+#
+#
+# def yuv_to_rgb(yuv_tensor):
+#     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor)
+#     return rgb_tensor
+#
+#
+# def rgb_to_yuv(rgb_tensor):
+#     return pytorch_colors.rgb_to_yuv(rgb_tensor)
+#
+#
+# def change_yuv(y_tensor, yuv_tensor):
+#     yuv_tensor = yuv_tensor.transpose(0, 1)
+#     y_tensor = y_tensor.transpose(0, 1)
+#     (y, u, v) = torch.chunk(yuv_tensor, 3)
+#     yuv_tensor = torch.cat((y_tensor, u, v))
+#     return yuv_tensor.transpose(0, 1)
+#
+#
+# def replace_dark_channel(rgb_tensor, dark_channel_old, dark_channel_new, alpha=0.7, beta=0.7):
+#     yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
+#
+#     yuv_tensor = yuv_tensor.transpose(0, 1)
+#     dark_channel_old = dark_channel_old.transpose(0, 1)
+#     dark_channel_new = dark_channel_new.transpose(0, 1)
+#
+#     (y, u, v) = torch.chunk(yuv_tensor, 3)
+#
+#     # deduct old dark channel from all channels and add new one
+#     # r = r - dark_channel_old + dark_channel_new
+#     # g = g - dark_channel_old + dark_channel_new
+#     # b = b - dark_channel_old + dark_channel_new
+#     y = y - (dark_channel_old * alpha) + (dark_channel_new * beta)
+#
+#     yuv_tensor = torch.cat((y, u, v))
+#     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
+#     return rgb_tensor
+#
+#
+# def replace_y_channel(rgb_tensor, y_new):
+#     yuv_tensor = pytorch_colors.rgb_to_yuv(rgb_tensor)
+#
+#     yuv_tensor = yuv_tensor.transpose(0, 1)
+#     y_new = y_new.transpose(0, 1)
+#
+#     (y, u, v) = torch.chunk(yuv_tensor, 3)
+#
+#     yuv_tensor = torch.cat((y_new, u, v))
+#     rgb_tensor = pytorch_colors.yuv_to_rgb(yuv_tensor.transpose(0, 1))
+#     return rgb_tensor
 
 def get_y_channel(I):
     y, u, v = cv2.split(I)
@@ -194,238 +193,238 @@ def get_uv_channel(I):
     return cv2.merge((u, v))
 
 
-def compare_transmissions(hazy_img, depth_map):
-    T = generate_transmission(1 - depth_map, 1.2, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
-    dc = get_dark_channel(hazy_img, w=7)
-    atmosphere = estimate_atmosphere(hazy_img, dc)
-    atmosphere = np.squeeze(atmosphere)
-
-    dcp_transmission = dark_channel_prior.estimate_transmission(hazy_img,
-                                                                dark_channel_prior.estimate_atmosphere(hazy_img, dc),
-                                                                dc)
-
-    fig, ax = plt.subplots(1, 2)
-    fig.tight_layout()
-    ax[0].imshow(T)
-    ax[1].imshow(dcp_transmission)
-    plt.show(block=True)
-
-
-def perform_dehazing_equation(hazy_img, depth_map):
-    # normalize
-    T = generate_transmission(1 - depth_map, 1.2, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
-    atmosphere = estimate_atmosphere(hazy_img, get_dark_channel(hazy_img, w=15))
-    atmosphere = np.squeeze(atmosphere)
-    # Z = np.multiply((1 - T), np.max(atmosphere))
-
-    print("Min of input: ", np.min(hazy_img), " Max of input: ", np.max(hazy_img),
-          "Min of depth: ", np.min(depth_map), " Max of depth: ", np.max(depth_map),
-          "Min of T: ", np.min(T), " Max of T: ", np.max(T))
-
-    # print("Min of A: ", np.min(Z), " Max of A:", np.max(Z),
-    #     " Mean of A: ", np.mean(Z), " Mean of T: ", np.mean(T))
-
-    # compute clear image with radiance term
-    # clear_img = np.ones_like(hazy_img)
-    # clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])) / np.maximum(T,
-    #                                                                                                              0.5)) + np.full(
-    #     np.shape(hazy_img[:, :, 0]), atmosphere[0])
-    # clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])) / np.maximum(T,
-    #                                                                                                              0.5)) + np.full(
-    #     np.shape(hazy_img[:, :, 1]), atmosphere[1])
-    # clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])) / np.maximum(T,
-    #                                                                                                              0.5)) + np.full(
-    #     np.shape(hazy_img[:, :, 2]), atmosphere[2])
-
-    clear_img = np.ones_like(hazy_img)
-    T = np.resize(T, np.shape(clear_img[:, :, 0]))
-    print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
-    clear_img[:, :, 0] = (hazy_img[:, :, 0] - (np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
-    clear_img[:, :, 1] = (hazy_img[:, :, 1] - (np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
-    clear_img[:, :, 2] = (hazy_img[:, :, 2] - (np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
-
-    print("Min of hazy img: ", np.min(hazy_img), " Max of hazy img: ", np.max(hazy_img))
-    print("Min of clear img: ", np.min(clear_img), " Max of clear img: ", np.max(clear_img))
-
-    old_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    clear_img = np.clip(clear_img, 0.0, 1.0)
-
-    fig, ax = plt.subplots(1, 2)
-    fig.tight_layout()
-    ax[0].imshow(old_img)
-    ax[1].imshow(clear_img)
-    plt.show(block=True)
-
-
-def introduce_haze(hazy_img, clear_img, depth_map):
-    LENGTH = 3
-    fig, ax = plt.subplots(LENGTH, 1)
-    fig.tight_layout()
-    beta = 0.0
-    for i in range(LENGTH):
-        beta = beta + 0.5
-        T = generate_transmission(1 - depth_map, beta, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
-        ax[i].imshow(T)
-        ax[i].axis('off')
-
-    plt.show()
-
-    atmosphere_val = np.random.uniform(0.5, 1.2)
-    atmosphere = [atmosphere_val, atmosphere_val, atmosphere_val] #atmosphere values can change per channel. but make it uniform for this time
-    hazy_img_like = np.zeros_like(clear_img)
-    T = np.resize(T, np.shape(clear_img[:, :, 0]))
-    hazy_img_like[:, :, 0] = (T * clear_img[:, :, 0]) + atmosphere[0] * (1 - T)
-    hazy_img_like[:, :, 1] = (T * clear_img[:, :, 1]) + atmosphere[1] * (1 - T)
-    hazy_img_like[:, :, 2] = (T * clear_img[:, :, 2]) + atmosphere[2] * (1 - T)
-
-    # reverse equation
-    clear_img_like = np.zeros_like(hazy_img)
-    T = np.resize(T, np.shape(clear_img[:, :, 0]))
-    print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
-    clear_img_like[:, :, 0] = (hazy_img_like[:, :, 0] - (np.full(np.shape(hazy_img_like[:, :, 0]), atmosphere[0]) * (1 - T))) / T
-    clear_img_like[:, :, 1] = (hazy_img_like[:, :, 1] - (np.full(np.shape(hazy_img_like[:, :, 1]), atmosphere[1]) * (1 - T))) / T
-    clear_img_like[:, :, 2] = (hazy_img_like[:, :, 2] - (np.full(np.shape(hazy_img_like[:, :, 2]), atmosphere[2]) * (1 - T))) / T
-
-    hazy_img_like = np.clip(hazy_img_like, 0.0, 1.0)
-    clear_img_like = np.clip(clear_img_like, 0.0, 1.0)
-    hazy_img_like = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
-                                  dtype=cv2.CV_8U)
-    clear_img_like = cv2.normalize(clear_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
-                                   dtype=cv2.CV_8U)
-    clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-
-    fig, ax = plt.subplots(2, 2)
-    fig.tight_layout()
-    ax[0, 0].imshow(hazy_img)
-    ax[0, 1].imshow(hazy_img_like)
-    ax[1, 0].imshow(clear_img)
-    ax[1, 1].imshow(clear_img_like)
-    plt.show(block=True)
-
-def introduce_haze_albedo(clear_img, depth_map, albedo_img):
-
-    beta = 1.2
-    T = generate_transmission(1 - depth_map, beta, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
-
-    clear_img_float = cv2.normalize(clear_img, dst = None,alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    albedo_img_float = cv2.normalize(albedo_img, dst = None, alpha=0, beta = 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    #clear_img_float = cv2.cvtColor(clear_img_float, cv2.COLOR_BGR2GRAY)
-    #albedo_img_float = cv2.cvtColor(albedo_img_float, cv2.COLOR_BGR2GRAY)
-
-    fig, ax = plt.subplots(1, 2)
-    fig.tight_layout()
-    ax[0].imshow(clear_img_float)
-    ax[1].imshow(albedo_img_float)
-    plt.show(block=True)
-
-    atmosphere_val = np.random.uniform(0.5, 1.2)
-    atmosphere = [atmosphere_val, atmosphere_val, atmosphere_val]  # atmosphere values can change per channel. but make it uniform for this time
-    hazy_img_like = np.zeros_like(clear_img)
-    T = np.resize(T, np.shape(clear_img[:, :, 0]))
-    hazy_img_like[:, :, 0] = (T * albedo_img_float[:, :, 0]) + atmosphere[0] * (1 - T)
-    hazy_img_like[:, :, 1] = (T * albedo_img_float[:, :, 1]) + atmosphere[1] * (1 - T)
-    hazy_img_like[:, :, 2] = (T * albedo_img_float[:, :, 2]) + atmosphere[2] * (1 - T)
-
-    # reverse equation
-    clear_img_like = np.zeros_like(clear_img)
-    T = np.resize(T, np.shape(clear_img[:, :, 0]))
-    print("Shapes: ", np.shape(clear_img), np.shape(T))
-    clear_img_like[:, :, 0] = (hazy_img_like[:, :, 0] - (np.full(np.shape(hazy_img_like[:, :, 0]), atmosphere[0]) * (1 - T))) / T
-    clear_img_like[:, :, 1] = (hazy_img_like[:, :, 1] - (np.full(np.shape(hazy_img_like[:, :, 1]), atmosphere[1]) * (1 - T))) / T
-    clear_img_like[:, :, 2] = (hazy_img_like[:, :, 2] - (np.full(np.shape(hazy_img_like[:, :, 2]), atmosphere[2]) * (1 - T))) / T
-
-    clear_img_like = np.clip(clear_img_like, 0.0, 1.0)
-    clear_img_like = cv2.normalize(clear_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
-                                   dtype=cv2.CV_8U)
-    clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-
-    fig, ax = plt.subplots(2, 2)
-    fig.tight_layout()
-    ax[0, 0].imshow(hazy_img_like)
-    ax[1, 0].imshow(clear_img)
-    ax[1, 1].imshow(clear_img_like)
-    plt.show(block=True)
-
-def refine_dehaze_img(hazy_img, clear_img, T):
-    T = np.resize(T, np.shape(hazy_img[:, :, 0]))
-    hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    hazy_mask = np.zeros_like(hazy_img)
-    hazy_mask[:, :, 0] = np.multiply(hazy_img[:, :, 0], T)
-    hazy_mask[:, :, 1] = np.multiply(hazy_img[:, :, 1], T)
-    hazy_mask[:, :, 2] = np.multiply(hazy_img[:, :, 2], T)
-
-    clear_mask = np.zeros_like(clear_img)
-    clear_mask[:, :, 0] = np.multiply(clear_img[:, :, 0], T)
-    clear_mask[:, :, 1] = np.multiply(clear_img[:, :, 1], T)
-    clear_mask[:, :, 2] = np.multiply(clear_img[:, :, 2], T)
-
-    initial_img = np.multiply(hazy_img, (1 - hazy_mask)) + np.multiply(clear_img, clear_mask)
-
-    return initial_img
-
-def mask_haze(hazy_img, clear_img, depth_map):
-    T = generate_transmission(depth_map, 0.8)
-
-    hazy_mask = np.zeros_like(hazy_img)
-    hazy_mask[:, :, 0] = np.multiply(hazy_img[:, :, 0], T)
-    hazy_mask[:, :, 1] = np.multiply(hazy_img[:, :, 1], T)
-    hazy_mask[:, :, 2] = np.multiply(hazy_img[:, :, 2], T)
-
-    clear_mask = np.zeros_like(clear_img)
-    clear_mask[:, :, 0] = np.multiply(clear_img[:, :, 0], T)
-    clear_mask[:, :, 1] = np.multiply(clear_img[:, :, 1], T)
-    clear_mask[:, :, 2] = np.multiply(clear_img[:, :, 2], T)
-
-    hazy_mask = cv2.normalize(hazy_mask, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    fig, ax = plt.subplots(2, 2)
-    fig.tight_layout()
-    ax[0, 0].set_axis_off()
-    ax[0, 0].imshow(hazy_img)
-    ax[0, 1].set_axis_off()
-    ax[0, 1].imshow(hazy_mask)
-    ax[1, 0].set_axis_off()
-    ax[1, 0].imshow(clear_img)
-    ax[1, 1].set_axis_off()
-    ax[1, 1].imshow(clear_mask)
-    plt.show(block=True)
-
-    hazy_mask = cv2.normalize(hazy_mask, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    clear_mask = cv2.normalize(clear_mask, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-
-    initial_img = np.zeros_like(hazy_img)
-    # initial_img = np.multiply(hazy_img, (1 - hazy_mask)) + clear_mask
-    initial_img = np.multiply(hazy_img, (1 - hazy_mask))
-
-    atmosphere = estimate_atmosphere(initial_img, get_dark_channel(initial_img, w=15))
-    atmosphere = np.squeeze(atmosphere)
-
-    T = estimate_transmission(initial_img, atmosphere, get_dark_channel(initial_img, w=15))
-    # T = generate_transmission(depth_map, 0.3)
-    T = np.resize(T, np.shape(initial_img[:, :, 0]))
-
-    refined_img = np.zeros_like(hazy_img)
-    refined_img[:, :, 0] = (initial_img[:, :, 0] - (
-                np.full(np.shape(initial_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
-    refined_img[:, :, 1] = (initial_img[:, :, 1] - (
-                np.full(np.shape(initial_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
-    refined_img[:, :, 2] = (initial_img[:, :, 2] - (
-                np.full(np.shape(initial_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
-
-    initial_img = np.clip(initial_img, 0.0, 1.0)
-    initial_img = cv2.normalize(initial_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    refined_img = np.clip(refined_img, 0.0, 1.0)
-    refined_img = cv2.normalize(refined_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-
-    fig, ax = plt.subplots(1, 2)
-    fig.tight_layout()
-    ax[0].set_axis_off()
-    ax[0].imshow(initial_img)
-    ax[1].set_axis_off()
-    ax[1].imshow(refined_img)
-
-    plt.show(block=True)
+# def compare_transmissions(hazy_img, depth_map):
+#     T = generate_transmission(1 - depth_map, 1.2, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
+#     dc = get_dark_channel(hazy_img, w=7)
+#     atmosphere = estimate_atmosphere(hazy_img, dc)
+#     atmosphere = np.squeeze(atmosphere)
+#
+#     dcp_transmission = dark_channel_prior.estimate_transmission(hazy_img,
+#                                                                 dark_channel_prior.estimate_atmosphere(hazy_img, dc),
+#                                                                 dc)
+#
+#     fig, ax = plt.subplots(1, 2)
+#     fig.tight_layout()
+#     ax[0].imshow(T)
+#     ax[1].imshow(dcp_transmission)
+#     plt.show(block=True)
+#
+#
+# def perform_dehazing_equation(hazy_img, depth_map):
+#     # normalize
+#     T = generate_transmission(1 - depth_map, 1.2, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
+#     atmosphere = estimate_atmosphere(hazy_img, get_dark_channel(hazy_img, w=15))
+#     atmosphere = np.squeeze(atmosphere)
+#     # Z = np.multiply((1 - T), np.max(atmosphere))
+#
+#     print("Min of input: ", np.min(hazy_img), " Max of input: ", np.max(hazy_img),
+#           "Min of depth: ", np.min(depth_map), " Max of depth: ", np.max(depth_map),
+#           "Min of T: ", np.min(T), " Max of T: ", np.max(T))
+#
+#     # print("Min of A: ", np.min(Z), " Max of A:", np.max(Z),
+#     #     " Mean of A: ", np.mean(Z), " Mean of T: ", np.mean(T))
+#
+#     # compute clear image with radiance term
+#     # clear_img = np.ones_like(hazy_img)
+#     # clear_img[:, :, 0] = ((hazy_img[:, :, 0] - np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0])) / np.maximum(T,
+#     #                                                                                                              0.5)) + np.full(
+#     #     np.shape(hazy_img[:, :, 0]), atmosphere[0])
+#     # clear_img[:, :, 1] = ((hazy_img[:, :, 1] - np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1])) / np.maximum(T,
+#     #                                                                                                              0.5)) + np.full(
+#     #     np.shape(hazy_img[:, :, 1]), atmosphere[1])
+#     # clear_img[:, :, 2] = ((hazy_img[:, :, 2] - np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2])) / np.maximum(T,
+#     #                                                                                                              0.5)) + np.full(
+#     #     np.shape(hazy_img[:, :, 2]), atmosphere[2])
+#
+#     clear_img = np.ones_like(hazy_img)
+#     T = np.resize(T, np.shape(clear_img[:, :, 0]))
+#     print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
+#     clear_img[:, :, 0] = (hazy_img[:, :, 0] - (np.full(np.shape(hazy_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
+#     clear_img[:, :, 1] = (hazy_img[:, :, 1] - (np.full(np.shape(hazy_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
+#     clear_img[:, :, 2] = (hazy_img[:, :, 2] - (np.full(np.shape(hazy_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+#
+#     print("Min of hazy img: ", np.min(hazy_img), " Max of hazy img: ", np.max(hazy_img))
+#     print("Min of clear img: ", np.min(clear_img), " Max of clear img: ", np.max(clear_img))
+#
+#     old_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+#     clear_img = np.clip(clear_img, 0.0, 1.0)
+#
+#     fig, ax = plt.subplots(1, 2)
+#     fig.tight_layout()
+#     ax[0].imshow(old_img)
+#     ax[1].imshow(clear_img)
+#     plt.show(block=True)
+#
+#
+# def introduce_haze(hazy_img, clear_img, depth_map):
+#     LENGTH = 3
+#     fig, ax = plt.subplots(LENGTH, 1)
+#     fig.tight_layout()
+#     beta = 0.0
+#     for i in range(LENGTH):
+#         beta = beta + 0.5
+#         T = generate_transmission(1 - depth_map, beta, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
+#         ax[i].imshow(T)
+#         ax[i].axis('off')
+#
+#     plt.show()
+#
+#     atmosphere_val = np.random.uniform(0.5, 1.2)
+#     atmosphere = [atmosphere_val, atmosphere_val, atmosphere_val] #atmosphere values can change per channel. but make it uniform for this time
+#     hazy_img_like = np.zeros_like(clear_img)
+#     T = np.resize(T, np.shape(clear_img[:, :, 0]))
+#     hazy_img_like[:, :, 0] = (T * clear_img[:, :, 0]) + atmosphere[0] * (1 - T)
+#     hazy_img_like[:, :, 1] = (T * clear_img[:, :, 1]) + atmosphere[1] * (1 - T)
+#     hazy_img_like[:, :, 2] = (T * clear_img[:, :, 2]) + atmosphere[2] * (1 - T)
+#
+#     # reverse equation
+#     clear_img_like = np.zeros_like(hazy_img)
+#     T = np.resize(T, np.shape(clear_img[:, :, 0]))
+#     print("Shapes: ", np.shape(clear_img), np.shape(hazy_img), np.shape(T))
+#     clear_img_like[:, :, 0] = (hazy_img_like[:, :, 0] - (np.full(np.shape(hazy_img_like[:, :, 0]), atmosphere[0]) * (1 - T))) / T
+#     clear_img_like[:, :, 1] = (hazy_img_like[:, :, 1] - (np.full(np.shape(hazy_img_like[:, :, 1]), atmosphere[1]) * (1 - T))) / T
+#     clear_img_like[:, :, 2] = (hazy_img_like[:, :, 2] - (np.full(np.shape(hazy_img_like[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+#
+#     hazy_img_like = np.clip(hazy_img_like, 0.0, 1.0)
+#     clear_img_like = np.clip(clear_img_like, 0.0, 1.0)
+#     hazy_img_like = cv2.normalize(hazy_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+#                                   dtype=cv2.CV_8U)
+#     clear_img_like = cv2.normalize(clear_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+#                                    dtype=cv2.CV_8U)
+#     clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+#
+#     fig, ax = plt.subplots(2, 2)
+#     fig.tight_layout()
+#     ax[0, 0].imshow(hazy_img)
+#     ax[0, 1].imshow(hazy_img_like)
+#     ax[1, 0].imshow(clear_img)
+#     ax[1, 1].imshow(clear_img_like)
+#     plt.show(block=True)
+#
+# def introduce_haze_albedo(clear_img, depth_map, albedo_img):
+#
+#     beta = 1.2
+#     T = generate_transmission(1 - depth_map, beta, True)  # real-world has 0.1 - 1.8 range only. Unity synth uses 0.03
+#
+#     clear_img_float = cv2.normalize(clear_img, dst = None,alpha = 0, beta = 1, norm_type = cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+#     albedo_img_float = cv2.normalize(albedo_img, dst = None, alpha=0, beta = 1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+#     #clear_img_float = cv2.cvtColor(clear_img_float, cv2.COLOR_BGR2GRAY)
+#     #albedo_img_float = cv2.cvtColor(albedo_img_float, cv2.COLOR_BGR2GRAY)
+#
+#     fig, ax = plt.subplots(1, 2)
+#     fig.tight_layout()
+#     ax[0].imshow(clear_img_float)
+#     ax[1].imshow(albedo_img_float)
+#     plt.show(block=True)
+#
+#     atmosphere_val = np.random.uniform(0.5, 1.2)
+#     atmosphere = [atmosphere_val, atmosphere_val, atmosphere_val]  # atmosphere values can change per channel. but make it uniform for this time
+#     hazy_img_like = np.zeros_like(clear_img)
+#     T = np.resize(T, np.shape(clear_img[:, :, 0]))
+#     hazy_img_like[:, :, 0] = (T * albedo_img_float[:, :, 0]) + atmosphere[0] * (1 - T)
+#     hazy_img_like[:, :, 1] = (T * albedo_img_float[:, :, 1]) + atmosphere[1] * (1 - T)
+#     hazy_img_like[:, :, 2] = (T * albedo_img_float[:, :, 2]) + atmosphere[2] * (1 - T)
+#
+#     # reverse equation
+#     clear_img_like = np.zeros_like(clear_img)
+#     T = np.resize(T, np.shape(clear_img[:, :, 0]))
+#     print("Shapes: ", np.shape(clear_img), np.shape(T))
+#     clear_img_like[:, :, 0] = (hazy_img_like[:, :, 0] - (np.full(np.shape(hazy_img_like[:, :, 0]), atmosphere[0]) * (1 - T))) / T
+#     clear_img_like[:, :, 1] = (hazy_img_like[:, :, 1] - (np.full(np.shape(hazy_img_like[:, :, 1]), atmosphere[1]) * (1 - T))) / T
+#     clear_img_like[:, :, 2] = (hazy_img_like[:, :, 2] - (np.full(np.shape(hazy_img_like[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+#
+#     clear_img_like = np.clip(clear_img_like, 0.0, 1.0)
+#     clear_img_like = cv2.normalize(clear_img_like, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX,
+#                                    dtype=cv2.CV_8U)
+#     clear_img = cv2.normalize(clear_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+#
+#     fig, ax = plt.subplots(2, 2)
+#     fig.tight_layout()
+#     ax[0, 0].imshow(hazy_img_like)
+#     ax[1, 0].imshow(clear_img)
+#     ax[1, 1].imshow(clear_img_like)
+#     plt.show(block=True)
+#
+# def refine_dehaze_img(hazy_img, clear_img, T):
+#     T = np.resize(T, np.shape(hazy_img[:, :, 0]))
+#     hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+#     hazy_mask = np.zeros_like(hazy_img)
+#     hazy_mask[:, :, 0] = np.multiply(hazy_img[:, :, 0], T)
+#     hazy_mask[:, :, 1] = np.multiply(hazy_img[:, :, 1], T)
+#     hazy_mask[:, :, 2] = np.multiply(hazy_img[:, :, 2], T)
+#
+#     clear_mask = np.zeros_like(clear_img)
+#     clear_mask[:, :, 0] = np.multiply(clear_img[:, :, 0], T)
+#     clear_mask[:, :, 1] = np.multiply(clear_img[:, :, 1], T)
+#     clear_mask[:, :, 2] = np.multiply(clear_img[:, :, 2], T)
+#
+#     initial_img = np.multiply(hazy_img, (1 - hazy_mask)) + np.multiply(clear_img, clear_mask)
+#
+#     return initial_img
+#
+# def mask_haze(hazy_img, clear_img, depth_map):
+#     T = generate_transmission(depth_map, 0.8)
+#
+#     hazy_mask = np.zeros_like(hazy_img)
+#     hazy_mask[:, :, 0] = np.multiply(hazy_img[:, :, 0], T)
+#     hazy_mask[:, :, 1] = np.multiply(hazy_img[:, :, 1], T)
+#     hazy_mask[:, :, 2] = np.multiply(hazy_img[:, :, 2], T)
+#
+#     clear_mask = np.zeros_like(clear_img)
+#     clear_mask[:, :, 0] = np.multiply(clear_img[:, :, 0], T)
+#     clear_mask[:, :, 1] = np.multiply(clear_img[:, :, 1], T)
+#     clear_mask[:, :, 2] = np.multiply(clear_img[:, :, 2], T)
+#
+#     hazy_mask = cv2.normalize(hazy_mask, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+#     hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+#     fig, ax = plt.subplots(2, 2)
+#     fig.tight_layout()
+#     ax[0, 0].set_axis_off()
+#     ax[0, 0].imshow(hazy_img)
+#     ax[0, 1].set_axis_off()
+#     ax[0, 1].imshow(hazy_mask)
+#     ax[1, 0].set_axis_off()
+#     ax[1, 0].imshow(clear_img)
+#     ax[1, 1].set_axis_off()
+#     ax[1, 1].imshow(clear_mask)
+#     plt.show(block=True)
+#
+#     hazy_mask = cv2.normalize(hazy_mask, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+#     clear_mask = cv2.normalize(clear_mask, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+#     hazy_img = cv2.normalize(hazy_img, dst=None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+#
+#     initial_img = np.zeros_like(hazy_img)
+#     # initial_img = np.multiply(hazy_img, (1 - hazy_mask)) + clear_mask
+#     initial_img = np.multiply(hazy_img, (1 - hazy_mask))
+#
+#     atmosphere = estimate_atmosphere(initial_img, get_dark_channel(initial_img, w=15))
+#     atmosphere = np.squeeze(atmosphere)
+#
+#     T = estimate_transmission(initial_img, atmosphere, get_dark_channel(initial_img, w=15))
+#     # T = generate_transmission(depth_map, 0.3)
+#     T = np.resize(T, np.shape(initial_img[:, :, 0]))
+#
+#     refined_img = np.zeros_like(hazy_img)
+#     refined_img[:, :, 0] = (initial_img[:, :, 0] - (
+#                 np.full(np.shape(initial_img[:, :, 0]), atmosphere[0]) * (1 - T))) / T
+#     refined_img[:, :, 1] = (initial_img[:, :, 1] - (
+#                 np.full(np.shape(initial_img[:, :, 1]), atmosphere[1]) * (1 - T))) / T
+#     refined_img[:, :, 2] = (initial_img[:, :, 2] - (
+#                 np.full(np.shape(initial_img[:, :, 2]), atmosphere[2]) * (1 - T))) / T
+#
+#     initial_img = np.clip(initial_img, 0.0, 1.0)
+#     initial_img = cv2.normalize(initial_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+#     refined_img = np.clip(refined_img, 0.0, 1.0)
+#     refined_img = cv2.normalize(refined_img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+#
+#     fig, ax = plt.subplots(1, 2)
+#     fig.tight_layout()
+#     ax[0].set_axis_off()
+#     ax[0].imshow(initial_img)
+#     ax[1].set_axis_off()
+#     ax[1].imshow(refined_img)
+#
+#     plt.show(block=True)
 
 
 def perform_custom_dehazing_equation(hazy_img, clear_img):
