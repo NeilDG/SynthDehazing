@@ -1,5 +1,3 @@
-<link rel="stylesheet" type="text/css" href="https://github.com/NeilDG/SynthDehazing/blob/c850f91a44299b8e09bc3e5d0d83fcf2c88d8c63/style.css">
-
 # <center> A New Approach for Training a Physics-Based Dehazing Network Using Synthetic Images
 ### <center>In Signal Processing - Elsevier
 ### <center>Neil Patrick Del Gallego, Joel Ilao, Macario Cordel II, Conrado Ruiz Jr.</center>
