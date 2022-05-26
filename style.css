@@ -1,13 +1,13 @@
  .card1 {
         width: 500px;
         height: 400px;
-        background: url("./output/hazy/canyon.jpg") no-repeat;
+        background: url("./web_img/hazy/canyon.jpg") no-repeat;
         display: inline-block;
         position: relative;
         margin-bottom: 30px;
     }
     .card1:hover {
-        background: url("./output/dehazed/canyon.jpg") no-repeat;
+        background: url("./web_img/dehazed/canyon.jpg") no-repeat;
     }
 
     .caption-container {
@@ -30,13 +30,13 @@
     .card2 {
         width: 500px;
         height: 400px;
-        background: url("hazy2.jpg") no-repeat;
+        background: url("./web_img/hazy/train.jpg") no-repeat;
         display: inline-block;
         position: relative;
         margin-bottom: 30px;
     }
     .card2:hover {
-        background: url("./output/dehazed/canyon.jpg") no-repeat;
+        background: url("./web_img/dehazed/train.jpg") no-repeat;
     }
 
     .caption-container {
@@ -60,13 +60,13 @@
     .card3 {
         width: 500px;
         height: 400px;
-        background: url("hazy3.jpg") no-repeat;
+        background: url("./web_img/hazy/BD_Baidu_098.jpeg") no-repeat;
         display: inline-block;
         position: relative;
         margin-bottom: 30px;
     }
     .card3:hover {
-        background: url("dehazed3.jpg") no-repeat;
+        background: url("./web_img/dehazed/BD_Baidu_098.jpeg") no-repeat;
     }
 
     .caption-container {
@@ -90,13 +90,13 @@
     .card4 {
         width: 500px;
         height: 400px;
-        background: url("hazy4.jpg") no-repeat;
+        background: url("./web_img/hazy/22_outdoor_hazy.png") no-repeat;
         display: inline-block;
         position: relative;
         margin-bottom: 30px;
     }
     .card4:hover {
-        background: url("dehazed4.jpg") no-repeat;
+        background: url("./web_img/dehazed/22_outdoor_hazy.png") no-repeat;
     }
 
     .caption-container {
