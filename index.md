@@ -25,44 +25,12 @@ from the virtual environment. We formulate the training as a supervised image-to
 
 <p align="justify"> Our approach makes training stable and easier as compared to unsupervised approaches. Experimental results demonstrate the competitiveness of our approach against state-of-the-art dehazing works, using known benchmarking datasets such as I-Haze, O-Haze, and RESIDE, without our network seeing any real-world images during training. </p>
 
-<center>
-  <table align="center">
-      <tbody>
-      <tr>
-          <td>
-              <div class="card1">
-                  <div class="caption-container">
-                      <span class="caption"></span>
-                  </div>
-              </div>
-          </td>
-          <td>
-              <div class="card2">
-                  <div class="caption-container">
-                      <span class="caption"></span>
-                  </div>
-              </div>
-          </td>
-      </tr>
-      <tr>
-          <td>
-              <div class="card3">
-                  <div class="caption-container">
-                      <span class="caption"></span>
-                  </div>
-              </div>
-          </td>
-          <td>
-              <div class="card4">
-                  <div class="caption-container">
-                      <span class="caption"></span>
-                  </div>
-              </div>
-          </td>
-      </tr>
-      </tbody>
-  </table>
-</center>
+### Dehazing Results
+<center><img src="web_img/canyon.gif"> </center><br>
+<center><img src="web_img/train.gif"> </center><br>
+<center><img src="web_img/highway.gif"> </center><br>
+<center><img src="web_img/outdoor.gif"> </center><br>
+  
 ### Directory for High-Resolution Image Results
 
 <a href="https://github.com/NeilDG/SynthDehazing/tree/gh-pages/web_img/">Figures in paper</a> <br>
