@@ -1,13 +1,13 @@
  .card1 {
         width: 500px;
         height: 400px;
-        background: url("hazy1.jpg") no-repeat;
+        background: url("./output/hazy/canyon.jpg") no-repeat;
         display: inline-block;
         position: relative;
         margin-bottom: 30px;
     }
     .card1:hover {
-        background: url("output/hazy/canyon.jpg") no-repeat;
+        background: url("./output/dehazed/canyon.jpg") no-repeat;
     }
 
     .caption-container {
@@ -36,7 +36,7 @@
         margin-bottom: 30px;
     }
     .card2:hover {
-        background: url("output/dehazed/canyon.jpg") no-repeat;
+        background: url("./output/dehazed/canyon.jpg") no-repeat;
     }
 
     .caption-container {
