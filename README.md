@@ -4,18 +4,6 @@
 ### <center>Neil Patrick Del Gallego, Joel Ilao, Macario Cordel II, Conrado Ruiz Jr.</center>
 ### <center>De La Salle University, Grup de Recerca en Tecnologies Media, La Salle - Universitat Ramon Llull</center>
 
-<center><img src="web_img/logo_1.png" width="387"></center>
-
-# DISCLAIMER
-**The source code is currently still in pre-deployment stage. Please stay tuned for the production and test-ready source code.**
-
-
-<br>
-
-### <strong>Paper (to appear in Signal Processing - Elsevier) | Source code (coming soon) | Pretrained model (coming soon) </strong>
-
-<img src="web_img/results_3.png">
-
 ### Abstract
 
 <p align="justify"> In this study, we propose a new approach for training a physics-based dehazing network, using RGB images and depth maps gathered from a 3D urban virtual environment, with simulated global illumination and physically-based shaded materials. Since 3D scenes are rendered with depth buffers, full image depth can be extracted based on this information, using a custom shader, unlike
@@ -24,20 +12,6 @@ from the virtual environment. We formulate the training as a supervised image-to
 
 <p align="justify"> Our approach makes training stable and easier as compared to unsupervised approaches. Experimental results demonstrate the competitiveness of our approach against state-of-the-art dehazing works, using known benchmarking datasets such as I-Haze, O-Haze, and RESIDE, without our network seeing any real-world images during training. </p>
 
-### Dehazing Results
-We showcase the capabilities of our dehazing network in GIF.
-  
-<center><img src="web_img/canyon.gif"> </center><br>
-<center><img src="web_img/train.gif"> </center><br>
-<center><img src="web_img/highway.gif"> </center><br>
-<center><img src="web_img/outdoor.gif"> </center><br>
-  
-### Directory for High-Resolution Image Results
-
-<a href="https://github.com/NeilDG/SynthDehazing/tree/gh-pages/web_img/">Figures in paper</a> <br>
-<a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/I-Haze">I-Haze Dehazed Results </a> <br>
-<a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/O-Haze">O-Haze Dehazed Results </a> <br>
-<a href="https://github.com/NeilDG/SynthDehazing/tree/production-workspace/output/dehazed/RESIDE-OTS">RESIDE-OTS Dehazed Results </a> <br>
   
 ### DLSU-SYNSIDE (SYNthetic Single Dehazing Dataset)
 The training images used in our paper, will be released soon.
