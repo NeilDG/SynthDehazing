@@ -1,13 +1,13 @@
  .card1 {
         width: 500px;
         height: 400px;
-        background: url("/web_img/hazy/Standard/canyon.jpg") no-repeat;
+        background: url("/web_img/hazy/Standard/canyon2.jpg") no-repeat;
         display: inline-block;
         position: relative;
         margin-bottom: 30px;
     }
     .card1:hover {
-        background: url("/web_img/dehazed/Standard/canyon.jpg") no-repeat;
+        background: url("/web_img/dehazed/Standard/canyon2.png") no-repeat;
     }
 
     .caption-container {
@@ -36,7 +36,7 @@
         margin-bottom: 30px;
     }
     .card2:hover {
-        background: url("/web_img/dehazed/Standard/train.jpg") no-repeat;
+        background: url("/web_img/dehazed/Standard/train.png") no-repeat;
     }
 
     .caption-container {
