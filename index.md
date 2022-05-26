@@ -5,13 +5,9 @@
 
 <center><img src="web_img/logo_1.png" width="387"></center>
 
-# DISCLAIMER
-**The source code is currently still in pre-deployment stage. Please stay tuned for the production and test-ready source code.**
-
-
 <br>
 
-### <strong>Paper (to appear in Signal Processing - Elsevier) | Source code (coming soon) | Pretrained model (coming soon) </strong>
+### <strong><a href = "https://doi.org/10.1016/j.sigpro.2022.108631"> Paper (in Signal Processing - Elsevier)</a> | <a href = "https://github.com/NeilDG/SynthDehazing">Source code</a> </strong>
 
 <img src="web_img/results_3.png">
 
