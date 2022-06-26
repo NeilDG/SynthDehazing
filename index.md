@@ -66,7 +66,19 @@ python  inference.py  --path="E:/Hazy Dataset Benchmark/I-HAZE/hazy/*.jpg" --out
 You can further check ```infer_main.py``` for some examples.
   
 ### Citation
-Coming Soon
+```
+@article{DELGALLEGO2022108631,
+        title = {A new approach for training a physics-based dehazing network using synthetic images},
+        journal = {Signal Processing},
+        volume = {199},
+        pages = {108631},
+        year = {2022},
+        issn = {0165-1684},
+        doi = {https://doi.org/10.1016/j.sigpro.2022.108631},
+        url = {https://www.sciencedirect.com/science/article/pii/S0165168422001712},
+        author = {Neil Patrick {Del Gallego} and Joel Ilao and Macario Cordel and Conrado Ruiz}
+}
+```
 
 ### Acknowledgements
 We would like to acknowledge De La Salle University (DLSU), Department of Science and Technology (DOST), and the Google Cloud Research program, for funding this research.
