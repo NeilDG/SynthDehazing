@@ -14,7 +14,7 @@ parser.add_option('--output', type=str, default="./output/")
 parser.add_option('--albedo_checkpt_name', type=str, default="albedo_transfer_v1.04_1")
 parser.add_option('--t_checkpt_name', type=str, default="transmission_albedo_estimator_v1.16_6") #place in checkpoint
 parser.add_option('--a_checkpt_name', type=str, default="airlight_estimator_v1.16_6")
-
+parser.add_option('--repeats', type=int, default=1)
 
 def save_img(img, path):
     img = cv2.normalize(img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
@@ -47,6 +47,8 @@ def main(argv):
             hazy_img = cv2.resize(hazy_img, input_size, cv2.INTER_CUBIC)
 
             clear_img, T_tensor, A_tensor = model_dehazer.perform_dehazing_direct_v4(hazy_img, 0.0, True)
+            for j in range(1, opts.repeats): #iterative dehazing
+                clear_img, T_tensor, A_tensor = model_dehazer.perform_dehazing_direct_v4(clear_img, 0.0, True)
 
             hazy_img = cv2.resize(hazy_img, im_size, cv2.INTER_CUBIC)
             clear_img = cv2.resize(clear_img, im_size, cv2.INTER_CUBIC)

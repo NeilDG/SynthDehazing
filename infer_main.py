@@ -27,10 +27,11 @@ from custom_losses import vgg_loss_model
 
 def main():
     # os.system("python \"inference.py\" --path=\"E:/Hazy Dataset Benchmark/O-HAZE/hazy/*.jpg\" --output=\"./output/dehazed/O-Haze/\"")
-    os.system("python \"inference.py\" --path=\"E:/Hazy Dataset Benchmark/I-HAZE/hazy/*.jpg\" --output=\"./output/dehazed/I-Haze/\"")
+    # os.system("python \"inference.py\" --path=\"X:/GithubProjects/SynthDehazing/output/hazy/RW/*.jpg\" --output=\"./output/dehazed/RW/\"")
     # os.system("python \"inference.py\" --path=\"E:/Hazy Dataset Benchmark/OTS_BETA/haze/*0.95_0.2.jpg\" --output=\"./output/dehazed/RESIDE-OTS/\"")
-
     # os.system("python \"color_transfer.py\" --path=\"E:/Synth Hazy 3/clean/*.png\" --output=\"./output/Styled/\"")
+
+    os.system("python \"inference.py\" --path=\"G:/My Drive/NAST SynthDehazer/*.*\" --output=\"G:/My Drive/NAST SynthDehazer/dehazed/\" --repeats=2")
 
 if __name__=="__main__":
     main()
